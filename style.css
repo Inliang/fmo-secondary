@@ -18,6 +18,10 @@
   --success: #3FB950;
   --font-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  --card-bg: rgba(255, 255, 255, 0.05);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-divider: rgba(255, 255, 255, 0.08);
+  --hero-glow: 0 0 32px rgba(255, 255, 255, 0.12);
   --radius: 8px;
   --transition: 0.3s ease;
 }
@@ -35,6 +39,10 @@
   --success: #1A7F37;
   --font-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  --card-bg: rgba(0, 0, 0, 0.04);
+  --card-border: rgba(0, 0, 0, 0.08);
+  --card-divider: rgba(0, 0, 0, 0.08);
+  --hero-glow: none;
 }
 
 [data-theme="eink"] {
@@ -50,6 +58,10 @@
   --success: #000000;
   --font-base: 'Georgia', 'Times New Roman', serif;
   --font-mono: 'Courier New', 'Consolas', monospace;
+  --card-bg: transparent;
+  --card-border: #000000;
+  --card-divider: #000000;
+  --hero-glow: none;
   --transition: 0s;
 }
 
@@ -193,18 +205,18 @@ html, body {
   font-family: var(--font-mono);
   font-weight: 900;
   font-size: 54px;
-  color: #FFFFFF;
+  color: var(--text-primary);
   text-align: center;
   letter-spacing: 0.08em;
   line-height: 1;
   padding: 10px 0 14px 0;
   word-break: break-all;
   flex-shrink: 0;
-  text-shadow: 0 0 32px rgba(255, 255, 255, 0.12);
+  text-shadow: var(--hero-glow);
 }
 .panel-info .info-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
   border-radius: 10px;
   padding: 10px 14px;
   display: flex;
@@ -223,7 +235,7 @@ html, body {
 }
 .panel-info .info-card-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--card-divider);
   margin: 4px 0 6px 0;
 }
 .panel-info .info-card-label {
@@ -235,7 +247,7 @@ html, body {
   font-family: var(--font-mono);
   font-weight: 600;
   font-size: 16px;
-  color: #FFFFFF;
+  color: var(--text-primary);
   text-align: right;
   word-break: break-all;
 }
