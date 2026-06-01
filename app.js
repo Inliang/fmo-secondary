@@ -361,63 +361,84 @@ const App = {
   // ============ 数据获取 ============
 
   async fetchAllData() {
-    await this.fetchDeviceInfo();
-    await this.fetchServerListAll();     // 翻页全量
-    await this.fetchQsoListAll();        // 翻页全量
+    await Promise.all([
+      this.fetchDeviceInfo(),
+      this.fetchServerListAll(),
+      this.fetchQsoListAll()
+    ]);
   },
 
   async fetchDeviceInfo() {
+    const tasks = [];
+
     // user.getInfo
-    try {
-      const r = await this.send({ type: 'user', subType: 'getInfo' });
-      if (r.code === 0 && r.data?.callsign) {
-        this.myCallsign = r.data.callsign;
-        document.getElementById('info-callsign').textContent = this.myCallsign;
-        document.getElementById('status-callsign').textContent = this.myCallsign;
-      }
-    } catch (e) { console.warn('user:', e.message); }
-
-    // config 类 — 串行队列保护，各自独立
-    try {
-      const r = await this.send({ type: 'config', subType: 'getCordinate' });
-      if (r.code === 0 && r.data) {
-        const grid = this.latLonToGrid(r.data.latitude, r.data.longitude);
-        this.myGrid = grid;
-        document.getElementById('info-grid').textContent = grid;
-        document.getElementById('status-grid').textContent = grid;
-
-        // 尝试获取高度（坐标接口中可能附带）
-        if (r.data.altitude !== undefined) {
-          document.getElementById('info-altitude').textContent = `${r.data.altitude} m`;
-        } else if (r.data.elevation !== undefined) {
-          document.getElementById('info-altitude').textContent = `${r.data.elevation} m`;
+    tasks.push((async () => {
+      try {
+        const r = await this.send({ type: 'user', subType: 'getInfo' });
+        if (r.code === 0 && r.data?.callsign) {
+          this.myCallsign = r.data.callsign;
+          document.getElementById('info-callsign').textContent = this.myCallsign;
+          document.getElementById('status-callsign').textContent = this.myCallsign;
         }
-      }
-    } catch (e) {}
+      } catch (e) { console.warn('user:', e.message); }
+    })());
 
-    // 独立尝试 getAltitude 作为兜底
-    try {
-      const r = await this.send({ type: 'config', subType: 'getAltitude' });
-      if (r.code === 0 && r.data?.altitude !== undefined) {
-        document.getElementById('info-altitude').textContent = `${r.data.altitude} m`;
-      }
-    } catch (e) {}
+    // config: 坐标 + 网格
+    tasks.push((async () => {
+      try {
+        const r = await this.send({ type: 'config', subType: 'getCordinate' });
+        if (r.code === 0 && r.data) {
+          const grid = this.latLonToGrid(r.data.latitude, r.data.longitude);
+          this.myGrid = grid;
+          document.getElementById('info-grid').textContent = grid;
+          document.getElementById('status-grid').textContent = grid;
+          if (r.data.altitude !== undefined) {
+            document.getElementById('info-altitude').textContent = `${r.data.altitude} m`;
+          } else if (r.data.elevation !== undefined) {
+            document.getElementById('info-altitude').textContent = `${r.data.elevation} m`;
+          }
+        }
+      } catch (e) {}
+    })());
 
-    try {
-      const r = await this.send({ type: 'config', subType: 'getUserPhyDeviceName' });
-      if (r.code === 0 && r.data?.deviceName)
-        document.getElementById('info-device').textContent = r.data.deviceName;
-    } catch (e) {}
-    try {
-      const r = await this.send({ type: 'config', subType: 'getUserPhyAnt' });
-      if (r.code === 0 && r.data?.ant)
-        document.getElementById('info-antenna').textContent = r.data.ant;
-    } catch (e) {}
-    try {
-      const r = await this.send({ type: 'config', subType: 'getFirmwareVersion' });
-      if (r.code === 0 && r.data?.version)
-        document.getElementById('info-firmware').textContent = r.data.version;
-    } catch (e) {}
+    // config: 高度兜底
+    tasks.push((async () => {
+      try {
+        const r = await this.send({ type: 'config', subType: 'getAltitude' });
+        if (r.code === 0 && r.data?.altitude !== undefined) {
+          document.getElementById('info-altitude').textContent = `${r.data.altitude} m`;
+        }
+      } catch (e) {}
+    })());
+
+    // config: 设备名
+    tasks.push((async () => {
+      try {
+        const r = await this.send({ type: 'config', subType: 'getUserPhyDeviceName' });
+        if (r.code === 0 && r.data?.deviceName)
+          document.getElementById('info-device').textContent = r.data.deviceName;
+      } catch (e) {}
+    })());
+
+    // config: 天线
+    tasks.push((async () => {
+      try {
+        const r = await this.send({ type: 'config', subType: 'getUserPhyAnt' });
+        if (r.code === 0 && r.data?.ant)
+          document.getElementById('info-antenna').textContent = r.data.ant;
+      } catch (e) {}
+    })());
+
+    // config: 固件版本
+    tasks.push((async () => {
+      try {
+        const r = await this.send({ type: 'config', subType: 'getFirmwareVersion' });
+        if (r.code === 0 && r.data?.version)
+          document.getElementById('info-firmware').textContent = r.data.version;
+      } catch (e) {}
+    })());
+
+    await Promise.all(tasks);
   },
 
   latLonToGrid(lat, lon) {
@@ -469,7 +490,7 @@ const App = {
   // ============ 服务器列表 — 翻页全量 ============
 
   async fetchServerListAll() {
-    const pageSize = 20, maxPages = 50;
+    const pageSize = 100, maxPages = 20;
     const all = [];
 
     try {
@@ -586,18 +607,26 @@ const App = {
   // ============ 通联统计 ============
 
   async fetchStats() {
-    try {
-      const r = await this.send({ type: 'qso', subType: 'getTodayCount' });
-      if (r.code === 0) document.getElementById('stat-today').textContent = r.data?.count ?? '--';
-    } catch (e) {}
-    try {
-      const r = await this.send({ type: 'qso', subType: 'getTotalCount' });
-      if (r.code === 0) document.getElementById('stat-total').textContent = r.data?.count ?? '--';
-    } catch (e) {}
-    try {
-      const r = await this.send({ type: 'qso', subType: 'getContactCount' });
-      if (r.code === 0) document.getElementById('stat-contacts').textContent = r.data?.count ?? '--';
-    } catch (e) {}
+    await Promise.all([
+      (async () => {
+        try {
+          const r = await this.send({ type: 'qso', subType: 'getTodayCount' });
+          if (r.code === 0) document.getElementById('stat-today').textContent = r.data?.count ?? '--';
+        } catch (e) {}
+      })(),
+      (async () => {
+        try {
+          const r = await this.send({ type: 'qso', subType: 'getTotalCount' });
+          if (r.code === 0) document.getElementById('stat-total').textContent = r.data?.count ?? '--';
+        } catch (e) {}
+      })(),
+      (async () => {
+        try {
+          const r = await this.send({ type: 'qso', subType: 'getContactCount' });
+          if (r.code === 0) document.getElementById('stat-contacts').textContent = r.data?.count ?? '--';
+        } catch (e) {}
+      })()
+    ]);
   },
 
   // ============ QSO 列表 — qso.getList 分页全量 ============
@@ -605,13 +634,14 @@ const App = {
   async fetchQsoListAll() {
     const maxPages = 200;
     const all = [];
+    let detectedPageSize = 20;
 
     try {
       for (let page = 0; page < maxPages; page++) {
         const resp = await this.send({
           type: 'qso',
           subType: 'getList',
-          data: { page }
+          data: { page, count: 100 }
         });
         if (resp.code !== 0) break;
         const payload = resp.data;
@@ -620,8 +650,8 @@ const App = {
 
         all.push(...list);
 
-        // pageSize 固定 20，不足 20 条说明最后一页
-        if (list.length < 20) break;
+        if (page === 0) detectedPageSize = list.length;
+        if (list.length < detectedPageSize) break;
       }
     } catch (e) { console.warn('qso list:', e.message); }
 
