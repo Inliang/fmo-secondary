@@ -45,6 +45,10 @@ const App = {
   isMuted: false,
   vuLevel: 0,
 
+  // --- Speaking ---
+  _currentSpeaker: null,
+  _speakingTimer: null,
+
   // --- 定时器 ---
   datetimeTimer: null,
   pollTimer: null,
@@ -267,8 +271,8 @@ const App = {
       }
     }
 
-    // 非响应 → 服务端推送
-    if (msg.type === 'event' || msg.event) {
+    // 非响应 → 服务端推送（含 FmoDeck qso 事件）
+    if (msg.type === 'event' || msg.event || msg.type === 'qso') {
       this.handleEvent(JSON.stringify(msg));
     }
   },
@@ -284,24 +288,68 @@ const App = {
   },
 
   handleEvent(data) {
-    try {
-      const evt = JSON.parse(data);
-      switch (evt.event) {
-        case 'speaking_start':
-          this.showSpeaking(evt.callsign, evt.grid, evt);
-          break;
-        case 'speaking_stop':
-          this.hideSpeaking();
-          break;
-        case 'new_qso':
-          this.addQsoItem(evt);
-          break;
-        case 'station_update':
-        case 'online_change':
-          this.fetchServerList();
-          break;
+    const self = this;
+    // 处理黏连 JSON（多个 }{ 拼接）
+    const parts = data.split('}{');
+    let messages;
+    if (parts.length === 1) {
+      messages = [data.trim()];
+    } else {
+      messages = parts.map((p, i) => {
+        if (i === 0) return (p + '}').trim();
+        if (i === parts.length - 1) return ('{' + p).trim();
+        return ('{' + p + '}').trim();
+      });
+    }
+    for (const msgStr of messages) {
+      try {
+        const evt = JSON.parse(msgStr);
+        self._processEvent(evt);
+      } catch (e) {}
+    }
+  },
+
+  _processEvent(evt) {
+    // 旧格式：speaking_start / speaking_stop
+    if (evt.event === 'speaking_start') {
+      this.showSpeaking({
+        callsign: evt.callsign,
+        grid: evt.grid || '',
+        isHost: evt.isHost || false,
+      });
+      return;
+    }
+    if (evt.event === 'speaking_stop') {
+      this.hideSpeaking();
+      return;
+    }
+
+    // FmoDeck 新格式：qso/callsign
+    if (evt.type === 'qso' && evt.subType === 'callsign') {
+      const d = evt.data || {};
+      if (d.isSpeaking) {
+        this.showSpeaking({
+          callsign: d.callsign,
+          grid: d.grid || '',
+          isHost: d.isHost || false,
+        });
+      } else {
+        this.hideSpeaking();
       }
-    } catch (e) {}
+      return;
+    }
+
+    // FmoDeck：qso/history（预留）
+    if (evt.type === 'qso' && evt.subType === 'history') {
+      return;
+    }
+
+    // 其他事件
+    if (evt.event === 'new_qso') {
+      this.addQsoItem(evt);
+    } else if (evt.event === 'station_update' || evt.event === 'online_change') {
+      this.fetchServerList();
+    }
   },
 
   // ============ 数据获取 ============
@@ -359,6 +407,41 @@ const App = {
     return String.fromCharCode(65+fl) + String.fromCharCode(65+fL) +
            String(sl) + String(sL) +
            String.fromCharCode(97+ssLon) + String.fromCharCode(97+ssLat);
+  },
+
+  // ============ 辅助函数 ============
+
+  parseCallsignSsid(callsign) {
+    if (!callsign) return { call: '', ssid: '' };
+    const m = callsign.match(/^(.+?)(?:-(\d+))?$/);
+    return m ? { call: m[1], ssid: m[2] || '0' } : { call: callsign, ssid: '0' };
+  },
+
+  isSameOperator(a, b) {
+    return this.parseCallsignSsid(a).call === this.parseCallsignSsid(b).call;
+  },
+
+  formatElapsed(ms) {
+    const s = Math.floor(ms / 1000);
+    if (s < 60) return s + 's';
+    const m = Math.floor(s / 60);
+    const remS = s % 60;
+    if (s < 3600) return m + 'm' + remS + 's';
+    const h = Math.floor(s / 3600);
+    const remM = Math.floor((s % 3600) / 60);
+    const remSs = s % 60;
+    return h + 'h' + remM + 'm' + remSs + 's';
+  },
+
+  formatTimeAgo(unixSeconds, nowMs) {
+    const diffMs = nowMs - unixSeconds * 1000;
+    const diffS = Math.floor(diffMs / 1000);
+    if (diffS < 60) return diffS + 's前';
+    const diffM = Math.floor(diffS / 60);
+    if (diffM < 60) return diffM + 'm前';
+    const diffH = Math.floor(diffM / 60);
+    if (diffH < 48) return diffH + 'h前';
+    return Math.floor(diffH / 24) + 'd前';
   },
 
   // ============ 服务器列表 — 翻页全量 ============
@@ -559,31 +642,103 @@ const App = {
 
   // ============ Speaking Bar ============
 
-  showSpeaking(callsign, grid, evt) {
-    const bar = document.getElementById('speaking-bar');
-    bar.classList.add('active');
-    let extraHtml = '';
-    if (evt) {
-      const parts = [];
-      if (evt.distance) parts.push(`距离 ${evt.distance} km`);
-      if (evt.power) parts.push(`功率 ${evt.power}W`);
-      if (evt.mode) parts.push(evt.mode);
-      if (parts.length) extraHtml = `<div class="speaker-stats">${parts.join(' · ')}</div>`;
+  showSpeaking(data) {
+    this._currentSpeaker = {
+      callsign: data.callsign || '',
+      grid: data.grid || '',
+      isHost: data.isHost || false,
+      startedAtMs: Date.now(),
+    };
+
+    if (this._speakingTimer) {
+      clearInterval(this._speakingTimer);
     }
-    bar.innerHTML = `
-      <div class="speaker-callsign">${callsign || '--'}</div>
-      <div class="speaker-location">${grid || '--'}</div>
-      ${extraHtml}
-      <div class="vu-meter"><div class="vu-meter-fill" style="width:${this.vuLevel}%"></div></div>
-    `;
+
+    this.renderSpeakingBar();
+
+    this._speakingTimer = setInterval(() => {
+      this.renderSpeakingBar();
+    }, 1000);
   },
 
   hideSpeaking() {
-    setTimeout(() => {
-      const bar = document.getElementById('speaking-bar');
+    if (this._speakingTimer) {
+      clearInterval(this._speakingTimer);
+      this._speakingTimer = null;
+    }
+    this._currentSpeaker = null;
+    const bar = document.getElementById('speaking-bar');
+    if (bar) {
       bar.classList.remove('active');
       bar.innerHTML = '<div class="idle-text">等待通联...</div>';
-    }, 3000);
+    }
+  },
+
+  renderSpeakingBar() {
+    const bar = document.getElementById('speaking-bar');
+    if (!bar) return;
+
+    const sp = this._currentSpeaker;
+    if (!sp) return;
+
+    bar.classList.add('active');
+
+    const elapsed = Date.now() - sp.startedAtMs;
+    const elapsedStr = this.formatElapsed(elapsed);
+
+    // 徽章
+    let badgesHtml = '';
+    if (sp.isHost) {
+      badgesHtml += '<span class="speaker-badge host">HOST</span>';
+    }
+    const isSelf = this.isSameOperator(sp.callsign, this.myCallsign);
+    if (isSelf) {
+      badgesHtml += '<span class="speaker-badge self">自己</span>';
+    }
+
+    // 通联统计
+    const qsos = this.qsoList.filter(q => {
+      const toCall = q.toCallsign || q.callsign || '';
+      return this.isSameOperator(toCall, sp.callsign);
+    });
+
+    // 新朋友徽章（非自己且恰好 1 次）
+    if (!isSelf && qsos.length === 1) {
+      badgesHtml += '<span class="speaker-badge new-friend">✦ 新朋友</span>';
+    }
+
+    // 第二行：网格 + 通联统计
+    let row2Html = `<span class="speaker-grid">${sp.grid || '--'}</span>`;
+
+    if (!isSelf) {
+      const count = qsos.length;
+      let statsText = '';
+      if (count === 0) {
+        statsText = '从未通联';
+      } else {
+        let latestTs = 0;
+        for (const q of qsos) {
+          if (q.timestamp && q.timestamp > latestTs) latestTs = q.timestamp;
+        }
+        const ago = this.formatTimeAgo(latestTs, Date.now());
+        statsText = `通联 ${count} 次 · 上次 ${ago}`;
+      }
+      row2Html += `<span class="speaker-stats-text">${statsText}</span>`;
+    }
+
+    bar.innerHTML = `
+      <div class="speaking-bar-content">
+        <div class="speaker-row-1">
+          <span class="speaker-callsign">${sp.callsign || '--'}</span>
+          ${badgesHtml}
+          <span class="speaker-elapsed">${elapsedStr}</span>
+        </div>
+        <div class="speaker-row-2">
+          ${row2Html}
+        </div>
+        <div class="vu-meter"><div class="vu-meter-fill" style="width:${this.vuLevel}%"></div></div>
+      </div>
+    `;
   },
 
   // ============ VU / 频谱 ============
