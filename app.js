@@ -388,6 +388,7 @@ const App = {
       const r = await this.send({ type: 'station', subType: 'getCurrent' });
       if (r.code === 0 && r.data) {
         this.currentServerName = r.data.name || '';
+        this._prevServer = this.currentServerName;
         document.getElementById('status-server').textContent = this.currentServerName || '--';
       }
     } catch (e) {}
@@ -439,18 +440,42 @@ const App = {
 
   async switchServer(name) {
     if (name === this.currentServerName) return;
+
+    // 保存切换前服务器，失败时回退
+    this._prevServer = this.currentServerName;
+
+    // 先更新 UI 为切换中状态，再发请求
+    document.getElementById('status-server').textContent = name + ' …';
+    this.currentServerName = name;
+    this.renderServerList();
+
     try {
       const target = this.serverList.find(s => s.name === name);
-      const data = target ? { uid: target.uid, name: target.name } : { name };
+      const uid = target ? (target.uid ?? target._id ?? target.id) : undefined;
+      const data = { name };
+      if (uid !== undefined) data.uid = uid;
+
       const resp = await this.send({ type: 'station', subType: 'setCurrent', data });
       if (resp.code === 0) {
-        this.currentServerName = name;
         document.getElementById('status-server').textContent = name;
         this.renderServerList();
-        await this.fetchQsoListAll();
-        await this.fetchStats();
+      } else {
+        // 失败回退
+        document.getElementById('status-server').textContent = this._prevServer || '--';
+        this.currentServerName = this._prevServer || '';
+        this.renderServerList();
+        return;
       }
-    } catch (e) { console.warn('switchServer:', e.message); }
+    } catch (e) {
+      console.warn('switchServer:', e.message);
+      document.getElementById('status-server').textContent = this._prevServer || '--';
+      this.currentServerName = this._prevServer || '';
+      this.renderServerList();
+      return;
+    }
+
+    await this.fetchQsoListAll();
+    await this.fetchStats();
   },
 
   // ============ 通联统计 ============
