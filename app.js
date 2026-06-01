@@ -74,6 +74,7 @@ const App = {
     $('settings-cancel').addEventListener('click', () => this.closeSettings());
     $('settings-save').addEventListener('click', () => this.saveSettings());
     $('theme-toggle').addEventListener('click', () => this.cycleTheme());
+    $('mute-btn').addEventListener('click', () => this.toggleMute());
     const si = $('server-search');
     if (si) {
       si.addEventListener('input', (e) => {
@@ -258,10 +259,22 @@ const App = {
       const r = this._inFlight.req;
       const expectedSubType =
         RESPONSE_ALIASES[r.type]?.[r.subType] ?? `${r.subType}Response`;
+
+      let matched = false;
       if (
         msg.type === r.type &&
         (msg.subType === expectedSubType || msg.subType === r.subType)
       ) {
+        matched = true;
+      }
+
+      // 兜底：firmware 可能返回不规则 subType（如 push 回应的 station list 不带 subType）
+      // 仅当 msg 带 code 字段且 type 一致但 subType 匹配失败时启用
+      if (!matched && msg.type === r.type && msg.code !== undefined) {
+        matched = true;
+      }
+
+      if (matched) {
         clearTimeout(this._inFlight.timer);
         const resolve = this._inFlight.resolve;
         this._inFlight = null;
@@ -312,13 +325,14 @@ const App = {
   _processEvent(evt) {
     // 旧格式：speaking_start / speaking_stop
     if (evt.event === 'speaking_start') {
+      const derived = this._deriveStationInfo(evt.callsign);
       this.showSpeaking({
         callsign: evt.callsign,
-        grid: evt.grid || '',
+        grid: evt.grid || derived.grid || '',
         isHost: evt.isHost || false,
-        distance: evt.distance,
-        azimuth: evt.azimuth,
-        altitude: evt.altitude,
+        distance: evt.distance !== undefined ? evt.distance : derived.distance,
+        azimuth: evt.azimuth !== undefined ? evt.azimuth : derived.azimuth,
+        altitude: evt.altitude !== undefined ? evt.altitude : derived.altitude,
       });
       return;
     }
@@ -331,13 +345,14 @@ const App = {
     if (evt.type === 'qso' && evt.subType === 'callsign') {
       const d = evt.data || {};
       if (d.isSpeaking) {
+        const derived = this._deriveStationInfo(d.callsign);
         this.showSpeaking({
           callsign: d.callsign,
-          grid: d.grid || '',
+          grid: d.grid || derived.grid || '',
           isHost: d.isHost || false,
-          distance: d.distance,
-          azimuth: d.azimuth,
-          altitude: d.altitude,
+          distance: d.distance !== undefined ? d.distance : derived.distance,
+          azimuth: d.azimuth !== undefined ? d.azimuth : derived.azimuth,
+          altitude: d.altitude !== undefined ? d.altitude : derived.altitude,
         });
       } else {
         this.hideSpeaking();
@@ -388,6 +403,8 @@ const App = {
       try {
         const r = await this.send({ type: 'config', subType: 'getCordinate' });
         if (r.code === 0 && r.data) {
+          this._myLat = r.data.latitude;
+          this._myLon = r.data.longitude;
           const grid = this.latLonToGrid(r.data.latitude, r.data.longitude);
           this.myGrid = grid;
           document.getElementById('info-grid').textContent = grid;
@@ -501,7 +518,18 @@ const App = {
           data: { start: i * pageSize, count: pageSize }
         });
         if (resp.code !== 0) break;
-        const list = resp.data?.list ?? [];
+        // 兼容 firmware 不同返回格式：data 可能是 {list:[]} 或直接是数组
+        const payload = resp.data;
+        let list;
+        if (Array.isArray(payload)) {
+          list = payload;
+        } else if (payload && Array.isArray(payload.list)) {
+          list = payload.list;
+        } else if (payload && Array.isArray(payload.data)) {
+          list = payload.data;
+        } else {
+          list = [];
+        }
         if (list.length === 0) break;
         all.push(...list);
         if (list.length < pageSize) break;
@@ -694,6 +722,92 @@ const App = {
 
   // ============ Speaking Bar ============
 
+  /**
+   * 从 QSO 列表推导台站附属信息（当事件未提供时兜底）
+   * 返回 { grid, distance, azimuth, altitude }，未找到的字段为 undefined
+   */
+  _deriveStationInfo(callsign) {
+    const result = {};
+    if (!callsign || !this.qsoList.length) return result;
+
+    // 查找最近一条包含该呼号的 QSO（按时间戳降序）
+    const qso = this.qsoList.find(q => {
+      const qc = q.toCallsign || q.callsign || '';
+      return this.isSameOperator(qc, callsign);
+    });
+    if (!qso) return result;
+
+    if (qso.grid || qso.locator) result.grid = qso.grid || qso.locator;
+    if (qso.distance !== undefined) result.distance = qso.distance;
+    if (qso.azimuth !== undefined) result.azimuth = qso.azimuth;
+    if (qso.altitude !== undefined) result.altitude = qso.altitude;
+
+    // 若 QSO 无 distance/azimuth，尝试从双方网格计算
+    if (result.grid && this.myGrid && (result.distance === undefined || result.azimuth === undefined)) {
+      const computed = this._computeGridDistance(result.grid);
+      if (computed) {
+        if (result.distance === undefined) result.distance = computed.distance;
+        if (result.azimuth === undefined) result.azimuth = computed.azimuth;
+      }
+    }
+
+    return result;
+  },
+
+  /**
+   * 从远程网格计算与我站之间的距离(km)和方位角(°)。
+   * 网格中心点近似（6 位精度 ~ 3' 以内）。
+   */
+  _computeGridDistance(remoteGrid) {
+    try {
+      const selfLat = this._myLat;
+      const selfLon = this._myLon;
+      if (selfLat === undefined || selfLon === undefined) return null;
+
+      // 解析 Maidenhead 6 位网格→经纬度（字段中心）
+      const g = remoteGrid.toUpperCase();
+      if (g.length < 4) return null;
+
+      // 字段 AA-Field
+      const fieldLon = (g.charCodeAt(0) - 65) * 20 - 180;
+      const fieldLat = (g.charCodeAt(1) - 65) * 10 - 90;
+      // 方格 Square (0-9)
+      const sqLon = parseInt(g[2]) * 2;
+      const sqLat = parseInt(g[3]) * 1;
+      // 小区 Sub-square (a-x)
+      const subLon = g.length >= 6 ? (g.charCodeAt(4) - 65) * (5 / 60) : 0;
+      const subLat = g.length >= 6 ? (g.charCodeAt(5) - 65) * (2.5 / 60) : 0;
+
+      const lat = fieldLat + sqLat + subLat + (2.5 / 120);  // 中心
+      const lon = fieldLon + sqLon + subLon + (5 / 120);
+
+      return this._calcDistanceAzimuth(selfLat, selfLon, lat, lon);
+    } catch (e) {
+      return null;
+    }
+  },
+
+  _calcDistanceAzimuth(lat1, lon1, lat2, lon2) {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const rLat1 = lat1 * Math.PI / 180;
+    const rLat2 = lat2 * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(rLat1) * Math.cos(rLat2) * Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = Math.round(R * c);
+
+    const y = Math.sin(dLon) * Math.cos(rLat2);
+    const x = Math.cos(rLat1) * Math.sin(rLat2) -
+              Math.sin(rLat1) * Math.cos(rLat2) * Math.cos(dLon);
+    let azimuth = Math.atan2(y, x) * 180 / Math.PI;
+    if (azimuth < 0) azimuth += 360;
+    azimuth = Math.round(azimuth);
+
+    return { distance, azimuth };
+  },
+
   showSpeaking(data) {
     this._currentSpeaker = {
       callsign: data.callsign || '',
@@ -825,12 +939,64 @@ const App = {
   updateMiniSpectrum() {
     const container = document.getElementById('mini-spectrum');
     if (!container) return;
-    let html = '';
-    for (let i = 0; i < 16; i++) {
-      const h = Math.max(2, Math.random() * 36 * (this.vuLevel / 100 + 0.1));
-      html += `<div class="bar" style="height:${h}px"></div>`;
+
+    const bars = 24;
+
+    // 首次初始化：生成每个 bar 的基准噪声种子（0.05~0.35）和中心频率权重
+    if (!this._specSeeds || this._specSeeds.length !== bars) {
+      this._specSeeds = [];
+      for (let i = 0; i < bars; i++) {
+        this._specSeeds.push({
+          noise: 0.05 + Math.random() * 0.3,
+          // 语音频段加权：0~1 范围，人声 300-3400Hz 集中在 20%~75% 的 bar 位置
+          voiceWeight: 1 - Math.abs((i / (bars - 1)) - 0.45) * 1.4
+        });
+      }
+      this._specHistory = new Array(bars).fill(0);
     }
-    container.innerHTML = html;
+
+    const vuScale = this.vuLevel / 100;
+    const maxHeight = 48;
+    const containerEl = container;
+    let html = '';
+
+    for (let i = 0; i < bars; i++) {
+      const seed = this._specSeeds[i];
+
+      // 噪声基底 + VU驱动 + 语音频段加权
+      const raw = seed.noise + vuScale * seed.voiceWeight * 1.2;
+      const target = Math.max(0.02, Math.min(1, raw));
+
+      // 平滑过渡（上次高度的 60% + 目标高度的 40%）
+      const prev = this._specHistory[i];
+      const smoothed = prev * 0.55 + target * 0.45;
+      this._specHistory[i] = smoothed;
+
+      const h = Math.max(2, Math.round(smoothed * maxHeight));
+
+      // 颜色：低→绿，中→黄，高→红（频谱渐变）
+      const ratio = smoothed;
+      let r, g, b;
+      if (ratio < 0.33) {
+        const t = ratio / 0.33;
+        r = Math.round(0 + t * 255);
+        g = Math.round(200 + t * 55);
+        b = Math.round(80 - t * 80);
+      } else if (ratio < 0.66) {
+        const t = (ratio - 0.33) / 0.33;
+        r = 255;
+        g = Math.round(255 - t * 155);
+        b = 0;
+      } else {
+        const t = (ratio - 0.66) / 0.34;
+        r = 255;
+        g = Math.round(100 - t * 50);
+        b = 0;
+      }
+
+      html += `<div class="bar" style="height:${h}px;background:rgb(${r},${g},${b});opacity:${0.45 + smoothed * 0.55}"></div>`;
+    }
+    containerEl.innerHTML = html;
   },
 
   // ============ 音频 ============
@@ -877,6 +1043,20 @@ const App = {
 
   stopPolling() {
     if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
+  },
+
+  toggleMute() {
+    this.isMuted = !this.isMuted;
+    const btn = document.getElementById('mute-btn');
+    if (btn) {
+      if (this.isMuted) {
+        btn.innerHTML = '&#x1F507;';
+        btn.classList.add('muted');
+      } else {
+        btn.innerHTML = '&#x1F50A;';
+        btn.classList.remove('muted');
+      }
+    }
   },
 
   // ============ 设置 ============
