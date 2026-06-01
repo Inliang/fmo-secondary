@@ -29,6 +29,8 @@ const App = {
   // --- 数据 ---
   myCallsign: '',
   qsoList: [],
+  serverList: [],
+  currentServerName: '',
 
   // --- 音频 ---
   audioCtx: null,
@@ -255,8 +257,6 @@ const App = {
   },
 
   handleMainMessage(data) {
-    // 被动响应由 sendRequest 的 handler 处理
-    // 这里处理主动推送
     try {
       const msg = JSON.parse(data);
       if (msg.type === 'event') {
@@ -270,18 +270,17 @@ const App = {
       const evt = JSON.parse(data);
       switch (evt.event) {
         case 'speaking_start':
-          this.showSpeaking(evt.callsign, evt.grid);
+          this.showSpeaking(evt.callsign, evt.grid, evt);
           break;
         case 'speaking_stop':
           this.hideSpeaking();
           break;
         case 'new_qso':
           this.addQsoItem(evt);
-          this.refreshStats();
           break;
         case 'station_update':
         case 'online_change':
-          this.refreshServerAndStats();
+          this.refreshServerList();
           break;
       }
     } catch (e) {}
@@ -290,9 +289,8 @@ const App = {
   // --- 数据获取 ---
   async fetchAllData() {
     await this.fetchDeviceInfo();
-    await this.fetchServerInfo();
-    await this.fetchStats();
-    await this.fetchRecentQsos();
+    await this.fetchServerList();
+    // QSO 列表通过 new_qso 事件实时接收，不主动拉取历史记录
   },
 
   async fetchDeviceInfo() {
@@ -306,26 +304,29 @@ const App = {
 
       if (userResp.code === 0 && userResp.data?.callsign) {
         this.myCallsign = userResp.data.callsign;
-        document.getElementById('info-callsign').textContent = this.myCallsign;
-        document.getElementById('status-callsign').textContent = this.myCallsign;
+        const el = document.getElementById('status-callsign-center');
+        if (el) el.textContent = this.myCallsign;
       }
 
+      // 左侧设备信息
+      if (userResp.code === 0 && userResp.data?.callsign) {
+        document.getElementById('info-callsign').textContent = this.myCallsign;
+      }
       if (coordResp.code === 0 && coordResp.data) {
         const grid = this.latLonToGrid(coordResp.data.latitude, coordResp.data.longitude);
         document.getElementById('info-grid').textContent = grid;
-        document.getElementById('status-grid').textContent = grid;
+        const gc = document.getElementById('status-grid-center');
+        if (gc) gc.textContent = grid;
       }
-
       if (devResp.code === 0 && devResp.data?.deviceName) {
         document.getElementById('info-device').textContent = devResp.data.deviceName;
       }
-
       if (antResp.code === 0 && antResp.data?.ant) {
         document.getElementById('info-antenna').textContent = antResp.data.ant;
       }
     } catch (e) { console.warn('fetchDeviceInfo:', e.message); }
 
-    // Firmware
+    // 固件版本
     try {
       const fwResp = await this.sendRequest({ type: 'config', subType: 'getFirmwareVersion' });
       if (fwResp.code === 0 && fwResp.data?.version) {
@@ -345,17 +346,25 @@ const App = {
            String.fromCharCode(97+ssLon) + String.fromCharCode(97+ssLat);
   },
 
-  async fetchServerInfo() {
+  async fetchServerList() {
     try {
-      const resp = await this.sendRequest({ type: 'station', subType: 'getCurrent' });
-      if (resp.code === 0 && resp.data) {
-        document.getElementById('server-name').textContent = resp.data.name || '--';
-        document.getElementById('server-online').textContent = (resp.data.onlineCount ?? '--');
+      const [listResp, currentResp] = await Promise.all([
+        this.sendRequest({ type: 'station', subType: 'getListRange' }),
+        this.sendRequest({ type: 'station', subType: 'getCurrent' })
+      ]);
+
+      if (listResp.code === 0 && listResp.data?.list) {
+        this.serverList = listResp.data.list;
+        this.renderServerList();
+      }
+
+      if (currentResp.code === 0 && currentResp.data) {
+        this.currentServerName = currentResp.data.name || '';
+        this.renderServerList();
       }
     } catch (e) {}
-  },
 
-  async fetchStats() {
+    // 同步拉取通联统计
     try {
       const [todayResp, totalResp, contactResp] = await Promise.all([
         this.sendRequest({ type: 'qso', subType: 'getTodayCount' }),
@@ -374,35 +383,81 @@ const App = {
     } catch (e) {}
   },
 
-  async fetchRecentQsos() {
+  async refreshServerList() {
+    await this.fetchServerList();
+  },
+
+  // --- 服务器列表渲染（右上角面板） ---
+  renderServerList() {
+    const container = document.getElementById('server-list-container');
+    if (!container) return;
+
+    if (!this.serverList.length) {
+      container.innerHTML = '<div class="server-list-empty">无可用服务器</div>';
+      return;
+    }
+
+    container.innerHTML = this.serverList.map(s => {
+      const isActive = s.name === this.currentServerName;
+      return `<div class="server-item${isActive ? ' active' : ''}" data-server-name="${s.name}">
+        <span class="server-item-name">${s.name || '--'}</span>
+        <span>
+          <span class="server-item-count">${s.onlineCount ?? '--'} 在线</span>
+          ${isActive ? '<span class="server-item-check">✓</span>' : ''}
+        </span>
+      </div>`;
+    }).join('');
+
+    // 绑定点击切换
+    container.querySelectorAll('.server-item').forEach(el => {
+      el.addEventListener('click', () => this.switchServer(el.dataset.serverName));
+    });
+  },
+
+  async switchServer(name) {
+    if (name === this.currentServerName) return;
     try {
       const resp = await this.sendRequest({
-        type: 'qso', subType: 'getListRange', data: { start: 0, count: 20 }
+        type: 'station', subType: 'setCurrent', data: { name }
       });
-      if (resp.code === 0 && resp.data?.list) {
-        this.qsoList = resp.data.list;
-        this.renderQsoList();
+      if (resp.code === 0) {
+        this.currentServerName = name;
+        this.renderServerList();
+        // 切换后刷新统计数据
+        await this.refreshStats();
+      }
+    } catch (e) {
+      console.warn('switchServer:', e.message);
+    }
+  },
+
+  async refreshStats() {
+    try {
+      const [todayResp, totalResp, contactResp] = await Promise.all([
+        this.sendRequest({ type: 'qso', subType: 'getTodayCount' }),
+        this.sendRequest({ type: 'qso', subType: 'getTotalCount' }),
+        this.sendRequest({ type: 'qso', subType: 'getContactCount' })
+      ]);
+      if (todayResp.code === 0) {
+        document.getElementById('stat-today').textContent = todayResp.data?.count ?? '--';
+      }
+      if (totalResp.code === 0) {
+        document.getElementById('stat-total').textContent = totalResp.data?.count ?? '--';
+      }
+      if (contactResp.code === 0) {
+        document.getElementById('stat-contacts').textContent = contactResp.data?.count ?? '--';
       }
     } catch (e) {}
   },
 
-  async refreshServerAndStats() {
-    await this.fetchServerInfo();
-    await this.fetchStats();
-  },
-
-  async refreshStats() {
-    await this.fetchStats();
-  },
-
-  // --- 渲染 ---
+  // --- QSO 列表渲染 ---
   renderQsoList() {
     const container = document.getElementById('qso-container');
     if (!this.qsoList.length) {
       container.innerHTML = '<div class="idle-text" style="padding:20px;text-align:center">暂无通联记录</div>';
       return;
     }
-    container.innerHTML = this.qsoList.slice(0, 10).map(item => {
+    container.innerHTML = this.qsoList.slice(0, 20).map(item => {
       const ts = item.timestamp ? new Date(item.timestamp * 1000) : null;
       const timeStr = ts
         ? `${ts.getFullYear()}/${String(ts.getMonth()+1).padStart(2,'0')}/${String(ts.getDate()).padStart(2,'0')} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}`
@@ -419,17 +474,30 @@ const App = {
   addQsoItem(qso) {
     this.qsoList.unshift(qso);
     this.renderQsoList();
-    // 高亮第一条
     const first = document.querySelector('.qso-item');
     if (first) first.classList.add('new-highlight');
+    // 更新统计
+    this.refreshStats();
   },
 
-  showSpeaking(callsign, grid) {
+  showSpeaking(callsign, grid, evt) {
     const bar = document.getElementById('speaking-bar');
     bar.classList.add('active');
+
+    // 构建附带信息：距离、功率等
+    let extraHtml = '';
+    if (evt) {
+      const parts = [];
+      if (evt.distance) parts.push(`距离 ${evt.distance} km`);
+      if (evt.power) parts.push(`功率 ${evt.power}W`);
+      if (evt.mode) parts.push(evt.mode);
+      if (parts.length) extraHtml = `<div class="speaker-stats">${parts.join(' · ')}</div>`;
+    }
+
     bar.innerHTML = `
-      <div class="speaker-callsign">🔊 ${callsign || '--'}</div>
+      <div class="speaker-callsign">${callsign || '--'}</div>
       <div class="speaker-location">${grid || '--'}</div>
+      ${extraHtml}
       <div class="vu-meter"><div class="vu-meter-fill" style="width:${this.vuLevel}%"></div></div>
     `;
   },
@@ -446,7 +514,6 @@ const App = {
     this.vuLevel = Math.min(100, level);
     const fill = document.querySelector('.vu-meter-fill');
     if (fill) fill.style.width = this.vuLevel + '%';
-    // 更新迷你频谱
     this.updateMiniSpectrum();
   },
 
@@ -470,15 +537,12 @@ const App = {
 
   handleAudioFrame(buf) {
     if (!buf || !this.audioCtx || this.isMuted) {
-      // 静音时仍计算VU用于显示
-      if (buf && !this.isMuted) return;
       if (buf) this.computeVU(buf);
       return;
     }
 
     this.computeVU(buf);
 
-    // 简化播放：将 8kHz 16bit PCM 转为 AudioBuffer 播放
     const raw = new Int16Array(buf);
     const buffer = this.audioCtx.createBuffer(1, raw.length, 8000);
     const channel = buffer.getChannelData(0);
@@ -508,8 +572,7 @@ const App = {
     this.stopPolling();
     const poll = () => {
       if (this.connected) {
-        this.fetchServerInfo();
-        this.fetchStats();
+        this.fetchServerList();
       }
     };
     this.pollTimer = setInterval(poll, 15000);

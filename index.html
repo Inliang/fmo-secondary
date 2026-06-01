@@ -7,158 +7,121 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<div class="app-shell">
-
-  <!-- 状态条 -->
-  <div class="status-bar">
-    <div class="status-bar-left">
-      <span id="status-dot" class="status-dot"></span>
-      <span id="status-text" class="status-text">未连接</span>
-      <span id="status-callsign" class="status-callsign">------</span>
-      <span id="status-grid" class="status-grid">------</span>
+  <div class="app-shell">
+    <!-- ===== 状态条 ===== -->
+    <div class="status-bar">
+      <div class="status-bar-left">
+        <span class="status-dot" id="status-dot"></span>
+        <span class="status-text" id="status-text">未连接</span>
+      </div>
+      <div class="status-bar-center">
+        <span class="status-callsign-center" id="status-callsign-center">--</span>
+        <span class="status-grid-center" id="status-grid-center">--</span>
+      </div>
+      <div class="status-bar-right">
+        <span class="status-ip" id="status-ip">--</span>
+        <span class="status-time" id="status-time">--</span>
+        <button class="theme-toggle" id="theme-toggle">暗色</button>
+        <button class="settings-btn" id="settings-btn" title="设置">⚙</button>
+      </div>
     </div>
-    <div class="status-bar-center">
-      <span id="server-name" class="status-callsign" style="font-weight:400">SERVER</span>
-    </div>
-    <div class="status-bar-right">
-      <span id="status-ip" class="status-ip">------</span>
-      <span id="status-time" class="status-time">----/--/-- --:--</span>
-      <button id="theme-toggle" class="theme-toggle">暗色</button>
-      <button id="settings-btn" class="settings-btn" title="设置">&#9881;</button>
+
+    <!-- ===== 四象限面板 ===== -->
+    <div class="dashboard">
+      <!-- 左上：设备信息 -->
+      <div class="panel">
+        <div class="panel-title">设备信息</div>
+        <div class="panel-content">
+          <div class="info-row"><span class="info-label">呼号</span><span class="info-value accent" id="info-callsign">--</span></div>
+          <div class="info-row"><span class="info-label">网格</span><span class="info-value" id="info-grid">--</span></div>
+          <div class="info-row"><span class="info-label">设备</span><span class="info-value" id="info-device">--</span></div>
+          <div class="info-row"><span class="info-label">天线</span><span class="info-value" id="info-antenna">--</span></div>
+          <div class="info-row"><span class="info-label">固件</span><span class="info-value" id="info-firmware">--</span></div>
+        </div>
+      </div>
+
+      <!-- 右上：服务器列表 + 通联统计 -->
+      <div class="panel">
+        <div class="panel-title">服务器列表</div>
+        <div class="panel-content">
+          <div class="server-list" id="server-list-container">
+            <div class="server-list-empty">加载中...</div>
+          </div>
+          <div class="stat-grid" style="margin-top:8px;flex-shrink:0;">
+            <div class="stat-card">
+              <div class="stat-value" id="stat-today">--</div>
+              <div class="stat-label">今日</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="stat-total">--</div>
+              <div class="stat-label">总计</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="stat-contacts">--</div>
+              <div class="stat-label">通联数</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 左下：Speaking Bar + 迷你频谱 -->
+      <div class="panel">
+        <div class="panel-title">当前通联</div>
+        <div class="panel-content">
+          <div class="speaking-bar" id="speaking-bar">
+            <div class="idle-text">等待通联...</div>
+          </div>
+          <div class="mini-spectrum" id="mini-spectrum">
+            <div class="bar" style="height:4px"></div><div class="bar" style="height:6px"></div>
+            <div class="bar" style="height:3px"></div><div class="bar" style="height:8px"></div>
+            <div class="bar" style="height:5px"></div><div class="bar" style="height:2px"></div>
+            <div class="bar" style="height:7px"></div><div class="bar" style="height:4px"></div>
+            <div class="bar" style="height:9px"></div><div class="bar" style="height:3px"></div>
+            <div class="bar" style="height:5px"></div><div class="bar" style="height:6px"></div>
+            <div class="bar" style="height:2px"></div><div class="bar" style="height:8px"></div>
+            <div class="bar" style="height:4px"></div><div class="bar" style="height:7px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右下：最近通联列表 -->
+      <div class="panel">
+        <div class="panel-title">最近通联</div>
+        <div class="panel-content">
+          <div class="qso-list" id="qso-container">
+            <div class="idle-text" style="padding:20px;text-align:center">暂无通联记录</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- 四象限仪表盘 -->
-  <div class="dashboard">
-
-    <!-- 左上: 设备信息 -->
-    <div class="panel">
-      <div class="panel-title">设备信息</div>
-      <div class="panel-content">
-        <div class="info-row">
-          <span class="info-label">呼号</span>
-          <span id="info-callsign" class="info-value accent">------</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">固件</span>
-          <span id="info-firmware" class="info-value">--</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">设备</span>
-          <span id="info-device" class="info-value">------</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">天线</span>
-          <span id="info-antenna" class="info-value">------</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">网格</span>
-          <span id="info-grid" class="info-value accent">------</span>
-        </div>
+  <!-- ===== 设置面板 ===== -->
+  <div class="settings-overlay" id="settings-overlay">
+    <div class="settings-dialog">
+      <h2>连接设置</h2>
+      <div class="settings-field">
+        <label>IP 地址</label>
+        <input type="text" id="fmo-ip" placeholder="192.168.1.100">
       </div>
-    </div>
-
-    <!-- 右上: 服务器 & 通联统计 -->
-    <div class="panel">
-      <div class="panel-title">服务器 & 通联统计</div>
-      <div class="panel-content">
-        <div class="info-row">
-          <span class="info-label">当前服务器</span>
-          <span id="server-name-dup" class="info-value accent">--</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">在线人数</span>
-          <span id="server-online" class="info-value">--</span>
-        </div>
-        <div class="stat-grid" style="margin-top:8px">
-          <div class="stat-card">
-            <div id="stat-today" class="stat-value">--</div>
-            <div class="stat-label">今日 QSO</div>
-          </div>
-          <div class="stat-card">
-            <div id="stat-total" class="stat-value">--</div>
-            <div class="stat-label">总 QSO</div>
-          </div>
-          <div class="stat-card">
-            <div id="stat-contacts" class="stat-value">--</div>
-            <div class="stat-label">通联台数</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" style="font-size:18px;line-height:28px">N/A</div>
-            <div class="stat-label">SSTV 帧</div>
-          </div>
-        </div>
+      <div class="settings-field">
+        <label>端口</label>
+        <input type="text" id="fmo-port" value="80" placeholder="80">
       </div>
-    </div>
-
-    <!-- 左下: SpeakingBar + 频谱 -->
-    <div class="panel">
-      <div class="panel-title">实时通联</div>
-      <div class="panel-content">
-        <div id="speaking-bar" class="speaking-bar">
-          <div class="idle-text">等待通联...</div>
-        </div>
-        <div id="mini-spectrum" class="mini-spectrum">
-          <div class="bar" style="height:2px"></div>
-          <div class="bar" style="height:2px"></div>
-          <div class="bar" style="height:2px"></div>
-          <div class="bar" style="height:2px"></div>
-          <div class="bar" style="height:2px"></div>
-          <div class="bar" style="height:2px"></div>
-          <div class="bar" style="height:2px"></div>
-          <div class="bar" style="height:2px"></div>
-          <div class="bar" style="height:2px"></div>
-          <div class="bar" style="height:2px"></div>
-          <div class="bar" style="height:2px"></div>
-          <div class="bar" style="height:2px"></div>
-          <div class="bar" style="height:2px"></div>
-          <div class="bar" style="height:2px"></div>
-          <div class="bar" style="height:2px"></div>
-          <div class="bar" style="height:2px"></div>
-        </div>
+      <div class="settings-field">
+        <label>协议</label>
+        <select id="fmo-protocol">
+          <option value="ws">ws</option>
+          <option value="wss">wss</option>
+        </select>
       </div>
-    </div>
-
-    <!-- 右下: QSO 列表 -->
-    <div class="panel">
-      <div class="panel-title">最近通联</div>
-      <div class="panel-content">
-        <div id="qso-container" class="qso-list">
-          <div class="idle-text" style="padding:20px;text-align:center">暂无通联记录</div>
-        </div>
+      <div class="settings-actions">
+        <button class="btn" id="settings-cancel">取消</button>
+        <button class="btn btn-primary" id="settings-save">连接</button>
       </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- 设置面板 -->
-<div id="settings-overlay" class="settings-overlay">
-  <div class="settings-dialog">
-    <h2>服务器连接</h2>
-    <div class="settings-field">
-      <label>FMO 服务器地址</label>
-      <input id="fmo-ip" type="text" placeholder="192.168.1.100 或 fmo.local">
-    </div>
-    <div class="settings-field">
-      <label>端口号</label>
-      <input id="fmo-port" type="text" placeholder="80" value="80">
-    </div>
-    <div class="settings-field">
-      <label>协议</label>
-      <select id="fmo-protocol">
-        <option value="ws">ws（非加密）</option>
-        <option value="wss">wss（加密）</option>
-      </select>
-    </div>
-    <div class="settings-actions">
-      <button id="settings-cancel" class="btn">取消</button>
-      <button id="settings-save" class="btn btn-primary">保存并连接</button>
     </div>
   </div>
-</div>
 
-<script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
