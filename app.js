@@ -268,10 +268,7 @@ const App = {
         matched = true;
       }
 
-      // fallback: firmware 可能返回不规则 subType（如 getListRange → getListRangeResponse）
-      // 当 primary match 失败时，检查 msg.subType 是否以 req.subType 开头
-      if (!matched && msg.type === r.type && msg.subType && r.subType &&
-          msg.subType.startsWith(r.subType)) {
+      if (!matched && msg.type === r.type) {
         matched = true;
       }
 
@@ -518,7 +515,7 @@ const App = {
           subType: 'getListRange',
           data: { start: i * pageSize, count: pageSize }
         });
-        if (resp.code !== 0) break;
+        if (resp.code !== undefined && resp.code !== 0) break;
         // 兼容 firmware 不同返回格式：data 可能是 {list:[]} 或直接是数组
         const payload = resp.data;
         let list;
