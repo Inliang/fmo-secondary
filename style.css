@@ -181,22 +181,42 @@ html, body {
 }
 
 /* --- Device Info Panel --- */
+.panel-info {
+  gap: 10px;
+}
+.panel-info .info-hero {
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-size: 58px;
+  color: var(--accent);
+  text-align: center;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  padding: 6px 0 10px 0;
+  word-break: break-all;
+  flex-shrink: 0;
+}
+.panel-info .info-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
 .panel-info .info-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 16px;
-  padding: 5px 0;
+  font-size: 14px;
+  padding: 4px 0;
 }
-.panel-info .info-label { color: var(--text-secondary); flex-shrink: 0; font-size: 14px; }
+.panel-info .info-label { color: var(--text-secondary); flex-shrink: 0; font-size: 13px; }
 .panel-info .info-value {
   font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 18px;
+  font-size: 16px;
   text-align: right;
   word-break: break-all;
 }
-.panel-info .info-value.accent { color: var(--accent); }
 
 /* --- Stat Cards --- */
 .stat-grid {
