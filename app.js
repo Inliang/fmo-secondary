@@ -1,6 +1,7 @@
 /* ============================================================
-   FMO 副屏伴侣 — app.js v3
-   修复：响应匹配机制、QSO 拉取、服务器列表、状态栏
+   FMO 副屏伴侣 — app.js v4
+   QSO: WS qso.getListRange → HTTP REST 兜底 → events 实时
+   服务器列表: 搜索过滤 + 完整渲染
    ============================================================ */
 
 function normalizeHost(addr) {
@@ -15,10 +16,11 @@ const App = {
   audioWs: null,
   connected: false,
   protocol: 'ws',
+  hostPort: '',        // "ip:port" 用于 HTTP 请求
   reconnectAttempts: 0,
   maxReconnectAttempts: 10,
 
-  // --- 请求映射 (type → FIFO 队列) ---
+  // --- 请求映射 ---
   _pending: null,
   _reqId: 0,
 
@@ -28,6 +30,7 @@ const App = {
   qsoList: [],
   serverList: [],
   currentServerName: '',
+  serverSearch: '',
 
   // --- 音频 ---
   audioCtx: null,
@@ -50,7 +53,6 @@ const App = {
     this.initAudioCtx();
   },
 
-  // --- 事件绑定 ---
   bindEvents() {
     const $ = id => document.getElementById(id);
 
@@ -61,6 +63,14 @@ const App = {
     $('settings-cancel').addEventListener('click', () => this.closeSettings());
     $('settings-save').addEventListener('click', () => this.saveSettings());
     $('theme-toggle').addEventListener('click', () => this.cycleTheme());
+    // 服务器搜索
+    const searchInput = $('server-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.serverSearch = e.target.value.toLowerCase();
+        this.renderServerList();
+      });
+    }
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') this.closeSettings();
@@ -86,7 +96,6 @@ const App = {
       { dark: '暗色', light: '亮色', eink: '墨水屏' }[theme];
   },
 
-  // --- 时间 ---
   startDatetime() {
     const update = () => {
       const now = new Date();
@@ -97,7 +106,8 @@ const App = {
     this.datetimeTimer = setInterval(update, 10000);
   },
 
-  // --- 连接管理 ---
+  // ============ 连接管理 ============
+
   loadSettings() {
     const raw = localStorage.getItem('fmo-settings');
     if (!raw) return;
@@ -113,7 +123,8 @@ const App = {
     this._pending.clear();
     this.updateConnectionUI(false, 'connecting');
     const host = normalizeHost(ip);
-    const fullHost = `${host}:${port}`;
+    this.hostPort = `${host}:${port}`;
+    const fullHost = this.hostPort;
     const protocol = this.protocol;
 
     this.connectWs(`${protocol}://${fullHost}/ws`);
@@ -156,8 +167,7 @@ const App = {
 
   connectAudio(host) {
     try {
-      const url = `ws://${host}/audio`;
-      this.audioWs = new WebSocket(url);
+      this.audioWs = new WebSocket(`ws://${host}/audio`);
       this.audioWs.binaryType = 'arraybuffer';
       this.audioWs.onopen = () => { this.audioConnected = true; };
       this.audioWs.onmessage = (e) => this.handleAudioFrame(e.data);
@@ -210,14 +220,8 @@ const App = {
     }
   },
 
-  // ============ 核心：sendRequest (Map + type-match FIFO) ============
+  // ============ WebSocket 请求/响应 ============
 
-  /**
-   * 新的 sendRequest：
-   * - 用 Map 存储待处理请求，单 onmessage handler 统一调度
-   * - 匹配策略：遍历 _pending (插入顺序=FIFO)，命中 type 即 resolve
-   * - 超时自动清理，不再堆积废弃 handler
-   */
   sendRequest(req) {
     return new Promise((resolve, reject) => {
       if (!this.connected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
@@ -234,25 +238,23 @@ const App = {
     });
   },
 
-  /**
-   * 统一消息处理：
-   * 先尝试匹配待处理请求（type-only，FIFO），匹配失败作为 event 处理
-   */
   handleWsMessage(data) {
     let msg;
     try { msg = JSON.parse(data); } catch (e) { return; }
 
-    // 1. 尝试匹配 pending 请求
-    for (const [id, pending] of this._pending) {
-      if (msg.type === pending.req.type) {
-        clearTimeout(pending.timeout);
-        this._pending.delete(id);
-        pending.resolve(msg);
-        return;
+    // 仅 code 存在时为响应（事件/推送无 code 字段）
+    if (msg.code !== undefined) {
+      for (const [id, pending] of this._pending) {
+        if (msg.type === pending.req.type) {
+          clearTimeout(pending.timeout);
+          this._pending.delete(id);
+          pending.resolve(msg);
+          return;
+        }
       }
     }
 
-    // 2. 无匹配 → 当作事件
+    // 事件
     if (msg.type === 'event' || msg.event) {
       this.handleEvent(JSON.stringify(msg));
     }
@@ -279,17 +281,33 @@ const App = {
     } catch (e) {}
   },
 
+  // ============ HTTP REST 请求 ============
+
+  /**
+   * 参照 /api/provision 模式，尝试 REST 端点
+   * 返回解析后的 JSON 或 null
+   */
+  async _httpGet(path) {
+    try {
+      const url = `http://${this.hostPort}${path}`;
+      const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      if (!resp.ok) return null;
+      return await resp.json();
+    } catch (e) { return null; }
+  },
+
   // ============ 数据获取 ============
 
   async fetchAllData() {
     await this.fetchDeviceInfo();
     await this.fetchServerList();
+    // QSO: WS 优先 → HTTP REST 兜底
     await this.fetchQsos();
   },
 
   async fetchDeviceInfo() {
+    // user.getInfo 串行
     try {
-      // user.getInfo 单独发（需先拿到 callsign）
       const userResp = await this.sendRequest({ type: 'user', subType: 'getInfo' });
       if (userResp.code === 0 && userResp.data?.callsign) {
         this.myCallsign = userResp.data.callsign;
@@ -298,31 +316,31 @@ const App = {
       }
     } catch (e) { console.warn('user.getInfo:', e.message); }
 
-    // 其余并发
+    // config 类请求 — 改为串行避免同 type FIFO 错位
     try {
-      const [coordResp, devResp, antResp] = await Promise.all([
-        this.sendRequest({ type: 'config', subType: 'getCordinate' }),
-        this.sendRequest({ type: 'config', subType: 'getUserPhyDeviceName' }),
-        this.sendRequest({ type: 'config', subType: 'getUserPhyAnt' })
-      ]);
-
+      const coordResp = await this.sendRequest({ type: 'config', subType: 'getCordinate' });
       if (coordResp.code === 0 && coordResp.data) {
         const grid = this.latLonToGrid(coordResp.data.latitude, coordResp.data.longitude);
         this.myGrid = grid;
         document.getElementById('info-grid').textContent = grid;
         document.getElementById('status-grid').textContent = grid;
       }
+    } catch (e) { console.warn('getCordinate:', e.message); }
 
+    try {
+      const devResp = await this.sendRequest({ type: 'config', subType: 'getUserPhyDeviceName' });
       if (devResp.code === 0 && devResp.data?.deviceName) {
         document.getElementById('info-device').textContent = devResp.data.deviceName;
       }
+    } catch (e) {}
 
+    try {
+      const antResp = await this.sendRequest({ type: 'config', subType: 'getUserPhyAnt' });
       if (antResp.code === 0 && antResp.data?.ant) {
         document.getElementById('info-antenna').textContent = antResp.data.ant;
       }
-    } catch (e) { console.warn('fetch configs:', e.message); }
+    } catch (e) {}
 
-    // 固件
     try {
       const fwResp = await this.sendRequest({ type: 'config', subType: 'getFirmwareVersion' });
       if (fwResp.code === 0 && fwResp.data?.version) {
@@ -342,82 +360,61 @@ const App = {
            String.fromCharCode(97+ssLon) + String.fromCharCode(97+ssLat);
   },
 
+  // ============ 服务器列表 ============
+
   async fetchServerList() {
+    // WS 获取全量服务器列表
     try {
-      // 串行避免 qso 响应被 station 匹配吞掉
       const listResp = await this.sendRequest({ type: 'station', subType: 'getListRange' });
       if (listResp.code === 0 && listResp.data?.list) {
         this.serverList = listResp.data.list;
       }
-    } catch (e) { console.warn('station.getListRange:', e.message); }
+    } catch (e) {
+      console.warn('station.getListRange:', e.message);
+      // HTTP REST 兜底
+      const httpData = await this._httpGet('/api/stations');
+      if (httpData && Array.isArray(httpData)) {
+        this.serverList = httpData;
+      } else if (httpData && httpData.list) {
+        this.serverList = httpData.list;
+      }
+    }
 
     try {
       const currentResp = await this.sendRequest({ type: 'station', subType: 'getCurrent' });
       if (currentResp.code === 0 && currentResp.data) {
         this.currentServerName = currentResp.data.name || '';
-        // 更新状态栏
         document.getElementById('status-server').textContent = this.currentServerName || '--';
       }
     } catch (e) {}
 
     this.renderServerList();
-
-    // 通联统计
     await this.fetchStats();
   },
-
-  async fetchStats() {
-    try {
-      const todayResp = await this.sendRequest({ type: 'qso', subType: 'getTodayCount' });
-      if (todayResp.code === 0) {
-        document.getElementById('stat-today').textContent = todayResp.data?.count ?? '--';
-      }
-    } catch (e) {}
-
-    try {
-      const totalResp = await this.sendRequest({ type: 'qso', subType: 'getTotalCount' });
-      if (totalResp.code === 0) {
-        document.getElementById('stat-total').textContent = totalResp.data?.count ?? '--';
-      }
-    } catch (e) {}
-
-    try {
-      const contactResp = await this.sendRequest({ type: 'qso', subType: 'getContactCount' });
-      if (contactResp.code === 0) {
-        document.getElementById('stat-contacts').textContent = contactResp.data?.count ?? '--';
-      }
-    } catch (e) {}
-  },
-
-  /** QSO 历史记录（设备支持的 getListRange） */
-  async fetchQsos() {
-    try {
-      const resp = await this.sendRequest({
-        type: 'qso', subType: 'getListRange', data: { start: 0, count: 30 }
-      });
-      if (resp.code === 0 && resp.data?.list) {
-        this.qsoList = resp.data.list;
-        this.renderQsoList();
-      } else if (resp.code === 0 && Array.isArray(resp.data)) {
-        // 兼容：有的固件直接返回 data 数组
-        this.qsoList = resp.data;
-        this.renderQsoList();
-      }
-    } catch (e) { console.warn('qso.getListRange:', e.message); }
-  },
-
-  // ============ 服务器列表渲染 ============
 
   renderServerList() {
     const container = document.getElementById('server-list-container');
     if (!container) return;
+
+    // 搜索过滤
+    let filtered = this.serverList;
+    if (this.serverSearch) {
+      filtered = this.serverList.filter(s =>
+        (s.name || '').toLowerCase().includes(this.serverSearch)
+      );
+    }
 
     if (!this.serverList.length) {
       container.innerHTML = '<div class="server-list-empty">加载中...</div>';
       return;
     }
 
-    container.innerHTML = this.serverList.map(s => {
+    if (!filtered.length) {
+      container.innerHTML = '<div class="server-list-empty">无匹配服务器</div>';
+      return;
+    }
+
+    container.innerHTML = filtered.map(s => {
       const isActive = s.name === this.currentServerName;
       return `<div class="server-item${isActive ? ' active' : ''}" data-server-name="${s.name}">
         <span class="server-item-name">${s.name || '--'}</span>
@@ -449,7 +446,69 @@ const App = {
     } catch (e) { console.warn('switchServer:', e.message); }
   },
 
-  // ============ QSO 列表 ============
+  // ============ 通联统计 ============
+
+  async fetchStats() {
+    try {
+      const r = await this.sendRequest({ type: 'qso', subType: 'getTodayCount' });
+      if (r.code === 0) document.getElementById('stat-today').textContent = r.data?.count ?? '--';
+    } catch (e) {}
+    try {
+      const r = await this.sendRequest({ type: 'qso', subType: 'getTotalCount' });
+      if (r.code === 0) document.getElementById('stat-total').textContent = r.data?.count ?? '--';
+    } catch (e) {}
+    try {
+      const r = await this.sendRequest({ type: 'qso', subType: 'getContactCount' });
+      if (r.code === 0) document.getElementById('stat-contacts').textContent = r.data?.count ?? '--';
+    } catch (e) {}
+  },
+
+  // ============ QSO 列表 (WS → HTTP REST → events) ============
+
+  async fetchQsos() {
+    // 策略1: WebSocket qso.getListRange
+    try {
+      const resp = await this.sendRequest({
+        type: 'qso', subType: 'getListRange', data: { start: 0, count: 50 }
+      });
+      if (resp.code === 0) {
+        if (resp.data?.list) {
+          this.qsoList = resp.data.list;
+        } else if (Array.isArray(resp.data)) {
+          this.qsoList = resp.data;
+        } else if (resp.data?.qsos) {
+          this.qsoList = resp.data.qsos;
+        }
+        this.renderQsoList();
+        return;
+      }
+    } catch (e) { console.warn('WS qso.getListRange failed, trying HTTP...'); }
+
+    // 策略2: HTTP REST（参照 /api/provision 模式）
+    // 尝试多个可能端点
+    const endpoints = ['/api/qso/list', '/api/qsos', '/api/qso', '/api/log/list'];
+    for (const ep of endpoints) {
+      const data = await this._httpGet(ep);
+      if (data) {
+        let list = null;
+        if (Array.isArray(data)) list = data;
+        else if (data.list) list = data.list;
+        else if (data.qsos) list = data.qsos;
+        else if (data.data?.list) list = data.data.list;
+        else if (Array.isArray(data.data)) list = data.data;
+        if (list && list.length) {
+          this.qsoList = list;
+          this.renderQsoList();
+          return;
+        }
+      }
+    }
+
+    // 策略3: 无历史数据，仅靠 events 实时推送
+    console.log('QSO: 未获取到历史记录，由 new_qso 事件实时填充');
+  },
+
+  // ============ QSO 渲染 ============
 
   renderQsoList() {
     const container = document.getElementById('qso-container');
@@ -460,15 +519,15 @@ const App = {
       return;
     }
 
-    container.innerHTML = this.qsoList.slice(0, 20).map(item => {
+    container.innerHTML = this.qsoList.slice(0, 30).map(item => {
       const ts = item.timestamp ? new Date(item.timestamp * 1000) : null;
       const timeStr = ts
         ? `${ts.getFullYear()}/${String(ts.getMonth()+1).padStart(2,'0')}/${String(ts.getDate()).padStart(2,'0')} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}`
         : '--';
       return `<div class="qso-item">
         <span class="qso-logid">#${item.logId ?? '--'}</span>
-        <span class="qso-callsign">${item.toCallsign ?? '--'}</span>
-        <span class="qso-grid">${item.grid ?? '--'}</span>
+        <span class="qso-callsign">${item.toCallsign ?? item.callsign ?? '--'}</span>
+        <span class="qso-grid">${item.grid ?? item.locator ?? '--'}</span>
         <span class="qso-time">${timeStr}</span>
       </div>`;
     }).join('');
@@ -487,7 +546,6 @@ const App = {
   showSpeaking(callsign, grid, evt) {
     const bar = document.getElementById('speaking-bar');
     bar.classList.add('active');
-
     let extraHtml = '';
     if (evt) {
       const parts = [];
@@ -496,7 +554,6 @@ const App = {
       if (evt.mode) parts.push(evt.mode);
       if (parts.length) extraHtml = `<div class="speaker-stats">${parts.join(' · ')}</div>`;
     }
-
     bar.innerHTML = `
       <div class="speaker-callsign">${callsign || '--'}</div>
       <div class="speaker-location">${grid || '--'}</div>
@@ -547,7 +604,6 @@ const App = {
       return;
     }
     this.computeVU(buf);
-
     const raw = new Int16Array(buf);
     const buffer = this.audioCtx.createBuffer(1, raw.length, 8000);
     const channel = buffer.getChannelData(0);
@@ -564,25 +620,20 @@ const App = {
     for (let i = 0; i < raw.length; i++) sum += (raw[i] / 32768) ** 2;
     const rms = Math.sqrt(sum / raw.length);
     const db = 20 * Math.log10(rms + 0.0001);
-    const level = Math.max(0, Math.min(100, (db + 60) * (100 / 60)));
-    this.updateVU(level);
+    this.updateVU(Math.max(0, Math.min(100, (db + 60) * (100 / 60))));
   },
 
   // ============ 轮询 ============
 
   startPolling() {
     this.stopPolling();
-    const poll = () => {
+    this.pollTimer = setInterval(() => {
       if (this.connected) this.fetchServerList();
-    };
-    this.pollTimer = setInterval(poll, 15000);
+    }, 30000);
   },
 
   stopPolling() {
-    if (this.pollTimer) {
-      clearInterval(this.pollTimer);
-      this.pollTimer = null;
-    }
+    if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
   },
 
   // ============ 设置面板 ============
@@ -608,7 +659,6 @@ const App = {
     const ip = document.getElementById('fmo-ip').value.trim();
     const port = document.getElementById('fmo-port').value.trim() || '80';
     const protocol = document.getElementById('fmo-protocol').value;
-
     if (!ip) return;
     this.protocol = protocol;
     localStorage.setItem('fmo-settings', JSON.stringify({ ip, port, protocol }));

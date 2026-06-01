@@ -229,6 +229,22 @@ html, body {
 }
 
 /* --- Server List --- */
+.server-search {
+  width: 100%;
+  padding: 7px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  flex-shrink: 0;
+  margin-bottom: 4px;
+  transition: border-color var(--transition);
+}
+.server-search::placeholder { color: var(--text-secondary); opacity: 0.6; }
+.server-search:focus { border-color: var(--accent); }
+
 .server-list {
   flex: 1;
   overflow-y: auto;
