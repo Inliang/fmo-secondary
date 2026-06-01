@@ -13,7 +13,7 @@ function normalizeHost(addr) {
 
 /* FmoDeck 同款：响应 subType 别名映射 */
 const RESPONSE_ALIASES = {
-  station: { getListRange: 'getListResponse' }
+  station: { getListRange: 'getListRangeResponse' }
 };
 
 const App = {
@@ -268,9 +268,10 @@ const App = {
         matched = true;
       }
 
-      // 兜底：firmware 可能返回不规则 subType（如 push 回应的 station list 不带 subType）
-      // 仅当 msg 带 code 字段且 type 一致但 subType 匹配失败时启用
-      if (!matched && msg.type === r.type && msg.code !== undefined) {
+      // fallback: firmware 可能返回不规则 subType（如 getListRange → getListRangeResponse）
+      // 当 primary match 失败时，检查 msg.subType 是否以 req.subType 开头
+      if (!matched && msg.type === r.type && msg.subType && r.subType &&
+          msg.subType.startsWith(r.subType)) {
         matched = true;
       }
 
@@ -507,7 +508,7 @@ const App = {
   // ============ 服务器列表 — 翻页全量 ============
 
   async fetchServerListAll() {
-    const pageSize = 100, maxPages = 20;
+    const pageSize = 20, maxPages = 50;
     const all = [];
 
     try {
@@ -669,7 +670,7 @@ const App = {
         const resp = await this.send({
           type: 'qso',
           subType: 'getList',
-          data: { page, count: 100 }
+          data: { page, count: 20 }
         });
         if (resp.code !== 0) break;
         const payload = resp.data;
@@ -731,19 +732,24 @@ const App = {
     if (!callsign || !this.qsoList.length) return result;
 
     // 查找最近一条包含该呼号的 QSO（按时间戳降序）
-    const qso = this.qsoList.find(q => {
+    const matchingQsos = this.qsoList.filter(q => {
       const qc = q.toCallsign || q.callsign || '';
       return this.isSameOperator(qc, callsign);
     });
-    if (!qso) return result;
+    if (!matchingQsos.length) return result;
+    const qso = matchingQsos.reduce((latest, q) =>
+      (q.timestamp || 0) > (latest.timestamp || 0) ? q : latest
+    );
 
     if (qso.grid || qso.locator) result.grid = qso.grid || qso.locator;
-    if (qso.distance !== undefined) result.distance = qso.distance;
-    if (qso.azimuth !== undefined) result.azimuth = qso.azimuth;
+    const d = qso.distance ?? qso.dist;
+    if (d !== undefined) result.distance = d;
+    const a = qso.azimuth ?? qso.az ?? qso.bearing;
+    if (a !== undefined) result.azimuth = a;
     if (qso.altitude !== undefined) result.altitude = qso.altitude;
 
     // 若 QSO 无 distance/azimuth，尝试从双方网格计算
-    if (result.grid && this.myGrid && (result.distance === undefined || result.azimuth === undefined)) {
+    if (result.grid && (result.distance === undefined || result.azimuth === undefined)) {
       const computed = this._computeGridDistance(result.grid);
       if (computed) {
         if (result.distance === undefined) result.distance = computed.distance;
