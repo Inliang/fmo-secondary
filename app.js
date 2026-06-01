@@ -318,6 +318,7 @@ const App = {
         isHost: evt.isHost || false,
         distance: evt.distance,
         azimuth: evt.azimuth,
+        altitude: evt.altitude,
       });
       return;
     }
@@ -334,6 +335,9 @@ const App = {
           callsign: d.callsign,
           grid: d.grid || '',
           isHost: d.isHost || false,
+          distance: d.distance,
+          azimuth: d.azimuth,
+          altitude: d.altitude,
         });
       } else {
         this.hideSpeaking();
@@ -667,6 +671,7 @@ const App = {
       isHost: data.isHost || false,
       distance: data.distance,
       azimuth: data.azimuth,
+      altitude: data.altitude,
       startedAtMs: Date.now(),
     };
 
@@ -730,7 +735,7 @@ const App = {
     // 第二行：网格 + 方位/距离 + 通联统计
     let row2Html = `<span class="speaker-grid">${sp.grid || '--'}</span>`;
 
-    // 方位角 + 距离
+    // 方位角 + 距离 + 高度
     let extraInfo = '';
     if (sp.distance !== undefined && sp.distance !== null) {
       extraInfo += `距离 ${sp.distance} km`;
@@ -738,6 +743,10 @@ const App = {
     if (sp.azimuth !== undefined && sp.azimuth !== null) {
       if (extraInfo) extraInfo += ' · ';
       extraInfo += `方位 ${sp.azimuth}°`;
+    }
+    if (sp.altitude !== undefined && sp.altitude !== null) {
+      if (extraInfo) extraInfo += ' · ';
+      extraInfo += `高度 ${sp.altitude} m`;
     }
     if (extraInfo) {
       row2Html += `<span class="speaker-extra">${extraInfo}</span>`;
