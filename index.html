@@ -8,30 +8,35 @@
 </head>
 <body>
   <div class="app-shell">
+
     <!-- ===== 状态条 ===== -->
     <div class="status-bar">
       <div class="status-bar-left">
         <span class="status-dot" id="status-dot"></span>
         <span class="status-text" id="status-text">未连接</span>
+        <span class="status-separator">|</span>
+        <span class="status-server-label">服务器</span>
+        <span class="status-server" id="status-server">--</span>
       </div>
       <div class="status-bar-center">
-        <span class="status-callsign-center" id="status-callsign-center">--</span>
-        <span class="status-grid-center" id="status-grid-center">--</span>
+        <span class="status-callsign" id="status-callsign">--</span>
+        <span class="status-grid" id="status-grid">--</span>
       </div>
       <div class="status-bar-right">
         <span class="status-ip" id="status-ip">--</span>
         <span class="status-time" id="status-time">--</span>
         <button class="theme-toggle" id="theme-toggle">暗色</button>
-        <button class="settings-btn" id="settings-btn" title="设置">⚙</button>
+        <button class="settings-btn" id="settings-btn" title="设置">&#x2699;</button>
       </div>
     </div>
 
     <!-- ===== 四象限面板 ===== -->
     <div class="dashboard">
+
       <!-- 左上：设备信息 -->
       <div class="panel">
         <div class="panel-title">设备信息</div>
-        <div class="panel-content">
+        <div class="panel-content panel-info">
           <div class="info-row"><span class="info-label">呼号</span><span class="info-value accent" id="info-callsign">--</span></div>
           <div class="info-row"><span class="info-label">网格</span><span class="info-value" id="info-grid">--</span></div>
           <div class="info-row"><span class="info-label">设备</span><span class="info-value" id="info-device">--</span></div>
@@ -47,7 +52,7 @@
           <div class="server-list" id="server-list-container">
             <div class="server-list-empty">加载中...</div>
           </div>
-          <div class="stat-grid" style="margin-top:8px;flex-shrink:0;">
+          <div class="stat-grid">
             <div class="stat-card">
               <div class="stat-value" id="stat-today">--</div>
               <div class="stat-label">今日</div>
@@ -71,16 +76,7 @@
           <div class="speaking-bar" id="speaking-bar">
             <div class="idle-text">等待通联...</div>
           </div>
-          <div class="mini-spectrum" id="mini-spectrum">
-            <div class="bar" style="height:4px"></div><div class="bar" style="height:6px"></div>
-            <div class="bar" style="height:3px"></div><div class="bar" style="height:8px"></div>
-            <div class="bar" style="height:5px"></div><div class="bar" style="height:2px"></div>
-            <div class="bar" style="height:7px"></div><div class="bar" style="height:4px"></div>
-            <div class="bar" style="height:9px"></div><div class="bar" style="height:3px"></div>
-            <div class="bar" style="height:5px"></div><div class="bar" style="height:6px"></div>
-            <div class="bar" style="height:2px"></div><div class="bar" style="height:8px"></div>
-            <div class="bar" style="height:4px"></div><div class="bar" style="height:7px"></div>
-          </div>
+          <div class="mini-spectrum" id="mini-spectrum"></div>
         </div>
       </div>
 
@@ -93,6 +89,7 @@
           </div>
         </div>
       </div>
+
     </div>
   </div>
 
