@@ -1,6 +1,7 @@
 /* ============================================================
-   FMO 副屏伴侣 — 样式表 v3
+   FMO 副屏伴侣 — 样式表 v4
    三主题：dark (默认) / light / eink (墨水屏)
+   新增：server-search 搜索框样式
    ============================================================ */
 
 /* --- CSS Variables --- */
@@ -113,7 +114,6 @@ html, body {
   color: var(--accent);
 }
 
-/* 呼号居中大字 */
 .status-callsign {
   font-weight: 700;
   font-family: var(--font-mono);
@@ -180,7 +180,7 @@ html, body {
   min-height: 0;
 }
 
-/* --- Device Info Panel (大字体) --- */
+/* --- Device Info Panel --- */
 .panel-info .info-row {
   display: flex;
   justify-content: space-between;
@@ -198,7 +198,7 @@ html, body {
 }
 .panel-info .info-value.accent { color: var(--accent); }
 
-/* --- Stat Cards (大数字) --- */
+/* --- Stat Cards --- */
 .stat-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -228,7 +228,7 @@ html, body {
   letter-spacing: 0.06em;
 }
 
-/* --- Server List --- */
+/* --- Server Search --- */
 .server-search {
   width: 100%;
   padding: 7px 12px;
@@ -245,6 +245,7 @@ html, body {
 .server-search::placeholder { color: var(--text-secondary); opacity: 0.6; }
 .server-search:focus { border-color: var(--accent); }
 
+/* --- Server List --- */
 .server-list {
   flex: 1;
   overflow-y: auto;
@@ -270,26 +271,10 @@ html, body {
   background: var(--accent-glow);
   border-color: var(--accent);
 }
-.server-item-name {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-.server-item-count {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-.server-item-check {
-  color: var(--accent);
-  font-weight: 700;
-  margin-left: 8px;
-}
-.server-list-empty {
-  color: var(--text-secondary);
-  text-align: center;
-  padding: 24px;
-  font-size: 14px;
-}
+.server-item-name { font-weight: 600; color: var(--text-primary); }
+.server-item-count { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); }
+.server-item-check { color: var(--accent); font-weight: 700; margin-left: 8px; }
+.server-list-empty { color: var(--text-secondary); text-align: center; padding: 24px; font-size: 14px; }
 
 /* --- Speaking Bar --- */
 .speaking-bar {
@@ -314,14 +299,8 @@ html, body {
   font-family: var(--font-mono);
   color: var(--warn);
 }
-.speaker-location {
-  font-size: 15px;
-  color: var(--text-secondary);
-}
-.speaker-stats {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
+.speaker-location { font-size: 15px; color: var(--text-secondary); }
+.speaker-stats { font-size: 13px; color: var(--text-secondary); }
 .vu-meter {
   width: 100%;
   height: 6px;
@@ -336,10 +315,7 @@ html, body {
   border-radius: 3px;
   transition: width 0.08s linear;
 }
-.idle-text {
-  color: var(--text-secondary);
-  font-size: 14px;
-}
+.idle-text { color: var(--text-secondary); font-size: 14px; }
 
 /* --- Mini Spectrum --- */
 .mini-spectrum {
@@ -401,18 +377,9 @@ html, body {
   width: 380px;
   max-width: 90vw;
 }
-.settings-dialog h2 {
-  font-size: 16px; margin-bottom: 16px;
-  color: var(--text-primary);
-}
-.settings-field {
-  margin-bottom: 12px;
-}
-.settings-field label {
-  display: block;
-  font-size: 12px; color: var(--text-secondary);
-  margin-bottom: 4px;
-}
+.settings-dialog h2 { font-size: 16px; margin-bottom: 16px; color: var(--text-primary); }
+.settings-field { margin-bottom: 12px; }
+.settings-field label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
 .settings-field input,
 .settings-field select {
   width: 100%;
@@ -427,15 +394,8 @@ html, body {
   transition: border-color var(--transition);
 }
 .settings-field input:focus,
-.settings-field select:focus {
-  border-color: var(--accent);
-}
-.settings-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 16px;
-  justify-content: flex-end;
-}
+.settings-field select:focus { border-color: var(--accent); }
+.settings-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
 .btn {
   padding: 8px 16px;
   border-radius: 6px;
@@ -447,11 +407,7 @@ html, body {
   transition: all var(--transition);
 }
 .btn:hover { border-color: var(--accent); }
-.btn-primary {
-  background: var(--accent);
-  color: var(--bg);
-  border-color: var(--accent);
-}
+.btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 
 /* --- Theme Toggle --- */
 .theme-toggle {

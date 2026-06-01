@@ -1,13 +1,20 @@
 /* ============================================================
-   FMO 副屏伴侣 — app.js v4
-   QSO: WS qso.getListRange → HTTP REST 兜底 → events 实时
-   服务器列表: 搜索过滤 + 完整渲染
+   FMO 副屏伴侣 — app.js v5
+   参照 FmoDeck 协议层改写：
+   - QSO 用 qso.getList({page}) 分页拉取全量
+   - Station 用 station.getListRange({start,count}) 循环翻页全量
+   - 串行队列 + type+subType 匹配 + RESPONSE_ALIASES
    ============================================================ */
 
 function normalizeHost(addr) {
   if (!addr) return '';
   return addr.trim().replace(/^(https?|wss?):?\/\//, '').replace(/\/+$/, '');
 }
+
+/* FmoDeck 同款：响应 subType 别名映射 */
+const RESPONSE_ALIASES = {
+  station: { getListRange: 'getListResponse' }
+};
 
 const App = {
   // --- 连接 ---
@@ -16,13 +23,13 @@ const App = {
   audioWs: null,
   connected: false,
   protocol: 'ws',
-  hostPort: '',        // "ip:port" 用于 HTTP 请求
+  hostPort: '',
   reconnectAttempts: 0,
   maxReconnectAttempts: 10,
 
-  // --- 请求映射 ---
-  _pending: null,
-  _reqId: 0,
+  // --- 串行队列（FmoDeck 同款） ---
+  _queue: null,
+  _inFlight: null,
 
   // --- 数据 ---
   myCallsign: '',
@@ -44,7 +51,8 @@ const App = {
 
   // --- 初始化 ---
   init() {
-    this._pending = new Map();
+    this._queue = [];
+    this._inFlight = null;
     this.bindEvents();
     this.loadSettings();
     this.loadTheme();
@@ -55,7 +63,6 @@ const App = {
 
   bindEvents() {
     const $ = id => document.getElementById(id);
-
     $('settings-btn').addEventListener('click', () => this.openSettings());
     $('settings-overlay').addEventListener('click', (e) => {
       if (e.target === $('settings-overlay')) this.closeSettings();
@@ -63,15 +70,13 @@ const App = {
     $('settings-cancel').addEventListener('click', () => this.closeSettings());
     $('settings-save').addEventListener('click', () => this.saveSettings());
     $('theme-toggle').addEventListener('click', () => this.cycleTheme());
-    // 服务器搜索
-    const searchInput = $('server-search');
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
+    const si = $('server-search');
+    if (si) {
+      si.addEventListener('input', (e) => {
         this.serverSearch = e.target.value.toLowerCase();
         this.renderServerList();
       });
     }
-
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') this.closeSettings();
     });
@@ -82,13 +87,12 @@ const App = {
     const themes = ['dark', 'light', 'eink'];
     const cur = document.documentElement.getAttribute('data-theme') || 'dark';
     const idx = themes.indexOf(cur);
-    const next = themes[(idx + 1) % themes.length];
+    const next = themes[(idx + 1) % 3];
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('fmo-theme', next);
     document.getElementById('theme-toggle').textContent =
       { dark: '暗色', light: '亮色', eink: '墨水屏' }[next];
   },
-
   loadTheme() {
     const theme = localStorage.getItem('fmo-theme') || 'dark';
     document.documentElement.setAttribute('data-theme', theme);
@@ -98,9 +102,9 @@ const App = {
 
   startDatetime() {
     const update = () => {
-      const now = new Date();
-      const str = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-      document.getElementById('status-time').textContent = str;
+      const d = new Date();
+      document.getElementById('status-time').textContent =
+        `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     };
     update();
     this.datetimeTimer = setInterval(update, 10000);
@@ -120,22 +124,15 @@ const App = {
 
   connect(ip, port) {
     this.disconnect();
-    this._pending.clear();
     this.updateConnectionUI(false, 'connecting');
     const host = normalizeHost(ip);
     this.hostPort = `${host}:${port}`;
-    const fullHost = this.hostPort;
-    const protocol = this.protocol;
+    const p = this.protocol;
+    const wsUrl = `${p}://${this.hostPort}/ws`;
+    const evUrl = `${p}://${this.hostPort}/events`;
 
-    this.connectWs(`${protocol}://${fullHost}/ws`);
-    this.connectEvents(`${protocol}://${fullHost}/events`);
-    this.connectAudio(fullHost);
-    document.getElementById('status-ip').textContent = ip;
-  },
-
-  connectWs(url) {
     try {
-      this.ws = new WebSocket(url);
+      this.ws = new WebSocket(wsUrl);
       this.ws.onopen = () => {
         this.connected = true;
         this.reconnectAttempts = 0;
@@ -148,43 +145,40 @@ const App = {
         this.connected = false;
         this.updateConnectionUI(false, 'disconnected');
         this.stopPolling();
+        this.failAllPending(new Error('WS closed'));
         this.scheduleReconnect();
       };
       this.ws.onerror = () => {};
-    } catch (e) {
-      this.updateConnectionUI(false, 'disconnected');
-    }
-  },
+    } catch (e) { this.updateConnectionUI(false, 'disconnected'); }
 
-  connectEvents(url) {
     try {
-      this.eventsWs = new WebSocket(url);
+      this.eventsWs = new WebSocket(evUrl);
       this.eventsWs.onmessage = (e) => this.handleEvent(e.data);
       this.eventsWs.onclose = () => {};
       this.eventsWs.onerror = () => {};
     } catch (e) {}
-  },
 
-  connectAudio(host) {
     try {
-      this.audioWs = new WebSocket(`ws://${host}/audio`);
+      this.audioWs = new WebSocket(`ws://${this.hostPort}/audio`);
       this.audioWs.binaryType = 'arraybuffer';
       this.audioWs.onopen = () => { this.audioConnected = true; };
       this.audioWs.onmessage = (e) => this.handleAudioFrame(e.data);
       this.audioWs.onclose = () => { this.audioConnected = false; };
       this.audioWs.onerror = () => {};
     } catch (e) {}
+
+    document.getElementById('status-ip').textContent = ip;
   },
 
   disconnect() {
     this.stopPolling();
     [this.ws, this.eventsWs, this.audioWs].forEach(ws => {
-      if (ws) { ws.close(); }
+      if (ws) { try { ws.close(); } catch (e) {} }
     });
     this.ws = this.eventsWs = this.audioWs = null;
     this.connected = false;
     this.audioConnected = false;
-    this._pending.clear();
+    this.failAllPending(new Error('Disconnected'));
     this.updateConnectionUI(false, 'disconnected');
   },
 
@@ -220,44 +214,73 @@ const App = {
     }
   },
 
-  // ============ WebSocket 请求/响应 ============
+  // ============ 串行队列（FmoDeck 同款） ============
 
-  sendRequest(req) {
+  /**
+   * 同时只 1 个 in-flight；响应按 type + subType 匹配。
+   * RESPONSE_ALIASES 处理服务器不规范返回。
+   */
+  send(req) {
+    if (!this.connected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error('未连接'));
+    }
     return new Promise((resolve, reject) => {
-      if (!this.connected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
-        reject(new Error('未连接'));
-        return;
-      }
-      const id = ++this._reqId;
-      const timeout = setTimeout(() => {
-        this._pending.delete(id);
-        reject(new Error('超时'));
-      }, 10000);
-      this._pending.set(id, { req, resolve, timeout });
-      this.ws.send(JSON.stringify(req));
+      this._queue.push({ req, resolve, reject });
+      this._processQueue();
     });
+  },
+
+  _processQueue() {
+    if (this._inFlight || this._queue.length === 0) return;
+    const next = this._queue.shift();
+    const timer = setTimeout(() => {
+      if (this._inFlight === flight) {
+        this._inFlight = null;
+        next.reject(new Error(`超时: ${next.req.type}/${next.req.subType}`));
+        this._processQueue();
+      }
+    }, 10000);
+    const flight = { ...next, timer };
+    this._inFlight = flight;
+    this.ws.send(JSON.stringify(next.req));
   },
 
   handleWsMessage(data) {
     let msg;
     try { msg = JSON.parse(data); } catch (e) { return; }
 
-    // 仅 code 存在时为响应（事件/推送无 code 字段）
-    if (msg.code !== undefined) {
-      for (const [id, pending] of this._pending) {
-        if (msg.type === pending.req.type) {
-          clearTimeout(pending.timeout);
-          this._pending.delete(id);
-          pending.resolve(msg);
-          return;
-        }
+    // 匹配 in-flight 请求 — FmoDeck 同款 type+subType 匹配
+    if (this._inFlight) {
+      const r = this._inFlight.req;
+      const expectedSubType =
+        RESPONSE_ALIASES[r.type]?.[r.subType] ?? `${r.subType}Response`;
+      if (
+        msg.type === r.type &&
+        (msg.subType === expectedSubType || msg.subType === r.subType)
+      ) {
+        clearTimeout(this._inFlight.timer);
+        const resolve = this._inFlight.resolve;
+        this._inFlight = null;
+        resolve(msg);
+        this._processQueue();
+        return;
       }
     }
 
-    // 事件
+    // 非响应 → 服务端推送
     if (msg.type === 'event' || msg.event) {
       this.handleEvent(JSON.stringify(msg));
     }
+  },
+
+  failAllPending(error) {
+    if (this._inFlight) {
+      clearTimeout(this._inFlight.timer);
+      this._inFlight.reject(error);
+      this._inFlight = null;
+    }
+    for (const q of this._queue) q.reject(error);
+    this._queue = [];
   },
 
   handleEvent(data) {
@@ -281,109 +304,90 @@ const App = {
     } catch (e) {}
   },
 
-  // ============ HTTP REST 请求 ============
-
-  /**
-   * 参照 /api/provision 模式，尝试 REST 端点
-   * 返回解析后的 JSON 或 null
-   */
-  async _httpGet(path) {
-    try {
-      const url = `http://${this.hostPort}${path}`;
-      const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
-      if (!resp.ok) return null;
-      return await resp.json();
-    } catch (e) { return null; }
-  },
-
   // ============ 数据获取 ============
 
   async fetchAllData() {
     await this.fetchDeviceInfo();
-    await this.fetchServerList();
-    // QSO: WS 优先 → HTTP REST 兜底
-    await this.fetchQsos();
+    await this.fetchServerListAll();     // 翻页全量
+    await this.fetchQsoListAll();        // 翻页全量
   },
 
   async fetchDeviceInfo() {
-    // user.getInfo 串行
+    // user.getInfo
     try {
-      const userResp = await this.sendRequest({ type: 'user', subType: 'getInfo' });
-      if (userResp.code === 0 && userResp.data?.callsign) {
-        this.myCallsign = userResp.data.callsign;
+      const r = await this.send({ type: 'user', subType: 'getInfo' });
+      if (r.code === 0 && r.data?.callsign) {
+        this.myCallsign = r.data.callsign;
         document.getElementById('info-callsign').textContent = this.myCallsign;
         document.getElementById('status-callsign').textContent = this.myCallsign;
       }
-    } catch (e) { console.warn('user.getInfo:', e.message); }
+    } catch (e) { console.warn('user:', e.message); }
 
-    // config 类请求 — 改为串行避免同 type FIFO 错位
+    // config 类 — 串行队列保护，各自独立
     try {
-      const coordResp = await this.sendRequest({ type: 'config', subType: 'getCordinate' });
-      if (coordResp.code === 0 && coordResp.data) {
-        const grid = this.latLonToGrid(coordResp.data.latitude, coordResp.data.longitude);
+      const r = await this.send({ type: 'config', subType: 'getCordinate' });
+      if (r.code === 0 && r.data) {
+        const grid = this.latLonToGrid(r.data.latitude, r.data.longitude);
         this.myGrid = grid;
         document.getElementById('info-grid').textContent = grid;
         document.getElementById('status-grid').textContent = grid;
       }
-    } catch (e) { console.warn('getCordinate:', e.message); }
-
-    try {
-      const devResp = await this.sendRequest({ type: 'config', subType: 'getUserPhyDeviceName' });
-      if (devResp.code === 0 && devResp.data?.deviceName) {
-        document.getElementById('info-device').textContent = devResp.data.deviceName;
-      }
     } catch (e) {}
-
     try {
-      const antResp = await this.sendRequest({ type: 'config', subType: 'getUserPhyAnt' });
-      if (antResp.code === 0 && antResp.data?.ant) {
-        document.getElementById('info-antenna').textContent = antResp.data.ant;
-      }
+      const r = await this.send({ type: 'config', subType: 'getUserPhyDeviceName' });
+      if (r.code === 0 && r.data?.deviceName)
+        document.getElementById('info-device').textContent = r.data.deviceName;
     } catch (e) {}
-
     try {
-      const fwResp = await this.sendRequest({ type: 'config', subType: 'getFirmwareVersion' });
-      if (fwResp.code === 0 && fwResp.data?.version) {
-        document.getElementById('info-firmware').textContent = fwResp.data.version;
-      }
+      const r = await this.send({ type: 'config', subType: 'getUserPhyAnt' });
+      if (r.code === 0 && r.data?.ant)
+        document.getElementById('info-antenna').textContent = r.data.ant;
+    } catch (e) {}
+    try {
+      const r = await this.send({ type: 'config', subType: 'getFirmwareVersion' });
+      if (r.code === 0 && r.data?.version)
+        document.getElementById('info-firmware').textContent = r.data.version;
     } catch (e) {}
   },
 
   latLonToGrid(lat, lon) {
-    lat = parseFloat(lat); lon = parseFloat(lon);
-    const lon1 = lon + 180, lat1 = lat + 90;
-    const fLon = Math.floor(lon1 / 20), fLat = Math.floor(lat1 / 10);
-    const sLon = Math.floor((lon1 % 20) / 2), sLat = Math.floor(lat1 % 10);
-    const ssLon = Math.floor((lon1 % 2) * 12), ssLat = Math.floor((lat1 % 1) * 24);
-    return String.fromCharCode(65+fLon) + String.fromCharCode(65+fLat) +
-           String(sLon) + String(sLat) +
+    lat = +lat; lon = +lon;
+    const L = lon + 180, La = lat + 90;
+    const fl = Math.floor(L / 20), fL = Math.floor(La / 10);
+    const sl = Math.floor((L % 20) / 2), sL = Math.floor(La % 10);
+    const ssLon = Math.floor((L % 2) * 12), ssLat = Math.floor((La % 1) * 24);
+    return String.fromCharCode(65+fl) + String.fromCharCode(65+fL) +
+           String(sl) + String(sL) +
            String.fromCharCode(97+ssLon) + String.fromCharCode(97+ssLat);
   },
 
-  // ============ 服务器列表 ============
+  // ============ 服务器列表 — 翻页全量 ============
 
-  async fetchServerList() {
-    // WS 获取全量服务器列表
-    try {
-      const listResp = await this.sendRequest({ type: 'station', subType: 'getListRange' });
-      if (listResp.code === 0 && listResp.data?.list) {
-        this.serverList = listResp.data.list;
-      }
-    } catch (e) {
-      console.warn('station.getListRange:', e.message);
-      // HTTP REST 兜底
-      const httpData = await this._httpGet('/api/stations');
-      if (httpData && Array.isArray(httpData)) {
-        this.serverList = httpData;
-      } else if (httpData && httpData.list) {
-        this.serverList = httpData.list;
-      }
-    }
+  async fetchServerListAll() {
+    const pageSize = 20, maxPages = 50;
+    const all = [];
 
     try {
-      const currentResp = await this.sendRequest({ type: 'station', subType: 'getCurrent' });
-      if (currentResp.code === 0 && currentResp.data) {
-        this.currentServerName = currentResp.data.name || '';
+      for (let i = 0; i < maxPages; i++) {
+        const resp = await this.send({
+          type: 'station',
+          subType: 'getListRange',
+          data: { start: i * pageSize, count: pageSize }
+        });
+        if (resp.code !== 0) break;
+        const list = resp.data?.list ?? [];
+        if (list.length === 0) break;
+        all.push(...list);
+        if (list.length < pageSize) break;
+      }
+      this.serverList = all;
+    } catch (e) { console.warn('station list:', e.message); }
+
+    // 当前服务器
+    try {
+      const r = await this.send({ type: 'station', subType: 'getCurrent' });
+      if (r.code === 0 && r.data) {
+        this.currentServerName = r.data.name || '';
         document.getElementById('status-server').textContent = this.currentServerName || '--';
       }
     } catch (e) {}
@@ -392,11 +396,15 @@ const App = {
     await this.fetchStats();
   },
 
+  // 轮询时走轻量单页（避免每次都翻页）
+  async fetchServerList() {
+    await this.fetchServerListAll();
+  },
+
   renderServerList() {
     const container = document.getElementById('server-list-container');
     if (!container) return;
 
-    // 搜索过滤
     let filtered = this.serverList;
     if (this.serverSearch) {
       filtered = this.serverList.filter(s =>
@@ -408,19 +416,18 @@ const App = {
       container.innerHTML = '<div class="server-list-empty">加载中...</div>';
       return;
     }
-
     if (!filtered.length) {
       container.innerHTML = '<div class="server-list-empty">无匹配服务器</div>';
       return;
     }
 
     container.innerHTML = filtered.map(s => {
-      const isActive = s.name === this.currentServerName;
-      return `<div class="server-item${isActive ? ' active' : ''}" data-server-name="${s.name}">
+      const active = s.name === this.currentServerName;
+      return `<div class="server-item${active ? ' active' : ''}" data-server-name="${s.name}">
         <span class="server-item-name">${s.name || '--'}</span>
         <span>
-          <span class="server-item-count">${s.onlineCount ?? '--'} 在线</span>
-          ${isActive ? '<span class="server-item-check">✓</span>' : ''}
+          <span class="server-item-count">${s.onlineCount ?? s.count ?? '--'} 在线</span>
+          ${active ? '<span class="server-item-check">✓</span>' : ''}
         </span>
       </div>`;
     }).join('');
@@ -433,14 +440,14 @@ const App = {
   async switchServer(name) {
     if (name === this.currentServerName) return;
     try {
-      const resp = await this.sendRequest({
-        type: 'station', subType: 'setCurrent', data: { name }
-      });
+      const target = this.serverList.find(s => s.name === name);
+      const data = target ? { uid: target.uid, name: target.name } : { name };
+      const resp = await this.send({ type: 'station', subType: 'setCurrent', data });
       if (resp.code === 0) {
         this.currentServerName = name;
         document.getElementById('status-server').textContent = name;
         this.renderServerList();
-        await this.fetchQsos();
+        await this.fetchQsoListAll();
         await this.fetchStats();
       }
     } catch (e) { console.warn('switchServer:', e.message); }
@@ -450,65 +457,47 @@ const App = {
 
   async fetchStats() {
     try {
-      const r = await this.sendRequest({ type: 'qso', subType: 'getTodayCount' });
+      const r = await this.send({ type: 'qso', subType: 'getTodayCount' });
       if (r.code === 0) document.getElementById('stat-today').textContent = r.data?.count ?? '--';
     } catch (e) {}
     try {
-      const r = await this.sendRequest({ type: 'qso', subType: 'getTotalCount' });
+      const r = await this.send({ type: 'qso', subType: 'getTotalCount' });
       if (r.code === 0) document.getElementById('stat-total').textContent = r.data?.count ?? '--';
     } catch (e) {}
     try {
-      const r = await this.sendRequest({ type: 'qso', subType: 'getContactCount' });
+      const r = await this.send({ type: 'qso', subType: 'getContactCount' });
       if (r.code === 0) document.getElementById('stat-contacts').textContent = r.data?.count ?? '--';
     } catch (e) {}
   },
 
-  // ============ QSO 列表 (WS → HTTP REST → events) ============
+  // ============ QSO 列表 — qso.getList 分页全量 ============
 
-  async fetchQsos() {
-    // 策略1: WebSocket qso.getListRange
+  async fetchQsoListAll() {
+    const maxPages = 200;
+    const all = [];
+
     try {
-      const resp = await this.sendRequest({
-        type: 'qso', subType: 'getListRange', data: { start: 0, count: 50 }
-      });
-      if (resp.code === 0) {
-        if (resp.data?.list) {
-          this.qsoList = resp.data.list;
-        } else if (Array.isArray(resp.data)) {
-          this.qsoList = resp.data;
-        } else if (resp.data?.qsos) {
-          this.qsoList = resp.data.qsos;
-        }
-        this.renderQsoList();
-        return;
-      }
-    } catch (e) { console.warn('WS qso.getListRange failed, trying HTTP...'); }
+      for (let page = 0; page < maxPages; page++) {
+        const resp = await this.send({
+          type: 'qso',
+          subType: 'getList',
+          data: { page }
+        });
+        if (resp.code !== 0) break;
+        const payload = resp.data;
+        const list = payload?.list ?? [];
+        if (list.length === 0) break;
 
-    // 策略2: HTTP REST（参照 /api/provision 模式）
-    // 尝试多个可能端点
-    const endpoints = ['/api/qso/list', '/api/qsos', '/api/qso', '/api/log/list'];
-    for (const ep of endpoints) {
-      const data = await this._httpGet(ep);
-      if (data) {
-        let list = null;
-        if (Array.isArray(data)) list = data;
-        else if (data.list) list = data.list;
-        else if (data.qsos) list = data.qsos;
-        else if (data.data?.list) list = data.data.list;
-        else if (Array.isArray(data.data)) list = data.data;
-        if (list && list.length) {
-          this.qsoList = list;
-          this.renderQsoList();
-          return;
-        }
-      }
-    }
+        all.push(...list);
 
-    // 策略3: 无历史数据，仅靠 events 实时推送
-    console.log('QSO: 未获取到历史记录，由 new_qso 事件实时填充');
+        // pageSize 固定 20，不足 20 条说明最后一页
+        if (list.length < 20) break;
+      }
+    } catch (e) { console.warn('qso list:', e.message); }
+
+    this.qsoList = all;
+    this.renderQsoList();
   },
-
-  // ============ QSO 渲染 ============
 
   renderQsoList() {
     const container = document.getElementById('qso-container');
@@ -519,7 +508,9 @@ const App = {
       return;
     }
 
-    container.innerHTML = this.qsoList.slice(0, 30).map(item => {
+    // 最新的 50 条
+    const items = this.qsoList.slice(0, 50);
+    container.innerHTML = items.map(item => {
       const ts = item.timestamp ? new Date(item.timestamp * 1000) : null;
       const timeStr = ts
         ? `${ts.getFullYear()}/${String(ts.getMonth()+1).padStart(2,'0')}/${String(ts.getDate()).padStart(2,'0')} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}`
@@ -636,7 +627,7 @@ const App = {
     if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
   },
 
-  // ============ 设置面板 ============
+  // ============ 设置 ============
 
   openSettings() {
     document.getElementById('settings-overlay').classList.add('open');
@@ -650,11 +641,7 @@ const App = {
       } catch (e) {}
     }
   },
-
-  closeSettings() {
-    document.getElementById('settings-overlay').classList.remove('open');
-  },
-
+  closeSettings() { document.getElementById('settings-overlay').classList.remove('open'); },
   saveSettings() {
     const ip = document.getElementById('fmo-ip').value.trim();
     const port = document.getElementById('fmo-port').value.trim() || '80';
