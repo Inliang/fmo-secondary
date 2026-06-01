@@ -316,6 +316,8 @@ const App = {
         callsign: evt.callsign,
         grid: evt.grid || '',
         isHost: evt.isHost || false,
+        distance: evt.distance,
+        azimuth: evt.azimuth,
       });
       return;
     }
@@ -379,8 +381,24 @@ const App = {
         this.myGrid = grid;
         document.getElementById('info-grid').textContent = grid;
         document.getElementById('status-grid').textContent = grid;
+
+        // 尝试获取高度（坐标接口中可能附带）
+        if (r.data.altitude !== undefined) {
+          document.getElementById('info-altitude').textContent = `${r.data.altitude} m`;
+        } else if (r.data.elevation !== undefined) {
+          document.getElementById('info-altitude').textContent = `${r.data.elevation} m`;
+        }
       }
     } catch (e) {}
+
+    // 独立尝试 getAltitude 作为兜底
+    try {
+      const r = await this.send({ type: 'config', subType: 'getAltitude' });
+      if (r.code === 0 && r.data?.altitude !== undefined) {
+        document.getElementById('info-altitude').textContent = `${r.data.altitude} m`;
+      }
+    } catch (e) {}
+
     try {
       const r = await this.send({ type: 'config', subType: 'getUserPhyDeviceName' });
       if (r.code === 0 && r.data?.deviceName)
@@ -647,6 +665,8 @@ const App = {
       callsign: data.callsign || '',
       grid: data.grid || '',
       isHost: data.isHost || false,
+      distance: data.distance,
+      azimuth: data.azimuth,
       startedAtMs: Date.now(),
     };
 
@@ -707,8 +727,21 @@ const App = {
       badgesHtml += '<span class="speaker-badge new-friend">✦ 新朋友</span>';
     }
 
-    // 第二行：网格 + 通联统计
+    // 第二行：网格 + 方位/距离 + 通联统计
     let row2Html = `<span class="speaker-grid">${sp.grid || '--'}</span>`;
+
+    // 方位角 + 距离
+    let extraInfo = '';
+    if (sp.distance !== undefined && sp.distance !== null) {
+      extraInfo += `距离 ${sp.distance} km`;
+    }
+    if (sp.azimuth !== undefined && sp.azimuth !== null) {
+      if (extraInfo) extraInfo += ' · ';
+      extraInfo += `方位 ${sp.azimuth}°`;
+    }
+    if (extraInfo) {
+      row2Html += `<span class="speaker-extra">${extraInfo}</span>`;
+    }
 
     if (!isSelf) {
       const count = qsos.length;

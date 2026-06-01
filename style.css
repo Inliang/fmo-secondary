@@ -342,6 +342,7 @@ html, body {
   min-height: 90px;
   justify-content: center;
   align-items: center;
+  flex-shrink: 0;
 }
 .speaking-bar.active {
   border-color: var(--warn);
@@ -428,13 +429,21 @@ html, body {
   font-size: 12px;
 }
 
+/* --- Speaker Extra (distance / azimuth) --- */
+.speaker-extra {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
 /* --- Mini Spectrum --- */
 .mini-spectrum {
   display: flex;
   align-items: flex-end;
   gap: 2px;
   height: 48px;
-  margin-top: 10px;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 .mini-spectrum .bar {
   flex: 1;
@@ -555,4 +564,25 @@ html, body {
     grid-template-rows: auto;
   }
   .status-bar-center { display: none; }
+
+  /* Speaking Bar mobile */
+  .speaker-callsign { font-size: 22px; }
+  .speaker-row-1 { gap: 6px; }
+  .speaker-elapsed { margin-left: 0; }
+  .speaker-row-2 {
+    flex-direction: column;
+    gap: 3px;
+    align-items: flex-start;
+  }
+  .speaker-grid { font-size: 12px; }
+  .speaker-stats-text { font-size: 11px; }
+  .speaker-badge { font-size: 10px; padding: 1px 4px; }
+  .speaker-extra { font-size: 11px; }
+  .speaking-bar { padding: 10px; min-height: 78px; }
+  .mini-spectrum { height: 36px; }
+
+  /* Device info mobile */
+  .info-hero { font-size: 38px; }
+  .info-card-value { font-size: 14px; }
+  .info-card-label { font-size: 11px; }
 }
