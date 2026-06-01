@@ -182,38 +182,55 @@ html, body {
 
 /* --- Device Info Panel --- */
 .panel-info {
-  gap: 10px;
+  gap: 0;
 }
 .panel-info .info-hero {
   font-family: var(--font-mono);
   font-weight: 900;
-  font-size: 58px;
-  color: var(--accent);
+  font-size: 54px;
+  color: #FFFFFF;
   text-align: center;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   line-height: 1;
-  padding: 6px 0 10px 0;
+  padding: 10px 0 14px 0;
   word-break: break-all;
   flex-shrink: 0;
+  text-shadow: 0 0 32px rgba(255, 255, 255, 0.12);
 }
-.panel-info .info-details {
+.panel-info .info-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
   gap: 3px;
   flex: 1;
 }
-.panel-info .info-row {
+.panel-info .info-card-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
-  padding: 4px 0;
+  padding: 6px 2px;
 }
-.panel-info .info-label { color: var(--text-secondary); flex-shrink: 0; font-size: 13px; }
-.panel-info .info-value {
+.panel-info .info-card-grid .info-card-value {
+  color: var(--warn);
+}
+.panel-info .info-card-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 4px 0 6px 0;
+}
+.panel-info .info-card-label {
+  color: var(--text-secondary);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.panel-info .info-card-value {
   font-family: var(--font-mono);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 16px;
+  color: #FFFFFF;
   text-align: right;
   word-break: break-all;
 }
