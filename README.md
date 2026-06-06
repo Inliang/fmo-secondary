@@ -78,6 +78,18 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-06 (v0.3.11)
+
+**优化 — 替换方向箭头 SVG + 方位角旋转跟随**
+
+- 替换 speaking-arrow SVG 为新版红底白三角图标
+- SVG 通过 `transform:rotate(${azimuth}deg)` 跟随实际方位角旋转（北=0°）
+
+**修改文件**：app.js
+
+<details>
+<summary>历史日志</summary>
+
 ### 2026-06-06 (v0.3.10)
 
 **修复 — 方位角 SVG 方向箭头 + CSS 样式**
@@ -86,9 +98,6 @@ fmo-secondary/
 - 新增 `.speaking-meta .speaking-arrow` CSS 规则
 
 **修改文件**：app.js, style.css
-
-<details>
-<summary>历史日志</summary>
 
 ### 2026-06-06 (v0.3.9)
 
