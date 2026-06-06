@@ -82,7 +82,7 @@ fmo-secondary/
 
 **新增 — Speaking Bar 网格地名反查**
 
-- Speaking Bar 中梅登海德网格（如 OL63ma）替换为通过 OSM Nominatim 反查得到的省/市/区地名
+- Speaking Bar 中梅登海德网格（如 OL63ma）替换为通过 OSM Nominatim 反查得到的完整省/市/区地名
 - 新增 `_gridToLatLon(grid)` 方法：Maidenhead 网格 → 经纬度中心点转换
 - 新增 `_resolveGridLocation(grid)` 异步方法：调用 Nominatim Reverse Geocoding API 反查地名，结果缓存至 `_gridLocationCache`
 - `showSpeaking()` 中在发言人确定后异步触发反查，反查完成后自动刷新 Speaking Bar 显示

@@ -924,8 +924,18 @@ const App = {
       if (!resp.ok) return;
       const data = await resp.json();
       const addr = data.address || {};
-      // 优先级：city/town/village → state → country
-      const region = addr.city || addr.town || addr.village || addr.county || addr.state || addr.country || '';
+      // 拼接完整省/市/区层级，去重避免重复
+      const parts = [];
+      const state = addr.state || addr.province || '';
+      const city = addr.city || '';
+      const district = addr.county || addr.district || addr.town || addr.village || '';
+      if (state) parts.push(state);
+      if (city && !state.includes(city)) parts.push(city);
+      if (district) {
+        const prev = parts[parts.length - 1] || '';
+        if (!prev.includes(district)) parts.push(district);
+      }
+      const region = parts.join('');
       this._gridLocationCache[grid] = region;
       // 如果当前发言人网格匹配，立即更新显示
       if (this._currentSpeaker && this._currentSpeaker.grid === grid) {
