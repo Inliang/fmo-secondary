@@ -1217,7 +1217,7 @@ const App = {
       meta += `<span class="speaking-meta">方位 ${dir}${sp.azimuth}°</span>`;
     }
     if (sp.distance !== undefined && sp.distance !== null) {
-      meta += `<span class="speaking-meta">${Number(sp.distance).toFixed(1)}km</span>`;
+      meta += `<span class="speaking-meta distance">${Number(sp.distance).toFixed(1)}km</span>`;
     }
     if (sp.grid) {
       meta += `<span class="speaking-meta">${sp.grid}</span>`;
