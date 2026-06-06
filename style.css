@@ -430,8 +430,8 @@ html, body {
   overflow: hidden;
   margin-top: 6px;
 }
-.speaking-bar.active .vu-meter { display: block; }
-.speaking-bar:not(.active) .vu-meter { display: none; }
+.speaking-bar.active .vu-meter-fill { transition: width 0.08s linear; }
+.speaking-bar:not(.active) .vu-meter { opacity: 0.3; }
 .vu-meter-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--success), var(--warn), var(--danger));

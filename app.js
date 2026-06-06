@@ -430,6 +430,8 @@ const App = {
         distance: evt.distance !== undefined ? evt.distance : derived.distance,
         azimuth: evt.azimuth !== undefined ? evt.azimuth : derived.azimuth,
         altitude: evt.altitude !== undefined ? evt.altitude : derived.altitude,
+        serverName: evt.serverName || '',
+        serverUid: evt.serverUid || '',
       });
       this._addSpeakingRecord(evt.callsign, evt.grid || derived.grid || '', evt.serverUid || '', evt.serverName || '');
       return;
@@ -452,6 +454,8 @@ const App = {
           distance: d.distance !== undefined ? d.distance : derived.distance,
           azimuth: d.azimuth !== undefined ? d.azimuth : derived.azimuth,
           altitude: d.altitude !== undefined ? d.altitude : derived.altitude,
+          serverName: d.serverName || '',
+          serverUid: d.serverUid || '',
         });
         this._addSpeakingRecord(d.callsign, d.grid || derived.grid || '', d.serverUid || '', d.serverName || '');
       } else {
@@ -948,23 +952,26 @@ const App = {
       distance: data.distance,
       azimuth: data.azimuth,
       altitude: data.altitude,
-      serverName: '',
-      serverUid: '',
+      serverName: data.serverName || '',
+      serverUid: data.serverUid || '',
       startedAtMs: Date.now(),
     };
 
-    // 从 qsoList 获取 serverInfo 并补全参数
-    let serverUid = '', serverName = '';
-    const matchingQso = this.qsoList.find(q => {
-      const qc = q.toCallsign || q.callsign || '';
-      return this.isSameOperator(qc, data.callsign);
-    });
-    if (matchingQso) {
-      serverUid = matchingQso.serverUid || '';
-      serverName = matchingQso.serverName || '';
+    // 若事件未提供 serverName，从 qsoList 兜底查找
+    let serverUid = this._currentSpeaker.serverUid;
+    let serverName = this._currentSpeaker.serverName;
+    if (!serverName) {
+      const matchingQso = this.qsoList.find(q => {
+        const qc = q.toCallsign || q.callsign || '';
+        return this.isSameOperator(qc, data.callsign);
+      });
+      if (matchingQso) {
+        serverUid = matchingQso.serverUid || '';
+        serverName = matchingQso.serverName || '';
+        this._currentSpeaker.serverName = serverName;
+        this._currentSpeaker.serverUid = serverUid;
+      }
     }
-    this._currentSpeaker.serverName = serverName;
-    this._currentSpeaker.serverUid = serverUid;
 
     // 若事件数据缺少 grid/distance/azimuth，立即从 QSO 补全
     const sp = this._currentSpeaker;
@@ -1000,7 +1007,17 @@ const App = {
     const bar = document.getElementById('speaking-bar');
     if (bar) {
       bar.classList.remove('active');
-      bar.innerHTML = '<div class="idle-text">等待通联...</div>';
+      bar.innerHTML = `
+        <div class="speaking-bar-content">
+          <div class="speaker-row-1">
+            <span class="idle-text">等待通联...</span>
+          </div>
+          <div class="speaker-row-2">
+            <span class="speaker-grid" style="color:var(--text-secondary);font-size:12px">--</span>
+          </div>
+          <div class="vu-meter"><div class="vu-meter-fill" style="width:0%"></div></div>
+        </div>
+      `;
     }
   },
 
