@@ -16,6 +16,56 @@ const RESPONSE_ALIASES = {
   station: { getListRange: 'getListRangeResponse' }
 };
 
+class PcmTap {
+  constructor(capacity) {
+    this.buffer = new Float32Array(capacity);
+    this.writePos = 0;
+    this.capacity = capacity;
+    this.totalWritten = 0;
+  }
+  push(samples) {
+    for (let i = 0; i < samples.length; i++) {
+      this.buffer[this.writePos] = samples[i];
+      this.writePos = (this.writePos + 1) % this.capacity;
+    }
+    this.totalWritten += samples.length;
+  }
+  recent(ms, sampleRate) {
+    const count = Math.min(Math.round((ms * sampleRate) / 1000), this.capacity);
+    const out = new Float32Array(count);
+    let idx = this.writePos - count;
+    if (idx < 0) idx += this.capacity;
+    for (let i = 0; i < count; i++) {
+      out[i] = this.buffer[(idx + i) % this.capacity];
+    }
+    return out;
+  }
+  slice(startSample, count) {
+    if (startSample < this.totalWritten - this.capacity) return null;
+    const oldest = this.totalWritten - this.capacity;
+    const offset = startSample - oldest;
+    if (offset < 0) return null;
+    if (offset + count > this.capacity) return null;
+    const out = new Float32Array(count);
+    let idx = (this.writePos - this.capacity + offset) % this.capacity;
+    if (idx < 0) idx += this.capacity;
+    for (let i = 0; i < count; i++) {
+      out[i] = this.buffer[(idx + i) % this.capacity];
+    }
+    return out;
+  }
+}
+
+const ROBOT36_MODE = {
+  name: 'Robot 36',
+  visCode: 8,
+  width: 320,
+  height: 240,
+  scanLineMs: 150,
+  totalScanLines: 36,
+  preludeMs: 0,
+};
+
 const App = {
   // --- 连接 ---
   ws: null,
@@ -54,6 +104,26 @@ const App = {
   _historyEvents: [],
   _recentHistoryTimer: null,
 
+  // --- SSTV ---
+  _sstvActive: false,
+  _sstvState: 'idle',
+  _sstvMode: null,
+  _sstvDecodeState: {},
+  _sstvFullRgba: null,
+  _sstvCanvasCtx: null,
+  _sstvOffCanvas: null,
+  _sstvOffCtx: null,
+  _sstvImageData: null,
+  _sstvAudioTap: null,
+  _sstvHistory: [],
+  _sstvVisDetectorState: {},
+  _sstvTickTimer: null,
+  _sstvNextScanLine: 0,
+  _sstvT0: 0,
+  _sstvYbuf: null,
+  _sstvRYbuf: null,
+  _sstvBYbuf: null,
+
   // --- 定时器 ---
   datetimeTimer: null,
   pollTimer: null,
@@ -69,6 +139,14 @@ const App = {
     this.updateConnectionUI(false);
     this.initAudioCtx();
     this.initVolume();
+    // SSTV
+    this._sstvCanvasCtx = document.getElementById('sstv-canvas').getContext('2d');
+    this._sstvOffCanvas = document.createElement('canvas');
+    this._sstvOffCanvas.width = 320;
+    this._sstvOffCanvas.height = 240;
+    this._sstvOffCtx = this._sstvOffCanvas.getContext('2d');
+    this._sstvAudioTap = new PcmTap(3 * 8000);
+    this._initSstvUi();
   },
 
   bindEvents() {
@@ -1183,6 +1261,13 @@ const App = {
       return;
     }
     this.computeVU(buf);
+    // SSTV audio tap
+    if (this._sstvActive && buf) {
+      const raw16 = new Int16Array(buf);
+      const floatSamples = new Float32Array(raw16.length);
+      for (let i = 0; i < raw16.length; i++) floatSamples[i] = raw16[i] / 32768;
+      this._sstvAudioTap.push(floatSamples);
+    }
     const raw = new Int16Array(buf);
     const buffer = this.audioCtx.createBuffer(1, raw.length, 8000);
     const channel = buffer.getChannelData(0);
@@ -1303,7 +1388,475 @@ const App = {
     localStorage.setItem('fmo-settings', JSON.stringify({ ip, port, protocol }));
     this.closeSettings();
     this.connect(ip, port);
-  }
+  },
+
+  // ============ SSTV 解码 ============
+
+  _fmDemodulate(samples) {
+    const out = new Float32Array(samples.length - 1);
+    let prev = samples[0];
+    for (let i = 1; i < samples.length; i++) {
+      out[i - 1] = Math.atan2(samples[i] * prev - prev * samples[i],
+                              samples[i] * prev + prev * samples[i]) / Math.PI;
+      prev = samples[i];
+    }
+    return out;
+  },
+
+  _goertzel(samples, targetFreq, sampleRate) {
+    const N = samples.length;
+    const k = Math.round((N * targetFreq) / sampleRate);
+    const omega = (2 * Math.PI * k) / N;
+    const coeff = 2 * Math.cos(omega);
+    let s0 = 0, s1 = 0;
+    for (let i = 0; i < N; i++) {
+      const s2 = s1;
+      s1 = s0;
+      s0 = samples[i] + coeff * s1 - s2;
+    }
+    const real = s0 - s1 * Math.cos(omega);
+    const imag = s1 * Math.sin(omega);
+    return Math.sqrt(real * real + imag * imag) / (N / 2);
+  },
+
+  _visDetect(samples) {
+    const SR = 8000;
+    const WINDOW = 160;
+    const STEP = 40;
+    let state = 0;
+    let leadCount = 0;
+    let bits = [];
+    let bitStart = 0;
+    for (let pos = 0; pos < samples.length - WINDOW; pos += STEP) {
+      const win = samples.subarray(pos, pos + WINDOW);
+      const e1900 = this._goertzel(win, 1900, SR);
+      const e1200 = this._goertzel(win, 1200, SR);
+      const e1100 = this._goertzel(win, 1100, SR);
+      const e1300 = this._goertzel(win, 1300, SR);
+      if (state === 0) {
+        if (e1900 > e1200 && e1900 > e1100 && e1900 > e1300 && e1900 > 0.02) {
+          leadCount++;
+          if (leadCount > 15) { state = 1; leadCount = 0; }
+        } else { leadCount = 0; }
+      } else if (state === 1) {
+        if (e1200 > e1900 && e1200 > e1100 && e1200 > e1300 && e1200 > 0.02) {
+          state = 2;
+        }
+      } else if (state === 2) {
+        if (e1100 > e1200 && e1100 > e1300 && e1100 > e1900 && e1100 > 0.02) {
+          state = 3;
+          bitStart = pos;
+          bits = [];
+        }
+      } else if (state === 3) {
+        if (e1100 > e1200 && e1100 > e1300 && e1100 > e1900 && e1100 > 0.015) {
+          const elapsedSinceStart = pos - bitStart;
+          const bitIdx = Math.floor(elapsedSinceStart / 240);
+          if (bitIdx < 8 && bits.length === bitIdx) {
+            bits.push(1);
+          }
+        } else if (e1300 > e1200 && e1300 > e1100 && e1300 > e1900 && e1300 > 0.015) {
+          const elapsedSinceStart = pos - bitStart;
+          const bitIdx = Math.floor(elapsedSinceStart / 240);
+          if (bitIdx < 8 && bits.length === bitIdx) {
+            bits.push(0);
+          }
+        }
+        if (bits.length >= 8) {
+          let visCode = 0;
+          for (let i = 0; i < 8; i++) visCode |= (bits[i] << i);
+          return { visCode, endOffset: pos + WINDOW };
+        }
+      }
+    }
+    return null;
+  },
+
+  _sstvTick() {
+    if (!this._sstvActive || !this._sstvAudioTap) return;
+    const tap = this._sstvAudioTap;
+    const SR = 8000;
+    const MODE = ROBOT36_MODE;
+
+    if (this._sstvState === 'idle') {
+      const recent = tap.recent(1200, SR);
+      if (recent.length < 800) return;
+      const demod = this._fmDemodulate(recent);
+      const vis = this._visDetect(demod);
+      if (vis && vis.visCode === MODE.visCode) {
+        this._sstvState = 'decoding';
+        this._sstvMode = MODE;
+        this._sstvNextScanLine = 0;
+        this._sstvT0 = tap.totalWritten - vis.endOffset;
+        this._sstvFullRgba = new Uint8ClampedArray(MODE.width * MODE.height * 4);
+        this._sstvYbuf = null;
+        this._sstvRYbuf = null;
+        this._sstvBYbuf = null;
+
+        document.getElementById('sstv-status').textContent = '解码中...';
+        document.getElementById('sstv-status').classList.add('active');
+        document.getElementById('sstv-mode-badge').textContent = MODE.name;
+        document.getElementById('sstv-mode-badge').classList.add('visible');
+
+        const ctx = this._sstvCanvasCtx;
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0, 0, 640, 480);
+        this._sstvOffCtx.fillStyle = '#111';
+        this._sstvOffCtx.fillRect(0, 0, 320, 240);
+      }
+      return;
+    }
+
+    if (this._sstvState === 'decoding') {
+      const elapsedSamples = tap.totalWritten - this._sstvT0;
+      const elapsedMs = (elapsedSamples / SR) * 1000;
+      const targetScanLine = Math.floor(elapsedMs / MODE.scanLineMs);
+
+      this._updateSignalBar(targetScanLine);
+
+      while (this._sstvNextScanLine < Math.min(targetScanLine, MODE.totalScanLines)) {
+        const rowSamples = Math.round(MODE.scanLineMs * SR / 1000);
+        const scanLineStart = this._sstvT0 + Math.round(this._sstvNextScanLine * MODE.scanLineMs * SR / 1000);
+        const samples = tap.slice(scanLineStart, rowSamples);
+        if (!samples || samples.length < 100) break;
+
+        const demod = this._fmDemodulate(samples);
+        const channel = this._sstvNextScanLine % 3;
+        const buf = this._extractPixels(demod, SR, MODE);
+
+        if (channel === 0) {
+          this._sstvYbuf = buf;
+        } else if (channel === 1) {
+          this._sstvRYbuf = buf;
+        } else if (channel === 2) {
+          this._sstvBYbuf = buf;
+
+          if (this._sstvYbuf && this._sstvRYbuf && this._sstvBYbuf) {
+            const groupIdx = Math.floor(this._sstvNextScanLine / 3);
+            const rowsPerGroup = Math.round(MODE.height / (MODE.totalScanLines / 3));
+            const firstRow = groupIdx * rowsPerGroup;
+
+            for (let row = 0; row < rowsPerGroup; row++) {
+              const y = firstRow + row;
+              if (y >= MODE.height) break;
+              const rowOffset = y * MODE.width * 4;
+              for (let x = 0; x < MODE.width; x++) {
+                const Y = this._sstvYbuf[x];
+                const RY = this._sstvRYbuf[x] - 0.5;
+                const BY = this._sstvBYbuf[x] - 0.5;
+
+                let R = Y + 0.956 * RY + 0.621 * BY;
+                let G = Y - 0.272 * RY - 0.647 * BY;
+                let B = Y - 1.106 * RY + 1.703 * BY;
+
+                R = Math.max(0, Math.min(255, Math.round(R * 255)));
+                G = Math.max(0, Math.min(255, Math.round(G * 255)));
+                B = Math.max(0, Math.min(255, Math.round(B * 255)));
+
+                const idx = rowOffset + x * 4;
+                this._sstvFullRgba[idx] = R;
+                this._sstvFullRgba[idx + 1] = G;
+                this._sstvFullRgba[idx + 2] = B;
+                this._sstvFullRgba[idx + 3] = 255;
+              }
+            }
+            this._renderSstvRows(firstRow, rowsPerGroup);
+          }
+        }
+        this._sstvNextScanLine++;
+      }
+
+      if (this._sstvNextScanLine >= MODE.totalScanLines) {
+        this._sstvState = 'done';
+        this._renderSstvFull();
+        const dataUrl = this._sstvCanvasCtx.canvas.toDataURL('image/png');
+        this._addSstvToHistory(MODE.name, dataUrl);
+
+        document.getElementById('sstv-status').textContent = '解码完成';
+        document.getElementById('sstv-status').classList.add('active');
+
+        const self = this;
+        setTimeout(() => {
+          if (self._sstvState === 'done') {
+            self._sstvState = 'idle';
+            self._sstvFullRgba = null;
+            self._sstvMode = null;
+            self._sstvYbuf = null;
+            self._sstvRYbuf = null;
+            self._sstvBYbuf = null;
+            document.getElementById('sstv-status').textContent = '等待信号...';
+            document.getElementById('sstv-status').classList.remove('active');
+            document.getElementById('sstv-mode-badge').classList.remove('visible');
+            self._clearSignalBar();
+          }
+        }, 3000);
+        return;
+      }
+
+      if (elapsedMs > MODE.scanLineMs * MODE.totalScanLines * 1.1) {
+        this._renderSstvFull();
+        const dataUrl = this._sstvCanvasCtx.canvas.toDataURL('image/png');
+        this._addSstvToHistory(MODE.name + ' (未完整)', dataUrl);
+
+        this._sstvState = 'idle';
+        this._sstvFullRgba = null;
+        this._sstvMode = null;
+        this._sstvYbuf = null;
+        this._sstvRYbuf = null;
+        this._sstvBYbuf = null;
+        document.getElementById('sstv-status').textContent = '等待信号...';
+        document.getElementById('sstv-status').classList.remove('active');
+        document.getElementById('sstv-mode-badge').classList.remove('visible');
+        this._clearSignalBar();
+      }
+    }
+  },
+
+  _extractPixels(demod, sampleRate, mode) {
+    const pixels = new Float32Array(mode.width);
+    const skipSamples = Math.round(0.01 * sampleRate);
+    const usableLen = demod.length - skipSamples;
+    if (usableLen <= 0) return pixels;
+    const samplesPerPixel = usableLen / mode.width;
+    for (let i = 0; i < mode.width; i++) {
+      const idx = skipSamples + Math.round(i * samplesPerPixel);
+      if (idx < demod.length) {
+        pixels[i] = (demod[idx] + 1) / 2;
+      }
+    }
+    return pixels;
+  },
+
+  _renderSstvRows(firstRow, count) {
+    const mode = this._sstvMode;
+    if (!mode || !this._sstvFullRgba) return;
+    const offCtx = this._sstvOffCtx;
+    for (let row = 0; row < count; row++) {
+      const y = firstRow + row;
+      if (y >= mode.height) break;
+      const rowOffset = y * mode.width * 4;
+      const rowData = new ImageData(
+        new Uint8ClampedArray(this._sstvFullRgba.buffer, rowOffset, mode.width * 4),
+        mode.width, 1
+      );
+      offCtx.putImageData(rowData, 0, y);
+    }
+    const ctx = this._sstvCanvasCtx;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(this._sstvOffCanvas, 0, 0, 640, 480);
+  },
+
+  _renderSstvFull() {
+    const mode = this._sstvMode;
+    if (!mode || !this._sstvFullRgba) return;
+    const offCtx = this._sstvOffCtx;
+    offCtx.putImageData(
+      new ImageData(new Uint8ClampedArray(this._sstvFullRgba), mode.width, mode.height),
+      0, 0
+    );
+    const ctx = this._sstvCanvasCtx;
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, 640, 480);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(this._sstvOffCanvas, 0, 0, 640, 480);
+  },
+
+  _updateSignalBar(targetScanLine) {
+    const leadEl = document.getElementById('sig-lead');
+    const syncEl = document.getElementById('sig-sync');
+    const imgEl = document.getElementById('sig-img');
+    if (!leadEl || !syncEl || !imgEl) return;
+    leadEl.classList.add('active');
+    if (targetScanLine > 0) {
+      syncEl.classList.add('active');
+      imgEl.classList.add('active');
+    } else {
+      syncEl.classList.remove('active');
+      imgEl.classList.remove('active');
+    }
+  },
+
+  _clearSignalBar() {
+    ['sig-lead', 'sig-sync', 'sig-img'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active');
+    });
+  },
+
+  _initSstvUi() {
+    const self = this;
+    const $ = id => document.getElementById(id);
+
+    const featureBtn = $('feature-btn');
+    const featureMenu = $('feature-menu');
+    if (featureBtn && featureMenu) {
+      featureBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        featureMenu.classList.toggle('open');
+      });
+      document.addEventListener('click', () => {
+        featureMenu.classList.remove('open');
+      });
+      featureMenu.addEventListener('click', (e) => e.stopPropagation());
+    }
+
+    const menuSstv = $('menu-sstv');
+    if (menuSstv) {
+      menuSstv.addEventListener('click', () => {
+        featureMenu.classList.remove('open');
+        self._openSstvPanel();
+      });
+    }
+
+    const closeBtn = $('sstv-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => self._closeSstvPanel());
+    }
+
+    const overlay = $('sstv-overlay');
+    if (overlay) {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) self._closeSstvPanel();
+      });
+    }
+
+    const forceBtn = $('sstv-force-start');
+    if (forceBtn) {
+      forceBtn.addEventListener('click', () => {
+        const modeKey = $('sstv-force-mode').value;
+        self._sstvForceStart(modeKey);
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && self._sstvActive) {
+        self._closeSstvPanel();
+      }
+    });
+  },
+
+  _openSstvPanel() {
+    document.getElementById('sstv-overlay').classList.add('open');
+    this._sstvActive = true;
+    this._sstvState = 'idle';
+    this._sstvFullRgba = null;
+    this._sstvMode = null;
+    this._sstvYbuf = null;
+    this._sstvRYbuf = null;
+    this._sstvBYbuf = null;
+    this._clearSignalBar();
+    document.getElementById('sstv-status').textContent = '等待信号...';
+    document.getElementById('sstv-status').classList.remove('active');
+    document.getElementById('sstv-mode-badge').classList.remove('visible');
+
+    if (this._sstvTickTimer) clearInterval(this._sstvTickTimer);
+    this._sstvTickTimer = setInterval(() => this._sstvTick(), 50);
+
+    this._renderSstvHistory();
+  },
+
+  _closeSstvPanel() {
+    document.getElementById('sstv-overlay').classList.remove('open');
+    this._sstvActive = false;
+    this._sstvState = 'idle';
+    this._sstvFullRgba = null;
+    this._sstvMode = null;
+    this._sstvYbuf = null;
+    this._sstvRYbuf = null;
+    this._sstvBYbuf = null;
+
+    if (this._sstvTickTimer) {
+      clearInterval(this._sstvTickTimer);
+      this._sstvTickTimer = null;
+    }
+  },
+
+  _sstvForceStart(modeKey) {
+    if (!modeKey) {
+      alert('请选择强制解码模式');
+      return;
+    }
+    if (!this._sstvActive || !this._sstvAudioTap) return;
+
+    const tap = this._sstvAudioTap;
+    const SR = 8000;
+    const MODE = ROBOT36_MODE;
+
+    this._sstvState = 'decoding';
+    this._sstvMode = MODE;
+    this._sstvNextScanLine = 0;
+    this._sstvT0 = tap.totalWritten - Math.round(5 * SR);
+    this._sstvFullRgba = new Uint8ClampedArray(MODE.width * MODE.height * 4);
+    this._sstvYbuf = null;
+    this._sstvRYbuf = null;
+    this._sstvBYbuf = null;
+
+    document.getElementById('sstv-status').textContent = '强制解码中...';
+    document.getElementById('sstv-status').classList.add('active');
+    document.getElementById('sstv-mode-badge').textContent = MODE.name;
+    document.getElementById('sstv-mode-badge').classList.add('visible');
+
+    const ctx = this._sstvCanvasCtx;
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, 640, 480);
+    this._sstvOffCtx.fillStyle = '#111';
+    this._sstvOffCtx.fillRect(0, 0, 320, 240);
+  },
+
+  _addSstvToHistory(modeName, dataUrl) {
+    this._sstvHistory.unshift({
+      mode: modeName,
+      dataUrl: dataUrl,
+      time: Date.now()
+    });
+    if (this._sstvHistory.length > 20) {
+      this._sstvHistory = this._sstvHistory.slice(0, 20);
+    }
+    this._renderSstvHistory();
+  },
+
+  _renderSstvHistory() {
+    const container = document.getElementById('sstv-history-list');
+    const countEl = document.getElementById('sstv-history-count');
+    if (!container) return;
+    countEl.textContent = this._sstvHistory.length;
+
+    if (!this._sstvHistory.length) {
+      container.innerHTML = '<div class="sstv-history-empty">暂无历史</div>';
+      return;
+    }
+
+    const self = this;
+    container.innerHTML = this._sstvHistory.map((item, index) => {
+      const d = new Date(item.time);
+      const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+      return `<div class="sstv-history-item" data-index="${index}">
+        <img src="${item.dataUrl}" alt="${item.mode}">
+        <div class="sstv-history-item-meta">
+          <span>${item.mode}</span>
+          <span>${timeStr}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    container.querySelectorAll('.sstv-history-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const idx = parseInt(el.dataset.index);
+        const item = self._sstvHistory[idx];
+        if (item) {
+          const img = new Image();
+          img.onload = () => {
+            const ctx = self._sstvCanvasCtx;
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, 640, 480);
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(img, 0, 0, 640, 480);
+          };
+          img.src = item.dataUrl;
+        }
+      });
+    });
+  },
 };
 
 document.addEventListener('DOMContentLoaded', () => App.init());

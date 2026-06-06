@@ -27,6 +27,12 @@
         <span class="status-time" id="status-time">--</span>
         <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="80" title="音量">
         <button class="mute-btn" id="mute-btn" title="静音切换">&#x1F50A;</button>
+        <div class="feature-dropdown" id="feature-dropdown">
+          <button class="feature-btn" id="feature-btn" title="功能">功能 &#x25BE;</button>
+          <div class="feature-menu" id="feature-menu">
+            <button class="feature-menu-item" id="menu-sstv">SSTV 解码</button>
+          </div>
+        </div>
         <button class="theme-toggle" id="theme-toggle">暗色</button>
         <button class="settings-btn" id="settings-btn" title="设置">&#x2699;</button>
       </div>
@@ -127,6 +133,53 @@
       <div class="settings-actions">
         <button class="btn" id="settings-cancel">取消</button>
         <button class="btn btn-primary" id="settings-save">连接</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SSTV 解码面板 ===== -->
+  <div class="sstv-overlay" id="sstv-overlay">
+    <div class="sstv-panel">
+      <div class="sstv-header">
+        <h2>SSTV 解码</h2>
+        <div class="sstv-header-right">
+          <span class="sstv-status" id="sstv-status">等待信号...</span>
+          <button class="sstv-close-btn" id="sstv-close">&times;</button>
+        </div>
+      </div>
+      <div class="sstv-body">
+        <div class="sstv-main">
+          <canvas class="sstv-canvas" id="sstv-canvas" width="640" height="480"></canvas>
+          <div class="sstv-signal-bar" id="sstv-signal-bar">
+            <div class="signal-segment lead" id="sig-lead" title="1900 Hz 前导"></div>
+            <div class="signal-segment sync" id="sig-sync" title="1200 Hz 同步"></div>
+            <div class="signal-segment img" id="sig-img" title="图像数据"></div>
+          </div>
+          <div class="sstv-mode-badge" id="sstv-mode-badge"></div>
+        </div>
+        <div class="sstv-sidebar">
+          <div class="sstv-mode-selector">
+            <h4>强制模式</h4>
+            <select id="sstv-force-mode">
+              <option value="">自动检测 (VIS)</option>
+              <option value="robot36">Robot 36</option>
+              <option value="robot72">Robot 72</option>
+              <option value="martin1">Martin M1</option>
+              <option value="martin2">Martin M2</option>
+              <option value="pd120">PD 120</option>
+              <option value="scottie1">Scottie S1</option>
+              <option value="scottie2">Scottie S2</option>
+            </select>
+            <button class="sstv-force-btn" id="sstv-force-start">强制解码</button>
+            <p class="sstv-hint">当自动 VIS 检测失败时，可从最近 5s 音频强制按所选模式解码</p>
+          </div>
+          <div class="sstv-history" id="sstv-history-panel">
+            <h4>历史记录 (<span id="sstv-history-count">0</span>)</h4>
+            <div class="sstv-history-list" id="sstv-history-list">
+              <div class="sstv-history-empty">暂无历史</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
