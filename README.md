@@ -78,6 +78,18 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-06 (v0.3.13)
+
+**修复 — 服务器列表无法加载**
+
+- v0.3.12 遗漏了 `_serverLatency` / `_serverLatencyPending` 字段的初始化声明，导致 `renderServerList()` 中 `TypeError: Cannot read properties of undefined`
+- 在 App 对象 SSTV 段补充 `_serverLatency: {}` / `_serverLatencyPending: {}`
+
+**修改文件**：app.js
+
+<details>
+<summary>历史日志</summary>
+
 ### 2026-06-06 (v0.3.12)
 
 **新增 — Speaking Bar 网格地名反查 + 服务器延迟显示**
