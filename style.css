@@ -405,7 +405,7 @@ html, body {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 7px;
-  min-height: 90px;
+  min-height: 112px;
   justify-content: center;
   align-items: center;
   flex-shrink: 0;
@@ -430,6 +430,8 @@ html, body {
   overflow: hidden;
   margin-top: 6px;
 }
+.speaking-bar.active .vu-meter { display: block; }
+.speaking-bar:not(.active) .vu-meter { display: none; }
 .vu-meter-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--success), var(--warn), var(--danger));
@@ -489,6 +491,15 @@ html, body {
   color: var(--warn);
   font-family: var(--font-mono);
   font-size: 14px;
+}
+.speaker-server {
+  color: var(--accent);
+  font-size: 13px;
+  font-family: var(--font-mono);
+  padding: 1px 6px;
+  margin-left: 4px;
+  background: rgba(0, 217, 255, 0.08);
+  border-radius: 3px;
 }
 .speaker-stats-text {
   color: var(--text-secondary);

@@ -841,6 +841,15 @@ const App = {
   // ============ Speaking Bar ============
 
   /**
+   * 方位角 → 中文方向文字（8 方位）
+   */
+  _azimuthToDirection(azimuth) {
+    const a = ((azimuth % 360) + 360) % 360;
+    const dirs = ['北', '东北', '东', '东南', '南', '西南', '西', '西北'];
+    return dirs[Math.round(a / 45) % 8];
+  },
+
+  /**
    * 从 QSO 列表推导台站附属信息（当事件未提供时兜底）
    * 返回 { grid, distance, azimuth, altitude }，未找到的字段为 undefined
    */
@@ -939,10 +948,12 @@ const App = {
       distance: data.distance,
       azimuth: data.azimuth,
       altitude: data.altitude,
+      serverName: '',
+      serverUid: '',
       startedAtMs: Date.now(),
     };
 
-    // 从 qsoList 获取 serverInfo
+    // 从 qsoList 获取 serverInfo 并补全参数
     let serverUid = '', serverName = '';
     const matchingQso = this.qsoList.find(q => {
       const qc = q.toCallsign || q.callsign || '';
@@ -952,7 +963,21 @@ const App = {
       serverUid = matchingQso.serverUid || '';
       serverName = matchingQso.serverName || '';
     }
-    this._addSpeakingRecord(data.callsign, data.grid, serverUid, serverName);
+    this._currentSpeaker.serverName = serverName;
+    this._currentSpeaker.serverUid = serverUid;
+
+    // 若事件数据缺少 grid/distance/azimuth，立即从 QSO 补全
+    const sp = this._currentSpeaker;
+    if (!sp.grid || sp.distance === undefined || sp.azimuth === undefined) {
+      const derived = this._deriveStationInfo(data.callsign);
+      if (!sp.grid && derived.grid) sp.grid = derived.grid;
+      if (sp.distance === undefined && derived.distance !== undefined) sp.distance = derived.distance;
+      if (sp.azimuth === undefined && derived.azimuth !== undefined) sp.azimuth = derived.azimuth;
+      if (sp.altitude === undefined && derived.altitude !== undefined) sp.altitude = derived.altitude;
+    }
+
+    // 若无 grid 但有 QSO grid，更新 speaking record
+    this._addSpeakingRecord(data.callsign, sp.grid, serverUid, serverName);
 
     if (this._speakingTimer) {
       clearInterval(this._speakingTimer);
@@ -1130,17 +1155,21 @@ const App = {
       badgesHtml += '<span class="speaker-badge new-friend">✦ 新朋友</span>';
     }
 
-    // 第二行：网格 + 方位/距离 + 通联统计
+    // 第二行：网格 + 服务器名 + 方位/距离 + 通联统计
     let row2Html = `<span class="speaker-grid">${sp.grid || '--'}</span>`;
-
-    // 方位角 + 距离 + 高度
-    let extraInfo = '';
-    if (sp.distance !== undefined && sp.distance !== null) {
-      extraInfo += `距离 ${sp.distance} km`;
+    if (sp.serverName) {
+      row2Html += `<span class="speaker-server">${sp.serverName}</span>`;
     }
+
+    // 方位角 + 距离 + 高度（含方向文字）
+    let extraInfo = '';
     if (sp.azimuth !== undefined && sp.azimuth !== null) {
+      const dir = this._azimuthToDirection(sp.azimuth);
+      extraInfo += `方位 ${dir}${sp.azimuth}°`;
+    }
+    if (sp.distance !== undefined && sp.distance !== null) {
       if (extraInfo) extraInfo += ' · ';
-      extraInfo += `方位 ${sp.azimuth}°`;
+      extraInfo += `距离 ${sp.distance} km`;
     }
     if (sp.altitude !== undefined && sp.altitude !== null) {
       if (extraInfo) extraInfo += ' · ';
