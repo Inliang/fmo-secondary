@@ -80,15 +80,14 @@ fmo-secondary/
 
 ### 2026-06-06 (v0.3.12)
 
-**新增 — Speaking Bar 网格地名反查**
+**新增 — Speaking Bar 网格地名反查 + 服务器延迟显示**
 
 - Speaking Bar 中梅登海德网格（如 OL63ma）替换为通过 OSM Nominatim 反查得到的完整省/市/区地名
-- 新增 `_gridToLatLon(grid)` 方法：Maidenhead 网格 → 经纬度中心点转换
-- 新增 `_resolveGridLocation(grid)` 异步方法：调用 Nominatim Reverse Geocoding API 反查地名，结果缓存至 `_gridLocationCache`
-- `showSpeaking()` 中在发言人确定后异步触发反查，反查完成后自动刷新 Speaking Bar 显示
-- 缓存命中时直接显示地名，未命中时回退显示原始 Grid
+- 服务器列表每项末尾"--在线"后显示 WebSocket 延迟（临时连接测时，3s 超时，host 无则显示 ...）
+- 新增 `_probeServerLatency(s)` / `_probeAllServerLatency()` 方法
+- 新增 `_serverLatency` / `_serverLatencyPending` 缓存字段防止并发重复测量
 
-**修改文件**：app.js
+**修改文件**：app.js, style.css
 
 <details>
 <summary>历史日志</summary>

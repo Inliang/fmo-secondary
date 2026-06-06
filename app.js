@@ -667,6 +667,8 @@ const App = {
     } catch (e) {}
 
     this.renderServerList();
+    // 异步探测所有服务器延迟
+    setTimeout(() => this._probeAllServerLatency(), 500);
     await this.fetchStats();
   },
 
@@ -702,11 +704,15 @@ const App = {
     container.innerHTML = filtered.map(s => {
       const uid = s.uid ?? s._id ?? s.id ?? '--';
       const active = s.name === this.currentServerName;
-      return `<div class="server-item${active ? ' active' : ''}" data-server-name="${s.name}">
+      const host = s.host || s.addr || s.address || s.url || '';
+      const lat = this._serverLatency[host];
+      const latStr = lat === -1 ? '超时' : (lat !== undefined ? lat + 'ms' : '...');
+      return `<div class="server-item${active ? ' active' : ''}" data-server-name="${s.name}" data-server-key="${host || s.name}">
         <span class="server-item-uid">#${uid}</span>
         <span class="server-item-name">${s.name || '--'}</span>
         <span>
           <span class="server-item-count">${s.onlineCount ?? s.count ?? '--'} 在线</span>
+          <span class="server-item-latency">${latStr}</span>
           ${active ? '<span class="server-item-check">✓</span>' : ''}
         </span>
       </div>`;
@@ -943,6 +949,54 @@ const App = {
       }
     } catch (e) {
       // 静默失败，仍显示原始 grid
+    }
+  },
+
+  /**
+   * 测量浏览器到服务器的 WebSocket 延迟
+   */
+  async _probeServerLatency(s) {
+    const host = s.host || s.addr || s.address || s.url || '';
+    if (!host) return;
+    const key = host;
+    if (this._serverLatencyPending[key]) return;
+    this._serverLatencyPending[key] = true;
+
+    const protocol = host.startsWith('localhost') || host.startsWith('192.') || host.startsWith('10.') || host.startsWith('172.') ? 'ws' : 'wss';
+    const wsUrl = `${protocol}://${host}/ws`;
+
+    const start = performance.now();
+    try {
+      const ws = new WebSocket(wsUrl);
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          ws.close();
+          reject(new Error('timeout'));
+        }, 3000);
+        ws.onopen = () => {
+          clearTimeout(timer);
+          ws.close();
+          resolve();
+        };
+        ws.onerror = () => {
+          clearTimeout(timer);
+          ws.close();
+          reject(new Error('error'));
+        };
+      });
+      const rtt = Math.round(performance.now() - start);
+      this._serverLatency[key] = rtt;
+    } catch (e) {
+      this._serverLatency[key] = -1;
+    } finally {
+      delete this._serverLatencyPending[key];
+    }
+    this.renderServerList();
+  },
+
+  _probeAllServerLatency() {
+    for (const s of this.serverList) {
+      this._probeServerLatency(s);
     }
   },
 
