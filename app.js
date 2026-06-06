@@ -64,6 +64,13 @@ const ROBOT36_MODE = {
   scanLineMs: 150,
   totalScanLines: 36,
   preludeMs: 0,
+  // Segment timing within 150ms scan line (Robot 36 spec)
+  syncMs: 9,
+  porchMs: 3,
+  yMs: 88,
+  separatorMs: 4.5,
+  porch2Ms: 1.5,
+  chromaMs: 44,
 };
 
 const App = {
@@ -123,6 +130,8 @@ const App = {
   _sstvYbuf: null,
   _sstvRYbuf: null,
   _sstvBYbuf: null,
+  _sstvSyncWin0: [],
+  _sstvSyncWin1: [],
 
   // --- 定时器 ---
   datetimeTimer: null,
@@ -1558,6 +1567,8 @@ const App = {
         this._sstvYbuf = null;
         this._sstvRYbuf = null;
         this._sstvBYbuf = null;
+        this._sstvSyncWin0 = [];
+        this._sstvSyncWin1 = [];
 
         document.getElementById('sstv-status').textContent = '解码中...';
         document.getElementById('sstv-status').classList.add('active');
@@ -1574,64 +1585,42 @@ const App = {
     }
 
     if (this._sstvState === 'decoding') {
+      const MODE = this._sstvMode;
+      const SR = 8000;
+      const warmupSamples = Math.round((5 * SR) / 1000);
+      const rowSamples = Math.round(MODE.scanLineMs * SR / 1000);
+
       const elapsedSamples = tap.totalWritten - this._sstvT0;
       const elapsedMs = (elapsedSamples / SR) * 1000;
       const targetScanLine = Math.floor(elapsedMs / MODE.scanLineMs);
 
       this._updateSignalBar(targetScanLine);
 
-      while (this._sstvNextScanLine < Math.min(targetScanLine, MODE.totalScanLines)) {
-        const rowSamples = Math.round(MODE.scanLineMs * SR / 1000);
-        const scanLineStart = this._sstvT0 + Math.round(this._sstvNextScanLine * MODE.scanLineMs * SR / 1000);
+      // Process scan lines in pairs (Robot 36: each pair = Y[even],Cr,Y[odd],Cb)
+      while (this._sstvNextScanLine + 1 < Math.min(targetScanLine, MODE.totalScanLines)) {
+        const lnEven = this._sstvNextScanLine;
+        const lnOdd = lnEven + 1;
         const oldest = Math.max(0, tap.totalWritten - tap.capacity);
-        const actualWarmup = Math.max(0, Math.min(warmupSamples, scanLineStart - oldest));
-        const samples = tap.slice(scanLineStart - actualWarmup, rowSamples + actualWarmup);
-        if (!samples || samples.length < 100) break;
 
-        const demod = this._fmDemodulate(samples, SR, actualWarmup);
-        const channel = this._sstvNextScanLine % 3;
-        const buf = this._extractPixels(demod, SR, MODE);
+        const startEven = this._sstvT0 + Math.round(lnEven * MODE.scanLineMs * SR / 1000);
+        const actualWarmupEven = Math.max(0, Math.min(warmupSamples, startEven - oldest));
+        const samplesEven = tap.slice(startEven - actualWarmupEven, rowSamples + actualWarmupEven);
+        if (!samplesEven || samplesEven.length < 100) break;
 
-        if (channel === 0) {
-          this._sstvYbuf = buf;
-        } else if (channel === 1) {
-          this._sstvRYbuf = buf;
-        } else if (channel === 2) {
-          this._sstvBYbuf = buf;
+        const startOdd = this._sstvT0 + Math.round(lnOdd * MODE.scanLineMs * SR / 1000);
+        const actualWarmupOdd = Math.max(0, Math.min(warmupSamples, startOdd - oldest));
+        const samplesOdd = tap.slice(startOdd - actualWarmupOdd, rowSamples + actualWarmupOdd);
+        if (!samplesOdd || samplesOdd.length < 100) break;
 
-          if (this._sstvYbuf && this._sstvRYbuf && this._sstvBYbuf) {
-            const groupIdx = Math.floor(this._sstvNextScanLine / 3);
-            const rowsPerGroup = Math.round(MODE.height / (MODE.totalScanLines / 3));
-            const firstRow = groupIdx * rowsPerGroup;
+        const rgba = this._decodeSstvLinePair(samplesEven, samplesOdd, SR, MODE,
+          actualWarmupEven, actualWarmupOdd);
 
-            for (let row = 0; row < rowsPerGroup; row++) {
-              const y = firstRow + row;
-              if (y >= MODE.height) break;
-              const rowOffset = y * MODE.width * 4;
-              for (let x = 0; x < MODE.width; x++) {
-                const Y = this._sstvYbuf[x];
-                const RY = this._sstvRYbuf[x] - 0.5;
-                const BY = this._sstvBYbuf[x] - 0.5;
+        const firstRow = lnEven; // 0, 2, 4, ..., 34
+        const rowOffset = firstRow * MODE.width * 4;
+        this._sstvFullRgba.set(rgba, rowOffset);
+        this._renderSstvRows(firstRow, 2);
 
-                let R = Y + 0.956 * RY + 0.621 * BY;
-                let G = Y - 0.272 * RY - 0.647 * BY;
-                let B = Y - 1.106 * RY + 1.703 * BY;
-
-                R = Math.max(0, Math.min(255, Math.round(R * 255)));
-                G = Math.max(0, Math.min(255, Math.round(G * 255)));
-                B = Math.max(0, Math.min(255, Math.round(B * 255)));
-
-                const idx = rowOffset + x * 4;
-                this._sstvFullRgba[idx] = R;
-                this._sstvFullRgba[idx + 1] = G;
-                this._sstvFullRgba[idx + 2] = B;
-                this._sstvFullRgba[idx + 3] = 255;
-              }
-            }
-            this._renderSstvRows(firstRow, rowsPerGroup);
-          }
-        }
-        this._sstvNextScanLine++;
+        this._sstvNextScanLine += 2;
       }
 
       if (this._sstvNextScanLine >= MODE.totalScanLines) {
@@ -1652,6 +1641,8 @@ const App = {
             self._sstvYbuf = null;
             self._sstvRYbuf = null;
             self._sstvBYbuf = null;
+            self._sstvSyncWin0 = [];
+            self._sstvSyncWin1 = [];
             document.getElementById('sstv-status').textContent = '等待信号...';
             document.getElementById('sstv-status').classList.remove('active');
             document.getElementById('sstv-mode-badge').classList.remove('visible');
@@ -1672,6 +1663,8 @@ const App = {
         this._sstvYbuf = null;
         this._sstvRYbuf = null;
         this._sstvBYbuf = null;
+        this._sstvSyncWin0 = [];
+        this._sstvSyncWin1 = [];
         document.getElementById('sstv-status').textContent = '等待信号...';
         document.getElementById('sstv-status').classList.remove('active');
         document.getElementById('sstv-mode-badge').classList.remove('visible');
@@ -1680,18 +1673,131 @@ const App = {
     }
   },
 
-  _extractPixels(demod, sampleRate, mode) {
-    const pixels = new Float32Array(mode.width);
-    if (demod.length <= 0) return pixels;
-    const samplesPerPixel = demod.length / mode.width;
-    for (let i = 0; i < mode.width; i++) {
-      const idx = Math.round(i * samplesPerPixel);
-      if (idx < demod.length) {
-        const hz = Math.max(1500, Math.min(2300, demod[idx]));
-        pixels[i] = (hz - 1500) / 800;
+  // ============ SSTV Robot 36 像素解码（参照 FmoDeck） ============
+
+  _ycbcrToRgb(y, cb, cr) {
+    const cbb = cb - 128;
+    const crr = cr - 128;
+    const r = y + 1.402 * crr;
+    const g = y - 0.344136 * cbb - 0.714136 * crr;
+    const b = y + 1.772 * cbb;
+    return [
+      Math.max(0, Math.min(255, Math.round(r))),
+      Math.max(0, Math.min(255, Math.round(g))),
+      Math.max(0, Math.min(255, Math.round(b)))
+    ];
+  },
+
+  _detectSstvSync(freq, sampleRate, syncMs, searchMs) {
+    const searchSamples = Math.min(freq.length, Math.round((searchMs * sampleRate) / 1000));
+    const winSamples = Math.max(4, Math.round((syncMs * sampleRate) / 1000));
+    if (searchSamples < winSamples + 4) return 0;
+
+    let sum = 0;
+    for (let k = 0; k < winSamples; k++) sum += freq[k] || 0;
+
+    let bestCenterIdx = winSamples / 2;
+    let bestDist = Infinity;
+
+    for (let start = 0; start + winSamples <= searchSamples; start++) {
+      const mean = sum / winSamples;
+      const dist = Math.abs(mean - 1200);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestCenterIdx = start + winSamples / 2;
+      }
+      if (start + winSamples < searchSamples) {
+        sum += (freq[start + winSamples] || 0) - (freq[start] || 0);
       }
     }
-    return pixels;
+
+    if (bestDist > 200) return 0;
+    const detectedMs = (bestCenterIdx / sampleRate) * 1000;
+    return detectedMs - syncMs / 2;
+  },
+
+  _hampelFilterSync(window, raw) {
+    window.push(raw);
+    if (window.length > 5) window.shift();
+    if (window.length < 3) return raw;
+    const sorted = [...window].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    const deviations = window.map(v => Math.abs(v - median)).sort((a, b) => a - b);
+    const mad = deviations[Math.floor(deviations.length / 2)];
+    if (Math.abs(raw - median) > mad * 3 + 0.01) return median;
+    return raw;
+  },
+
+  _sampleSstvSection(freq, sampleRate, startMs, endMs, count) {
+    const out = new Uint8ClampedArray(count);
+    const startIdx = Math.max(0, Math.round((startMs * sampleRate) / 1000));
+    const endIdx = Math.min(freq.length, Math.round((endMs * sampleRate) / 1000));
+    const sectionSamples = endIdx - startIdx;
+    if (sectionSamples <= 0) return out;
+
+    const perPixelSamples = sectionSamples / count;
+    const winSamples = Math.min(sectionSamples, Math.max(4, Math.round(perPixelSamples)));
+
+    for (let i = 0; i < count; i++) {
+      const centerIdx = startIdx + Math.round((i + 0.5) * perPixelSamples);
+      const ws = Math.floor(winSamples / 2);
+      const s = Math.max(startIdx, centerIdx - ws);
+      const e = Math.min(endIdx, s + winSamples);
+      let sum = 0;
+      for (let k = s; k < e; k++) sum += freq[k] || 0;
+      const avgHz = sum / (e - s);
+      out[i] = Math.max(0, Math.min(255, Math.round(((avgHz - 1500) / 800) * 255)));
+    }
+    return out;
+  },
+
+  _decodeSstvLinePair(samplesEven, samplesOdd, sampleRate, mode, warmupEven, warmupOdd) {
+    const freqEven = this._fmDemodulate(samplesEven, sampleRate, warmupEven);
+    const freqOdd = this._fmDemodulate(samplesOdd, sampleRate, warmupOdd);
+
+    const sync0Raw = this._detectSstvSync(freqEven, sampleRate, mode.syncMs, 20);
+    const sync1Raw = this._detectSstvSync(freqOdd, sampleRate, mode.syncMs, 20);
+
+    const sync0 = this._hampelFilterSync(this._sstvSyncWin0, sync0Raw);
+    const sync1 = this._hampelFilterSync(this._sstvSyncWin1, sync1Raw);
+
+    // Even line: sync(9)+porch(3)+Y[even](88)+sep(4.5)+porch2(1.5)+Cr(44)
+    const yEvenStart = mode.syncMs + mode.porchMs + sync0;
+    const yEvenEnd = yEvenStart + mode.yMs;
+    const crStart = yEvenEnd + mode.separatorMs + mode.porch2Ms;
+    const crEnd = crStart + mode.chromaMs;
+
+    // Odd line: sync(9)+porch(3)+Y[odd](88)+sep(4.5)+porch2(1.5)+Cb(44)
+    const yOddStart = mode.syncMs + mode.porchMs + sync1;
+    const yOddEnd = yOddStart + mode.yMs;
+    const cbStart = yOddEnd + mode.separatorMs + mode.porch2Ms;
+    const cbEnd = cbStart + mode.chromaMs;
+
+    const chromaWidth = Math.floor(mode.width / 2); // 160 for Robot 36
+
+    const yEven = this._sampleSstvSection(freqEven, sampleRate, yEvenStart, yEvenEnd, mode.width);
+    const cr = this._sampleSstvSection(freqEven, sampleRate, crStart, crEnd, chromaWidth);
+    const yOdd = this._sampleSstvSection(freqOdd, sampleRate, yOddStart, yOddEnd, mode.width);
+    const cb = this._sampleSstvSection(freqOdd, sampleRate, cbStart, cbEnd, chromaWidth);
+
+    // YCbCr→RGB, 2 rows, chroma subsampling 2:1
+    const rgba = new Uint8ClampedArray(mode.width * 2 * 4);
+    for (let x = 0; x < mode.width; x++) {
+      const ci = x >> 1;
+      const crVal = cr[ci] || 128;
+      const cbVal = cb[ci] || 128;
+      const [r0, g0, b0] = this._ycbcrToRgb(yEven[x] || 128, cbVal, crVal);
+      const [r1, g1, b1] = this._ycbcrToRgb(yOdd[x] || 128, cbVal, crVal);
+      rgba[x * 4 + 0] = r0;
+      rgba[x * 4 + 1] = g0;
+      rgba[x * 4 + 2] = b0;
+      rgba[x * 4 + 3] = 255;
+      rgba[(mode.width + x) * 4 + 0] = r1;
+      rgba[(mode.width + x) * 4 + 1] = g1;
+      rgba[(mode.width + x) * 4 + 2] = b1;
+      rgba[(mode.width + x) * 4 + 3] = 255;
+    }
+    return rgba;
   },
 
   _renderSstvRows(firstRow, count) {
@@ -1811,6 +1917,8 @@ const App = {
     this._sstvYbuf = null;
     this._sstvRYbuf = null;
     this._sstvBYbuf = null;
+    this._sstvSyncWin0 = [];
+    this._sstvSyncWin1 = [];
     this._clearSignalBar();
     document.getElementById('sstv-status').textContent = '等待信号...';
     document.getElementById('sstv-status').classList.remove('active');
@@ -1831,6 +1939,8 @@ const App = {
     this._sstvYbuf = null;
     this._sstvRYbuf = null;
     this._sstvBYbuf = null;
+    this._sstvSyncWin0 = [];
+    this._sstvSyncWin1 = [];
 
     if (this._sstvTickTimer) {
       clearInterval(this._sstvTickTimer);
@@ -1857,6 +1967,8 @@ const App = {
     this._sstvYbuf = null;
     this._sstvRYbuf = null;
     this._sstvBYbuf = null;
+    this._sstvSyncWin0 = [];
+    this._sstvSyncWin1 = [];
 
     document.getElementById('sstv-status').textContent = '强制解码中...';
     document.getElementById('sstv-status').classList.add('active');
