@@ -44,7 +44,7 @@ FMO 副屏伴侣 — 单 HTML 零依赖、四象限面板、三主题 Web 控制
 - **服务器列表**：翻页全量加载、点击切换、当前服务器高亮
 - **Speaking Bar**：单行紧凑布局，实时显示讲话者呼号 + 方位角 / 距离 / Grid / 服务器名 + HOST/自己/新朋友徽章 + 通联计时
 - **QSO 统计**：Top N 统计卡片、删除按钮
-- **音频收听**：VU 电平 + 迷你频谱（24 柱语音频段加权）+ 静音按钮
+- **音频收听**：VU 电平 + 迷你频谱（24 柱真实 FFT，200-3800Hz 对数分频）+ 静音按钮
 - **移动端适配**：响应式布局、呼号 / 频谱 / 信息栏自动缩放
 
 ## 快速开始
@@ -78,18 +78,31 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-06 (v0.3.9)
+
+**重构 — Speaking Bar 加入方位角/距离/Grid + 频谱改为真实 FFT**
+
+- Speaking Bar 在呼号后加入 `方位东24° 12km OL63ma` 格式的方位角/距离/梅登海德网格信息
+- 迷你频谱从 VU 模拟驱动改为真实 FFT（Radix-2 Cooley-Tukey，1024 点 Hann 窗，200-3800Hz 对数分频 24 柱）
+- 无音频时频谱显示基线而非随机噪声
+
+**修改文件**：app.js, style.css
+
 ### 2026-06-06 (v0.3.8)
 
 **重构 — Speaking Bar 完全参照 FmoLogs 重做 UI**
 
 - 彻底废弃旧卡片式设计（border + border-radius + card bg），改为 FmoLogs 扁平单行状态条
 - 结构：脉冲圆点指示器（发言绿/空闲灰） + 单行文字 + 紧凑 VU 表
-- 格式：`正在发言: CALLSIGN [HOST] 自己 ✦新朋友 xN [服务器名] elapsed`
+- 格式：`正在发言: CALLSIGN 方位东24° 12km OL63ma [HOST] 自己 ✦新朋友 xN [服务器名] elapsed`
 - 空闲态：`当前无人发言`（灰色圆点）
-- CSS 全部重写：移除 speaker-callsign/speaker-badge/speaker-grid/speaker-server/speaker-extra/idle-text/idle-sub 等旧类，统一为 speaking-indicator / speaking-text / speaking-tag / speaking-count / speaking-elapsed
+- CSS 全部重写：移除 speaker-callsign/speaker-badge/speaker-grid/speaker-server/speaker-extra/idle-text/idle-sub 等旧类，统一为 speaking-indicator / speaking-text / speaking-tag / speaking-count / speaking-elapsed / speaking-meta
 - 彻底消除多层嵌套、双层显示、flex-wrap 换行等问题
 
-**修改文件**：index.html, style.css, app.js | 作者 BI3TMM
+**修改文件**：index.html, style.css, app.js
+
+<details>
+<summary>历史日志</summary>
 
 ### 2026-06-06 (v0.3.7)
 
@@ -98,7 +111,7 @@ fmo-secondary/
 - 根因：`panel-title "当前通联"`（带 bottom-border）+ `speaking-bar`（带自身 border+背景）各自形成独立视觉层，导致双层显示
 - 修复：删除 `panel-title "当前通联"`，speaking-bar 成为面板内最上层元素
 
-**修改文件**：index.html | 作者 BI3TMM
+**修改文件**：index.html
 
 ### 2026-06-06 (v0.3.6)
 
@@ -108,7 +121,7 @@ fmo-secondary/
 - 修复：`flex-wrap: wrap` → `flex-wrap: nowrap`，强制单行布局；添加 `overflow: hidden` 防止溢出
 - 修复 `_processEvent` 中 `speaking_start` / `qso/callsign` 事件处理重复调用 `_addSpeakingRecord`（`showSpeaking()` 内部已调用一次）
 
-**修改文件**：style.css, app.js | 作者 BI3TMM
+**修改文件**：style.css, app.js
 
 ### 2026-06-06 (v0.3.5)
 
@@ -121,10 +134,7 @@ fmo-secondary/
 - 移动端响应式：允许自动换行，保持紧凑
 - README 新增参考项目列表；历史更新日志折叠
 
-**修改文件**：app.js, style.css, index.html, README.md | 作者 BI3TMM
-
-<details>
-<summary>历史日志</summary>
+**修改文件**：app.js, style.css, index.html, README.md
 
 ### 2026-06-06 (v0.3.4)
 
@@ -136,7 +146,7 @@ fmo-secondary/
 - `hideSpeaking`：idle 结构对齐 active 状态（双行 + subtitle 占位），消除框体高度跳变
 - `renderSpeakingBar`：方位/距离/高度各自独立 `<span>` 输出，不再混杂单行
 
-**修改文件**：app.js, style.css | 作者 BI3TMM
+**修改文件**：app.js, style.css
 
 ### 2026-06-06 (v0.3.3)
 
@@ -152,7 +162,7 @@ fmo-secondary/
   - 新增 `.speaker-server` CSS：服务器名显示为 accent 色小标签
   - `_currentSpeaker` 新增 serverName/serverUid 字段
 
-**修改文件**：app.js, style.css | 作者 BI3TMM
+**修改文件**：app.js, style.css
 
 ### 2026-06-06 (v0.3.2)
 
@@ -166,7 +176,7 @@ fmo-secondary/
 - 替换 YUV→RGB 为 BT.601 full-range YCbCr→RGB（JPEG/JFIF 标准矩阵系数）
 - 新增 `_decodeSstvLinePair` 一行对解码，Cr/Cb 色度水平 2:1 subsampling（ci=x>>1）
 
-**修改文件**：app.js（v0.3.0+ 中 SSTV 解码管线完全重写）| 作者 BI3TMM
+**修改文件**：app.js
 
 ### 2026-06-06 (v0.3.1)
 

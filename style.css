@@ -449,6 +449,12 @@ html, body {
   color: var(--accent);
   margin-left: 0.3em;
 }
+.speaking-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-left: 0.3em;
+  font-family: var(--font-mono);
+}
 .speaking-count {
   font-size: 11px;
   color: var(--text-secondary);
