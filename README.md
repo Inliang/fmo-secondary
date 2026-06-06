@@ -78,6 +78,21 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-06 (v0.3.12)
+
+**新增 — Speaking Bar 网格地名反查**
+
+- Speaking Bar 中梅登海德网格（如 OL63ma）替换为通过 OSM Nominatim 反查得到的省/市/区地名
+- 新增 `_gridToLatLon(grid)` 方法：Maidenhead 网格 → 经纬度中心点转换
+- 新增 `_resolveGridLocation(grid)` 异步方法：调用 Nominatim Reverse Geocoding API 反查地名，结果缓存至 `_gridLocationCache`
+- `showSpeaking()` 中在发言人确定后异步触发反查，反查完成后自动刷新 Speaking Bar 显示
+- 缓存命中时直接显示地名，未命中时回退显示原始 Grid
+
+**修改文件**：app.js
+
+<details>
+<summary>历史日志</summary>
+
 ### 2026-06-06 (v0.3.11)
 
 **优化 — 替换方向箭头 SVG + 方位角旋转跟随**
@@ -86,9 +101,6 @@ fmo-secondary/
 - SVG 通过 `transform:rotate(${azimuth}deg)` 跟随实际方位角旋转（北=0°）
 
 **修改文件**：app.js
-
-<details>
-<summary>历史日志</summary>
 
 ### 2026-06-06 (v0.3.10)
 

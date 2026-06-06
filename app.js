@@ -113,6 +113,7 @@ const App = {
 
   // --- SSTV ---
   _sstvActive: false,
+  _gridLocationCache: {},
   _sstvState: 'idle',
   _sstvMode: null,
   _sstvDecodeState: {},
@@ -893,6 +894,49 @@ const App = {
   },
 
   /**
+   * 将 Maidenhead 网格转换为经纬度（中心点）
+   */
+  _gridToLatLon(grid) {
+    const g = grid.toUpperCase();
+    if (g.length < 4) return null;
+    const fieldLon = (g.charCodeAt(0) - 65) * 20 - 180;
+    const fieldLat = (g.charCodeAt(1) - 65) * 10 - 90;
+    const sqLon = parseInt(g[2]) * 2;
+    const sqLat = parseInt(g[3]) * 1;
+    const subLon = g.length >= 6 ? (g.charCodeAt(4) - 65) * (5 / 60) : 0;
+    const subLat = g.length >= 6 ? (g.charCodeAt(5) - 65) * (2.5 / 60) : 0;
+    return {
+      lat: fieldLat + sqLat + subLat + (2.5 / 120),
+      lon: fieldLon + sqLon + subLon + (5 / 120),
+    };
+  },
+
+  /**
+   * 通过 OSM Nominatim 反查网格对应的省/市/区地名，结果存入缓存
+   */
+  async _resolveGridLocation(grid) {
+    if (!grid || this._gridLocationCache[grid]) return;
+    const coords = this._gridToLatLon(grid);
+    if (!coords) return;
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lon}&zoom=10&accept-language=zh`;
+      const resp = await fetch(url, { headers: { 'User-Agent': 'fmo-secondary/1.0' } });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const addr = data.address || {};
+      // 优先级：city/town/village → state → country
+      const region = addr.city || addr.town || addr.village || addr.county || addr.state || addr.country || '';
+      this._gridLocationCache[grid] = region;
+      // 如果当前发言人网格匹配，立即更新显示
+      if (this._currentSpeaker && this._currentSpeaker.grid === grid) {
+        this.renderSpeakingBar();
+      }
+    } catch (e) {
+      // 静默失败，仍显示原始 grid
+    }
+  },
+
+  /**
    * 从远程网格计算与我站之间的距离(km)和方位角(°)。
    * 网格中心点近似（6 位精度 ~ 3' 以内）。
    */
@@ -1018,6 +1062,11 @@ const App = {
 
     // 若无 grid 但有 QSO grid，更新 speaking record
     this._addSpeakingRecord(data.callsign, sp.grid, serverUid, serverName);
+
+    // 异步反查网格地名
+    if (sp.grid) {
+      this._resolveGridLocation(sp.grid);
+    }
 
     if (this._speakingTimer) {
       clearInterval(this._speakingTimer);
@@ -1220,7 +1269,8 @@ const App = {
       meta += `<span class="speaking-meta distance">${Number(sp.distance).toFixed(1)}km</span>`;
     }
     if (sp.grid) {
-      meta += `<span class="speaking-meta">${sp.grid}</span>`;
+      const location = this._gridLocationCache[sp.grid] || sp.grid;
+      meta += `<span class="speaking-meta">${location}</span>`;
     }
 
     // 服务器名
