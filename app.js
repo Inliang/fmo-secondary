@@ -1,5 +1,5 @@
 /* ============================================================
-   FMO 副屏伴侣 — app.js v6
+   FMO 副屏伴侣 — app.js v7
    参照 FmoDeck 协议层改写：
    - QSO 用 qso.getList({page}) 分页拉取全量
    - Station 用 station.getListRange({start,count}) 循环翻页全量
@@ -567,9 +567,13 @@ const App = {
 
     let filtered = this.serverList;
     if (this.serverSearch) {
-      filtered = this.serverList.filter(s =>
-        (s.name || '').toLowerCase().includes(this.serverSearch)
-      );
+      filtered = this.serverList.filter(s => {
+        const kw = this.serverSearch.toLowerCase();
+        const nameMatch = (s.name || '').toLowerCase().includes(kw);
+        const uid = s.uid ?? s._id ?? s.id ?? '';
+        const uidMatch = String(uid).toLowerCase().includes(kw);
+        return nameMatch || uidMatch;
+      });
     }
 
     if (!this.serverList.length) {
@@ -1096,8 +1100,7 @@ const App = {
       alert('暂无通联记录可导出');
       return;
     }
-    const header = '序号,对方呼号,网格,时间,频率,模式,中继,留言';
-    const rows = this.qsoList.map(item => {
+    const data = this.qsoList.map(item => {
       const logId = item.logId ?? '';
       const toCallsign = item.toCallsign ?? item.callsign ?? '';
       const grid = item.grid ?? item.locator ?? '';
@@ -1105,19 +1108,17 @@ const App = {
       const timeStr = ts
         ? `${ts.getFullYear()}-${String(ts.getMonth()+1).padStart(2,'0')}-${String(ts.getDate()).padStart(2,'0')} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}:${String(ts.getSeconds()).padStart(2,'0')}`
         : '';
-      const freq = item.frequency ?? item.freq ?? '';
+      const frequency = item.frequency ?? item.freq ?? '';
       const mode = item.mode ?? '';
       const repeater = item.repeater ?? item.relay ?? '';
       const memo = item.memo ?? item.message ?? '';
-      return [logId, toCallsign, grid, timeStr, freq, mode, repeater, memo]
-        .map(v => `"${String(v).replace(/"/g,'""')}"`)
-        .join(',');
+      return { logId, toCallsign, grid, timestamp: item.timestamp, timeStr, frequency, mode, repeater, memo };
     });
-    const csv = '\uFEFF' + header + '\n' + rows.join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
     const now = new Date();
-    const filename = `fmo-qso-export-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.csv`;
+    const filename = `fmo-qso-export-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}.db`;
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
