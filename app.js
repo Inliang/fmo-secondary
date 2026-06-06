@@ -1167,12 +1167,22 @@ const App = {
     const elapsed = Date.now() - sp.startedAtMs;
     const elapsedStr = this.formatElapsed(elapsed);
 
-    // 兜底：distance / azimuth / altitude 缺失时从 _deriveStationInfo 补全
+    // 兜底：distance / azimuth / altitude 缺失时从 _deriveStationInfo 或 grid 计算补全
     if (sp.distance === undefined || sp.azimuth === undefined || sp.altitude === undefined) {
       const derived = this._deriveStationInfo(sp.callsign);
       if (sp.distance === undefined && derived.distance !== undefined) sp.distance = derived.distance;
       if (sp.azimuth === undefined && derived.azimuth !== undefined) sp.azimuth = derived.azimuth;
       if (sp.altitude === undefined && derived.altitude !== undefined) sp.altitude = derived.altitude;
+      if (!sp.grid && derived.grid) sp.grid = derived.grid;
+      
+      // 如果 QSO 有 grid 但仍无 distance/azimuth，直接用 grid 计算
+      if (sp.grid && (sp.distance === undefined || sp.azimuth === undefined)) {
+        const computed = this._computeGridDistance(sp.grid);
+        if (computed) {
+          if (sp.distance === undefined) sp.distance = computed.distance;
+          if (sp.azimuth === undefined) sp.azimuth = computed.azimuth;
+        }
+      }
     }
 
     // 组装附件标签（FmoLogs 风格：无卡片化徽章）
