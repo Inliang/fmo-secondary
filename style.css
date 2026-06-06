@@ -502,6 +502,104 @@ html, body {
   font-family: var(--font-mono);
 }
 
+/* --- Recent Speakers --- */
+.recent-speakers {
+  border-top: 1px solid var(--border);
+  padding: 8px 0 0 0;
+  margin-top: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.recent-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+
+.recent-item:hover {
+  background: var(--card-bg);
+}
+
+.recent-item.is-speaking {
+  background: var(--accent-glow);
+}
+
+.recent-index-bg {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 36px;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.04);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.recent-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  z-index: 1;
+}
+
+.recent-callsign-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.recent-callsign-line strong {
+  font-size: 1.2rem;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.recent-main > span {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.recent-count {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+/* 正在发言高亮 */
+.recent-item.is-speaking .recent-callsign-line strong {
+  color: var(--success);
+}
+
+.recent-item.is-speaking .recent-main > span {
+  color: var(--success);
+}
+
+.recent-item.is-speaking .recent-count {
+  color: var(--success);
+}
+
+/* 空状态 */
+.recent-speakers:empty::after {
+  content: '暂无最近发言';
+  display: block;
+  text-align: center;
+  padding: 8px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
 /* --- Mini Spectrum (FFT-style) --- */
 .mini-spectrum {
   display: flex;

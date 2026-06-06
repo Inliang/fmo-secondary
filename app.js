@@ -50,6 +50,9 @@ const App = {
   // --- Speaking ---
   _currentSpeaker: null,
   _speakingTimer: null,
+  _speakingHistory: [],
+  _historyEvents: [],
+  _recentHistoryTimer: null,
 
   // --- 定时器 ---
   datetimeTimer: null,
@@ -149,6 +152,10 @@ const App = {
         this.updateConnectionUI(true, 'connected');
         this.fetchAllData();
         this.startPolling();
+
+        // 启动发言历史定期清理
+        if (this._recentHistoryTimer) clearInterval(this._recentHistoryTimer);
+        this._recentHistoryTimer = setInterval(() => this._cleanupOldHistory(), 60000);
       };
       this.ws.onmessage = (e) => this.handleWsMessage(e.data);
       this.ws.onclose = () => {
@@ -337,9 +344,11 @@ const App = {
         azimuth: evt.azimuth !== undefined ? evt.azimuth : derived.azimuth,
         altitude: evt.altitude !== undefined ? evt.altitude : derived.altitude,
       });
+      this._addSpeakingRecord(evt.callsign, evt.grid || derived.grid || '', evt.serverUid || '', evt.serverName || '');
       return;
     }
     if (evt.event === 'speaking_stop') {
+      this._finishSpeakingRecords();
       this.hideSpeaking();
       return;
     }
@@ -357,14 +366,25 @@ const App = {
           azimuth: d.azimuth !== undefined ? d.azimuth : derived.azimuth,
           altitude: d.altitude !== undefined ? d.altitude : derived.altitude,
         });
+        this._addSpeakingRecord(d.callsign, d.grid || derived.grid || '', d.serverUid || '', d.serverName || '');
       } else {
+        this._finishSpeakingRecords();
         this.hideSpeaking();
       }
       return;
     }
 
-    // FmoDeck：qso/history（预留）
+    // FmoDeck：qso/history
     if (evt.type === 'qso' && evt.subType === 'history') {
+      const historyData = evt.data;
+      if (Array.isArray(historyData)) {
+        this._historyEvents = historyData.map(item => ({
+          callsign: item.callsign || '',
+          utcTime: item.utcTime || 0
+        }));
+        this._cleanupOldHistory();
+        this.renderRecentSpeakers();
+      }
       return;
     }
 
@@ -835,6 +855,18 @@ const App = {
       startedAtMs: Date.now(),
     };
 
+    // 从 qsoList 获取 serverInfo
+    let serverUid = '', serverName = '';
+    const matchingQso = this.qsoList.find(q => {
+      const qc = q.toCallsign || q.callsign || '';
+      return this.isSameOperator(qc, data.callsign);
+    });
+    if (matchingQso) {
+      serverUid = matchingQso.serverUid || '';
+      serverName = matchingQso.serverName || '';
+    }
+    this._addSpeakingRecord(data.callsign, data.grid, serverUid, serverName);
+
     if (this._speakingTimer) {
       clearInterval(this._speakingTimer);
     }
@@ -851,12 +883,123 @@ const App = {
       clearInterval(this._speakingTimer);
       this._speakingTimer = null;
     }
+    this._finishSpeakingRecords();
     this._currentSpeaker = null;
     const bar = document.getElementById('speaking-bar');
     if (bar) {
       bar.classList.remove('active');
       bar.innerHTML = '<div class="idle-text">等待通联...</div>';
     }
+  },
+
+  _addSpeakingRecord(callsign, grid, serverUid, serverName) {
+    if (!callsign) return;
+    const now = Date.now();
+    // 将之前的未结束记录全部结束
+    this._speakingHistory.forEach(h => { if (!h.endTime) h.endTime = now; });
+    // 检查是否已有该呼号的历史记录
+    const existing = this._speakingHistory.find(h => h.callsign === callsign);
+    if (existing) {
+      // 移动该记录到最前面
+      const idx = this._speakingHistory.indexOf(existing);
+      this._speakingHistory.splice(idx, 1);
+      existing.startTime = now;
+      existing.endTime = null;
+      existing.grid = grid || existing.grid;
+      if (serverUid) existing.serverUid = serverUid;
+      if (serverName) existing.serverName = serverName;
+      this._speakingHistory.unshift(existing);
+    } else {
+      this._speakingHistory.unshift({
+        callsign,
+        grid: grid || '',
+        startTime: now,
+        endTime: null,
+        serverUid: serverUid || '',
+        serverName: serverName || ''
+      });
+    }
+    this._cleanupOldHistory();
+    this.renderRecentSpeakers();
+  },
+
+  _finishSpeakingRecords() {
+    const now = Date.now();
+    this._speakingHistory.forEach(h => { if (!h.endTime) h.endTime = now; });
+    this.renderRecentSpeakers();
+  },
+
+  _cleanupOldHistory() {
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    this._speakingHistory = this._speakingHistory.filter(h => (h.endTime || h.startTime) > oneHourAgo);
+    const oneHourAgoSec = Math.floor(oneHourAgo / 1000);
+    this._historyEvents = this._historyEvents.filter(e => e.utcTime > oneHourAgoSec);
+  },
+
+  renderRecentSpeakers() {
+    const container = document.getElementById('recent-speakers');
+    if (!container) return;
+
+    // 构建通联次数 Map
+    const contactCounts = new Map();
+    this.qsoList.forEach(q => {
+      const qc = q.toCallsign || q.callsign || '';
+      if (qc) {
+        const call = this.parseCallsignSsid(qc).call;
+        contactCounts.set(call, (contactCounts.get(call) || 0) + 1);
+      }
+    });
+
+    // 正在发言的呼号集合
+    const activeCallsigns = new Set();
+    this._speakingHistory.forEach(h => { if (!h.endTime) activeCallsigns.add(h.callsign); });
+    if (this._currentSpeaker?.callsign) {
+      activeCallsigns.add(this._currentSpeaker.callsign);
+    }
+
+    // 优先使用 _historyEvents，为空时用 _speakingHistory
+    let items = [];
+    if (this._historyEvents.length > 0) {
+      // 取最近10条，去重
+      const seen = new Set();
+      for (const evt of this._historyEvents) {
+        const call = this.parseCallsignSsid(evt.callsign).call;
+        if (!seen.has(call)) {
+          seen.add(call);
+          items.push({
+            callsign: evt.callsign,
+            utcTime: evt.utcTime
+          });
+          if (items.length >= 10) break;
+        }
+      }
+    } else {
+      items = this._speakingHistory.slice(0, 10).map(h => ({
+        callsign: h.callsign,
+        utcTime: Math.floor((h.endTime || h.startTime) / 1000)
+      }));
+    }
+
+    if (!items.length) {
+      container.innerHTML = '';
+      return;
+    }
+
+    const now = Date.now();
+    container.innerHTML = items.map((item, index) => {
+      const call = this.parseCallsignSsid(item.callsign).call;
+      const count = contactCounts.get(call) || 0;
+      const timeStr = this.formatTimeAgo(item.utcTime, now);
+      const isActive = activeCallsigns.has(item.callsign);
+      return '<div class="recent-item' + (isActive ? ' is-speaking' : '') + '" data-callsign="' + item.callsign + '">'
+        + '<span class="recent-index-bg">' + (index + 1) + '</span>'
+        + '<div class="recent-main">'
+        + '<div class="recent-callsign-line"><strong>' + item.callsign + '</strong></div>'
+        + '<span>' + timeStr + '</span>'
+        + '</div>'
+        + '<span class="recent-count">x' + count + '</span>'
+        + '</div>';
+    }).join('');
   },
 
   renderSpeakingBar() {
@@ -870,6 +1013,14 @@ const App = {
 
     const elapsed = Date.now() - sp.startedAtMs;
     const elapsedStr = this.formatElapsed(elapsed);
+
+    // 兜底：distance / azimuth / altitude 缺失时从 _deriveStationInfo 补全
+    if (sp.distance === undefined || sp.azimuth === undefined || sp.altitude === undefined) {
+      const derived = this._deriveStationInfo(sp.callsign);
+      if (sp.distance === undefined && derived.distance !== undefined) sp.distance = derived.distance;
+      if (sp.azimuth === undefined && derived.azimuth !== undefined) sp.azimuth = derived.azimuth;
+      if (sp.altitude === undefined && derived.altitude !== undefined) sp.altitude = derived.altitude;
+    }
 
     // 徽章
     let badgesHtml = '';
