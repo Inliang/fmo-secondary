@@ -78,6 +78,15 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-06 (v0.3.7)
+
+**修复 — 移除 Speaking Bar 面板 title 消除双层显示**
+
+- 根因：`panel-title "当前通联"`（带 bottom-border）+ `speaking-bar`（带自身 border+背景）各自形成独立视觉层，导致双层显示
+- 修复：删除 `panel-title "当前通联"`，speaking-bar 成为面板内最上层元素
+
+**修改文件**：index.html | 作者 BI3TMM
+
 ### 2026-06-06 (v0.3.6)
 
 **修复 — Speaking Bar 双层显示 + 重复调用 _addSpeakingRecord**
