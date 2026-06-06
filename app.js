@@ -1044,13 +1044,11 @@ const App = {
       bar.classList.remove('active');
       bar.innerHTML = `
         <div class="speaking-bar-content">
-          <div class="speaker-row-1">
-            <span class="idle-text">等待通联...</span>
-          </div>
-          <div class="speaker-row-2">
-            <span class="speaker-grid idle-sub">--</span>
-            <span class="speaker-extra idle-sub">方位 --</span>
-          </div>
+          <span class="idle-text">等待通联...</span>
+          <span class="speaker-extra idle-sub">方位 --</span>
+          <span class="speaker-extra idle-sub">-- km</span>
+          <span class="speaker-grid idle-sub">----</span>
+          <span class="speaker-server idle-sub">----</span>
           <div class="vu-meter"><div class="vu-meter-fill" style="width:0%"></div></div>
         </div>
       `;
@@ -1208,53 +1206,29 @@ const App = {
       badgesHtml += '<span class="speaker-badge new-friend">✦ 新朋友</span>';
     }
 
-    // 第二行：网格 · 服务器 · 方位/方向 · 距离 · 通联统计
-    let row2Html = '';
-    // Grid
-    row2Html += `<span class="speaker-grid">${sp.grid || '--'}</span>`;
-    // 服务器名
-    if (sp.serverName) {
-      row2Html += `<span class="speaker-server">${sp.serverName}</span>`;
-    }
-
-    // 方位角 + 距离（含方向文字）
+    // 单行信息：方位角 → 距离 → 高度 → Grid → 服务器名
+    let infoHtml = '';
     if (sp.azimuth !== undefined && sp.azimuth !== null) {
       const dir = this._azimuthToDirection(sp.azimuth);
-      row2Html += `<span class="speaker-extra">方位 ${dir}${sp.azimuth}°</span>`;
+      infoHtml += `<span class="speaker-extra">方位 ${dir}${sp.azimuth}°</span>`;
     }
     if (sp.distance !== undefined && sp.distance !== null) {
-      row2Html += `<span class="speaker-extra">${sp.distance} km</span>`;
+      infoHtml += `<span class="speaker-extra">${sp.distance} km</span>`;
     }
     if (sp.altitude !== undefined && sp.altitude !== null) {
-      row2Html += `<span class="speaker-extra">${sp.altitude} m</span>`;
+      infoHtml += `<span class="speaker-extra">${sp.altitude} m</span>`;
     }
-
-    if (!isSelf) {
-      const count = qsos.length;
-      let statsText = '';
-      if (count === 0) {
-        statsText = '从未通联';
-      } else {
-        let latestTs = 0;
-        for (const q of qsos) {
-          if (q.timestamp && q.timestamp > latestTs) latestTs = q.timestamp;
-        }
-        const ago = this.formatTimeAgo(latestTs, Date.now());
-        statsText = `通联 ${count} 次 · 上次 ${ago}`;
-      }
-      row2Html += `<span class="speaker-stats-text">${statsText}</span>`;
+    infoHtml += `<span class="speaker-grid">${sp.grid || '--'}</span>`;
+    if (sp.serverName) {
+      infoHtml += `<span class="speaker-server">${sp.serverName}</span>`;
     }
 
     bar.innerHTML = `
       <div class="speaking-bar-content">
-        <div class="speaker-row-1">
-          <span class="speaker-callsign">${sp.callsign || '--'}</span>
-          ${badgesHtml}
-          <span class="speaker-elapsed">${elapsedStr}</span>
-        </div>
-        <div class="speaker-row-2">
-          ${row2Html}
-        </div>
+        <span class="speaker-callsign">${sp.callsign || '--'}</span>
+        ${badgesHtml}
+        ${infoHtml}
+        <span class="speaker-elapsed">${elapsedStr}</span>
         <div class="vu-meter"><div class="vu-meter-fill" style="width:${this.vuLevel}%"></div></div>
       </div>
     `;
