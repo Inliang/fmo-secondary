@@ -78,6 +78,19 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-06 (v0.3.8)
+
+**重构 — Speaking Bar 完全参照 FmoLogs 重做 UI**
+
+- 彻底废弃旧卡片式设计（border + border-radius + card bg），改为 FmoLogs 扁平单行状态条
+- 结构：脉冲圆点指示器（发言绿/空闲灰） + 单行文字 + 紧凑 VU 表
+- 格式：`正在发言: CALLSIGN [HOST] 自己 ✦新朋友 xN [服务器名] elapsed`
+- 空闲态：`当前无人发言`（灰色圆点）
+- CSS 全部重写：移除 speaker-callsign/speaker-badge/speaker-grid/speaker-server/speaker-extra/idle-text/idle-sub 等旧类，统一为 speaking-indicator / speaking-text / speaking-tag / speaking-count / speaking-elapsed
+- 彻底消除多层嵌套、双层显示、flex-wrap 换行等问题
+
+**修改文件**：index.html, style.css, app.js | 作者 BI3TMM
+
 ### 2026-06-06 (v0.3.7)
 
 **修复 — 移除 Speaking Bar 面板 title 消除双层显示**

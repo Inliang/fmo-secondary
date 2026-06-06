@@ -1039,13 +1039,9 @@ const App = {
     this._currentSpeaker = null;
     const bar = document.getElementById('speaking-bar');
     if (bar) {
-      bar.classList.remove('active');
       bar.innerHTML = `
-        <span class="idle-text">等待通联...</span>
-        <span class="speaker-extra idle-sub">方位 --</span>
-        <span class="speaker-extra idle-sub">-- km</span>
-        <span class="speaker-grid idle-sub">----</span>
-        <span class="speaker-server idle-sub">----</span>
+        <span class="speaking-indicator idle"></span>
+        <span class="speaking-text">当前无人发言</span>
         <div class="vu-meter"><div class="vu-meter-fill" style="width:0%"></div></div>
       `;
     }
@@ -1168,8 +1164,6 @@ const App = {
     const sp = this._currentSpeaker;
     if (!sp) return;
 
-    bar.classList.add('active');
-
     const elapsed = Date.now() - sp.startedAtMs;
     const elapsedStr = this.formatElapsed(elapsed);
 
@@ -1181,49 +1175,45 @@ const App = {
       if (sp.altitude === undefined && derived.altitude !== undefined) sp.altitude = derived.altitude;
     }
 
-    // 徽章
-    let badgesHtml = '';
+    // 组装附件标签（FmoLogs 风格：无卡片化徽章）
+    let tags = '';
+
+    // HOST
     if (sp.isHost) {
-      badgesHtml += '<span class="speaker-badge host">HOST</span>';
-    }
-    const isSelf = this.isSameOperator(sp.callsign, this.myCallsign);
-    if (isSelf) {
-      badgesHtml += '<span class="speaker-badge self">自己</span>';
+      tags += '<span class="speaking-tag">[HOST]</span>';
     }
 
-    // 通联统计
+    // 自己
+    const isSelf = this.isSameOperator(sp.callsign, this.myCallsign);
+    if (isSelf) {
+      tags += '<span class="speaking-tag">自己</span>';
+    }
+
+    // 通联次数 / 新朋友
     const qsos = this.qsoList.filter(q => {
       const toCall = q.toCallsign || q.callsign || '';
       return this.isSameOperator(toCall, sp.callsign);
     });
-
-    // 新朋友徽章（非自己且恰好 1 次）
     if (!isSelf && qsos.length === 1) {
-      badgesHtml += '<span class="speaker-badge new-friend">✦ 新朋友</span>';
+      tags += '<span class="speaking-tag" style="color:var(--warn)">✦新朋友</span>';
+    } else if (qsos.length > 1) {
+      tags += `<span class="speaking-count">x${qsos.length}</span>`;
     }
 
-    // 单行信息：方位角 → 距离 → 高度 → Grid → 服务器名
-    let infoHtml = '';
-    if (sp.azimuth !== undefined && sp.azimuth !== null) {
-      const dir = this._azimuthToDirection(sp.azimuth);
-      infoHtml += `<span class="speaker-extra">方位 ${dir}${sp.azimuth}°</span>`;
-    }
-    if (sp.distance !== undefined && sp.distance !== null) {
-      infoHtml += `<span class="speaker-extra">${sp.distance} km</span>`;
-    }
-    if (sp.altitude !== undefined && sp.altitude !== null) {
-      infoHtml += `<span class="speaker-extra">${sp.altitude} m</span>`;
-    }
-    infoHtml += `<span class="speaker-grid">${sp.grid || '--'}</span>`;
+    // 服务器名
     if (sp.serverName) {
-      infoHtml += `<span class="speaker-server">${sp.serverName}</span>`;
+      tags += `<span class="speaking-tag">[${sp.serverName}]</span>`;
     }
+
+    // elapsed
+    tags += `<span class="speaking-elapsed">${elapsedStr}</span>`;
 
     bar.innerHTML = `
-      <span class="speaker-callsign">${sp.callsign || '--'}</span>
-      ${badgesHtml}
-      ${infoHtml}
-      <span class="speaker-elapsed">${elapsedStr}</span>
+      <span class="speaking-indicator speaking"></span>
+      <span class="speaking-text">
+        正在发言: <strong>${sp.callsign || '--'}</strong>
+        ${tags}
+      </span>
       <div class="vu-meter"><div class="vu-meter-fill" style="width:${this.vuLevel}%"></div></div>
     `;
   },
