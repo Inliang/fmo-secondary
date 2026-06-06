@@ -455,6 +455,12 @@ html, body {
   margin-left: 0.3em;
 }
 
+.speaking-meta .speaking-arrow {
+  width: 14px;
+  height: 14px;
+  vertical-align: middle;
+  margin-right: 1px;
+}
 .speaking-meta.distance {
   font-size: 14px;
   font-weight: 500;

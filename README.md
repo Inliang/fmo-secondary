@@ -78,6 +78,18 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-06 (v0.3.10)
+
+**修复 — 方位角 SVG 方向箭头 + CSS 样式**
+
+- 将 `→` 文本箭头替换为 SVG 方向图标（speaking-arrow class，14×14px，vertical-align: middle）
+- 新增 `.speaking-meta .speaking-arrow` CSS 规则
+
+**修改文件**：app.js, style.css
+
+<details>
+<summary>历史日志</summary>
+
 ### 2026-06-06 (v0.3.9)
 
 **重构 — Speaking Bar 加入方位角/距离/Grid + 频谱改为真实 FFT**
