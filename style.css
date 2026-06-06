@@ -400,7 +400,7 @@ html, body {
 .speaking-bar {
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   padding: 14px;
   background: var(--bg);
@@ -410,6 +410,7 @@ html, body {
   justify-content: flex-start;
   align-items: center;
   flex-shrink: 0;
+  overflow: hidden;
 }
 .speaking-bar.active {
   border-color: var(--warn);

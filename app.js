@@ -435,7 +435,6 @@ const App = {
         serverName: srv.name || evt.serverName || '',
         serverUid: srv.uid || evt.serverUid || '',
       });
-      this._addSpeakingRecord(evt.callsign, evt.grid || derived.grid || '', srv.uid || evt.serverUid || '', srv.name || evt.serverName || '');
       return;
     }
     if (evt.event === 'speaking_stop') {
@@ -461,7 +460,6 @@ const App = {
           serverName: srv.name || d.serverName || '',
           serverUid: srv.uid || d.serverUid || '',
         });
-        this._addSpeakingRecord(d.callsign, d.grid || derived.grid || '', srv.uid || d.serverUid || '', srv.name || d.serverName || '');
       } else {
         this._finishSpeakingRecords();
         this.hideSpeaking();

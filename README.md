@@ -78,6 +78,16 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-06 (v0.3.6)
+
+**修复 — Speaking Bar 双层显示 + 重复调用 _addSpeakingRecord**
+
+- 根因定位：`.speaking-bar` 使用 `flex-wrap: wrap`，在四象限 50% 面板宽度下条目换行形成双层显示
+- 修复：`flex-wrap: wrap` → `flex-wrap: nowrap`，强制单行布局；添加 `overflow: hidden` 防止溢出
+- 修复 `_processEvent` 中 `speaking_start` / `qso/callsign` 事件处理重复调用 `_addSpeakingRecord`（`showSpeaking()` 内部已调用一次）
+
+**修改文件**：style.css, app.js | 作者 BI3TMM
+
 ### 2026-06-06 (v0.3.5)
 
 **重构 — Speaking Bar 单层布局 + README 优化**
