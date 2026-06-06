@@ -399,14 +399,15 @@ html, body {
 /* --- Speaking Bar --- */
 .speaking-bar {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 14px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 7px;
   min-height: 62px;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   flex-shrink: 0;
 }
@@ -448,15 +449,7 @@ html, body {
   opacity: 0.5;
 }
 
-/* --- Speaking Bar 内布局（单行） --- */
-.speaking-bar-content {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  width: 100%;
-}
+/* --- 演讲者信息（单行内联） --- */
 .speaker-elapsed {
   font-size: 13px;
   color: var(--text-secondary);
@@ -741,7 +734,7 @@ html, body {
 
   /* Speaking Bar mobile */
   .speaker-callsign { font-size: 18px; }
-  .speaking-bar-content {
+  .speaking-bar {
     gap: 5px;
     row-gap: 4px;
   }

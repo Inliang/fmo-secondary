@@ -1043,14 +1043,12 @@ const App = {
     if (bar) {
       bar.classList.remove('active');
       bar.innerHTML = `
-        <div class="speaking-bar-content">
-          <span class="idle-text">等待通联...</span>
-          <span class="speaker-extra idle-sub">方位 --</span>
-          <span class="speaker-extra idle-sub">-- km</span>
-          <span class="speaker-grid idle-sub">----</span>
-          <span class="speaker-server idle-sub">----</span>
-          <div class="vu-meter"><div class="vu-meter-fill" style="width:0%"></div></div>
-        </div>
+        <span class="idle-text">等待通联...</span>
+        <span class="speaker-extra idle-sub">方位 --</span>
+        <span class="speaker-extra idle-sub">-- km</span>
+        <span class="speaker-grid idle-sub">----</span>
+        <span class="speaker-server idle-sub">----</span>
+        <div class="vu-meter"><div class="vu-meter-fill" style="width:0%"></div></div>
       `;
     }
   },
@@ -1224,13 +1222,11 @@ const App = {
     }
 
     bar.innerHTML = `
-      <div class="speaking-bar-content">
-        <span class="speaker-callsign">${sp.callsign || '--'}</span>
-        ${badgesHtml}
-        ${infoHtml}
-        <span class="speaker-elapsed">${elapsedStr}</span>
-        <div class="vu-meter"><div class="vu-meter-fill" style="width:${this.vuLevel}%"></div></div>
-      </div>
+      <span class="speaker-callsign">${sp.callsign || '--'}</span>
+      ${badgesHtml}
+      ${infoHtml}
+      <span class="speaker-elapsed">${elapsedStr}</span>
+      <div class="vu-meter"><div class="vu-meter-fill" style="width:${this.vuLevel}%"></div></div>
     `;
   },
 
