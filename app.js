@@ -422,6 +422,8 @@ const App = {
   _processEvent(evt) {
     // 旧格式：speaking_start / speaking_stop
     if (evt.event === 'speaking_start') {
+      // 参照 FmoLogs：事件携带 addressId，映射到 serverList 获取 serverName
+      const srv = this._lookupServerName(evt.addressId);
       const derived = this._deriveStationInfo(evt.callsign);
       this.showSpeaking({
         callsign: evt.callsign,
@@ -430,10 +432,10 @@ const App = {
         distance: evt.distance !== undefined ? evt.distance : derived.distance,
         azimuth: evt.azimuth !== undefined ? evt.azimuth : derived.azimuth,
         altitude: evt.altitude !== undefined ? evt.altitude : derived.altitude,
-        serverName: evt.serverName || '',
-        serverUid: evt.serverUid || '',
+        serverName: srv.name || evt.serverName || '',
+        serverUid: srv.uid || evt.serverUid || '',
       });
-      this._addSpeakingRecord(evt.callsign, evt.grid || derived.grid || '', evt.serverUid || '', evt.serverName || '');
+      this._addSpeakingRecord(evt.callsign, evt.grid || derived.grid || '', srv.uid || evt.serverUid || '', srv.name || evt.serverName || '');
       return;
     }
     if (evt.event === 'speaking_stop') {
@@ -446,6 +448,8 @@ const App = {
     if (evt.type === 'qso' && evt.subType === 'callsign') {
       const d = evt.data || {};
       if (d.isSpeaking) {
+        // addressId 可能来自 data.addressId 或 evt.addressId
+        const srv = this._lookupServerName(d.addressId || evt.addressId);
         const derived = this._deriveStationInfo(d.callsign);
         this.showSpeaking({
           callsign: d.callsign,
@@ -454,10 +458,10 @@ const App = {
           distance: d.distance !== undefined ? d.distance : derived.distance,
           azimuth: d.azimuth !== undefined ? d.azimuth : derived.azimuth,
           altitude: d.altitude !== undefined ? d.altitude : derived.altitude,
-          serverName: d.serverName || '',
-          serverUid: d.serverUid || '',
+          serverName: srv.name || d.serverName || '',
+          serverUid: srv.uid || d.serverUid || '',
         });
-        this._addSpeakingRecord(d.callsign, d.grid || derived.grid || '', d.serverUid || '', d.serverName || '');
+        this._addSpeakingRecord(d.callsign, d.grid || derived.grid || '', srv.uid || d.serverUid || '', srv.name || d.serverName || '');
       } else {
         this._finishSpeakingRecords();
         this.hideSpeaking();
@@ -944,6 +948,28 @@ const App = {
     return { distance, azimuth };
   },
 
+  /**
+   * 参照 FmoLogs getServerName()：通过 addressId 在 serverList 中查找服务器名称
+   * addressId 可能是 uid/id/address 中的任意一个
+   * 返回 { name, uid }，未找到返回空对象
+   */
+  _lookupServerName(addressId) {
+    if (!addressId || !this.serverList.length) return {};
+    const match = this.serverList.find(s => {
+      if (String(s.uid ?? s._id ?? s.id ?? '') === String(addressId)) return true;
+      if (String(s.address ?? '') === String(addressId)) return true;
+      if (String(s.name ?? '') === String(addressId)) return true;
+      return false;
+    });
+    if (match) {
+      return {
+        name: match.name || '',
+        uid: String(match.uid ?? match._id ?? match.id ?? '')
+      };
+    }
+    return {};
+  },
+
   showSpeaking(data) {
     this._currentSpeaker = {
       callsign: data.callsign || '',
@@ -957,20 +983,29 @@ const App = {
       startedAtMs: Date.now(),
     };
 
-    // 若事件未提供 serverName，从 qsoList 兜底查找
+    // 若事件未提供 serverName，依次从 qsoList / serverList 兜底查找
     let serverUid = this._currentSpeaker.serverUid;
     let serverName = this._currentSpeaker.serverName;
     if (!serverName) {
+      // 先查 qsoList（同呼号的历史 QSO 可能记录了 server）
       const matchingQso = this.qsoList.find(q => {
         const qc = q.toCallsign || q.callsign || '';
         return this.isSameOperator(qc, data.callsign);
       });
       if (matchingQso) {
-        serverUid = matchingQso.serverUid || '';
+        serverUid = matchingQso.serverUid || matchingQso.addressId || '';
         serverName = matchingQso.serverName || '';
-        this._currentSpeaker.serverName = serverName;
-        this._currentSpeaker.serverUid = serverUid;
       }
+      // qsoList 无结果，尝试从 serverList 反问
+      if (!serverName && serverUid) {
+        const srv = this._lookupServerName(serverUid);
+        if (srv.name) {
+          serverName = srv.name;
+          serverUid = srv.uid || serverUid;
+        }
+      }
+      this._currentSpeaker.serverName = serverName;
+      this._currentSpeaker.serverUid = serverUid;
     }
 
     // 若事件数据缺少 grid/distance/azimuth，立即从 QSO 补全
@@ -1013,7 +1048,8 @@ const App = {
             <span class="idle-text">等待通联...</span>
           </div>
           <div class="speaker-row-2">
-            <span class="speaker-grid" style="color:var(--text-secondary);font-size:12px">--</span>
+            <span class="speaker-grid idle-sub">--</span>
+            <span class="speaker-extra idle-sub">方位 --</span>
           </div>
           <div class="vu-meter"><div class="vu-meter-fill" style="width:0%"></div></div>
         </div>
@@ -1172,28 +1208,25 @@ const App = {
       badgesHtml += '<span class="speaker-badge new-friend">✦ 新朋友</span>';
     }
 
-    // 第二行：网格 + 服务器名 + 方位/距离 + 通联统计
-    let row2Html = `<span class="speaker-grid">${sp.grid || '--'}</span>`;
+    // 第二行：网格 · 服务器 · 方位/方向 · 距离 · 通联统计
+    let row2Html = '';
+    // Grid
+    row2Html += `<span class="speaker-grid">${sp.grid || '--'}</span>`;
+    // 服务器名
     if (sp.serverName) {
       row2Html += `<span class="speaker-server">${sp.serverName}</span>`;
     }
 
-    // 方位角 + 距离 + 高度（含方向文字）
-    let extraInfo = '';
+    // 方位角 + 距离（含方向文字）
     if (sp.azimuth !== undefined && sp.azimuth !== null) {
       const dir = this._azimuthToDirection(sp.azimuth);
-      extraInfo += `方位 ${dir}${sp.azimuth}°`;
+      row2Html += `<span class="speaker-extra">方位 ${dir}${sp.azimuth}°</span>`;
     }
     if (sp.distance !== undefined && sp.distance !== null) {
-      if (extraInfo) extraInfo += ' · ';
-      extraInfo += `距离 ${sp.distance} km`;
+      row2Html += `<span class="speaker-extra">${sp.distance} km</span>`;
     }
     if (sp.altitude !== undefined && sp.altitude !== null) {
-      if (extraInfo) extraInfo += ' · ';
-      extraInfo += `高度 ${sp.altitude} m`;
-    }
-    if (extraInfo) {
-      row2Html += `<span class="speaker-extra">${extraInfo}</span>`;
+      row2Html += `<span class="speaker-extra">${sp.altitude} m</span>`;
     }
 
     if (!isSelf) {

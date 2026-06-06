@@ -440,6 +440,13 @@ html, body {
 }
 .idle-text { color: var(--text-secondary); font-size: 14px; }
 
+/* --- Idle 状态下副文本（灰显，保持与 active 同结构） --- */
+.idle-sub {
+  color: var(--text-secondary);
+  font-size: 12px;
+  opacity: 0.5;
+}
+
 /* --- Speaking Bar 内布局 --- */
 .speaking-bar-content {
   display: flex;
