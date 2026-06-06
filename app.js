@@ -114,6 +114,8 @@ const App = {
   // --- SSTV ---
   _sstvActive: false,
   _gridLocationCache: {},
+  _serverLatency: {},
+  _serverLatencyPending: {},
   _sstvState: 'idle',
   _sstvMode: null,
   _sstvDecodeState: {},
