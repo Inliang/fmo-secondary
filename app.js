@@ -1392,82 +1392,147 @@ const App = {
 
   // ============ SSTV 解码 ============
 
-  _fmDemodulate(samples) {
-    const out = new Float32Array(samples.length - 1);
-    let prev = samples[0];
-    for (let i = 1; i < samples.length; i++) {
-      out[i - 1] = Math.atan2(samples[i] * prev - prev * samples[i],
-                              samples[i] * prev + prev * samples[i]) / Math.PI;
-      prev = samples[i];
+  /* 参照 FmoDeck 重写的 FM 解调 + VIS 检测 + Goertzel */
+
+  _goertzel(samples, targetHz, sampleRate) {
+    const omega = (2 * Math.PI * targetHz) / sampleRate;
+    const coeff = 2 * Math.cos(omega);
+    let s0 = 0, s1 = 0, s2 = 0;
+    for (let i = 0; i < samples.length; i++) {
+      s0 = samples[i] + coeff * s1 - s2;
+      s2 = s1;
+      s1 = s0;
+    }
+    return s1 * s1 + s2 * s2 - s1 * s2 * coeff;
+  },
+
+  _applyBiquad(x, b0, b1, b2, a1, a2) {
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let n = 0; n < x.length; n++) {
+      const xn = x[n];
+      const yn = b0 * xn + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+      x2 = x1; x1 = xn;
+      y2 = y1; y1 = yn;
+      x[n] = yn;
+    }
+  },
+
+  _toAnalytic(samples, sampleRate, centerHz, cutoffHz) {
+    const n = samples.length;
+    const i = new Float32Array(n);
+    const q = new Float32Array(n);
+    const omegaC = (2 * Math.PI * centerHz) / sampleRate;
+    for (let k = 0; k < n; k++) {
+      const phase = omegaC * k;
+      i[k] = samples[k] * Math.cos(phase);
+      q[k] = -samples[k] * Math.sin(phase);
+    }
+    const omega = (2 * Math.PI * cutoffHz) / sampleRate;
+    const alpha = Math.sin(omega) / (2 * Math.SQRT1_2);
+    const cosW = Math.cos(omega);
+    const a0 = 1 + alpha;
+    const b0 = (1 - cosW) / 2 / a0;
+    const b1 = (1 - cosW) / a0;
+    const b2 = b0;
+    const a1 = (-2 * cosW) / a0;
+    const a2 = (1 - alpha) / a0;
+    this._applyBiquad(i, b0, b1, b2, a1, a2);
+    this._applyBiquad(q, b0, b1, b2, a1, a2);
+    return { i, q };
+  },
+
+  _instantFreq(i, q, sampleRate, centerHz) {
+    const n = i.length;
+    const out = new Float32Array(n);
+    out[0] = centerHz;
+    const scale = sampleRate / (2 * Math.PI);
+    for (let k = 1; k < n; k++) {
+      const re = i[k] * i[k - 1] + q[k] * q[k - 1];
+      const im = q[k] * i[k - 1] - i[k] * q[k - 1];
+      out[k] = centerHz + scale * Math.atan2(im, re);
     }
     return out;
   },
 
-  _goertzel(samples, targetFreq, sampleRate) {
-    const N = samples.length;
-    const k = Math.round((N * targetFreq) / sampleRate);
-    const omega = (2 * Math.PI * k) / N;
-    const coeff = 2 * Math.cos(omega);
-    let s0 = 0, s1 = 0;
-    for (let i = 0; i < N; i++) {
-      const s2 = s1;
-      s1 = s0;
-      s0 = samples[i] + coeff * s1 - s2;
-    }
-    const real = s0 - s1 * Math.cos(omega);
-    const imag = s1 * Math.sin(omega);
-    return Math.sqrt(real * real + imag * imag) / (N / 2);
+  _fmDemodulate(samples, sampleRate, warmupSamples) {
+    if (!warmupSamples) warmupSamples = 0;
+    const { i, q } = this._toAnalytic(samples, sampleRate, 1900, 600);
+    const freq = this._instantFreq(i, q, sampleRate, 1900);
+    return warmupSamples > 0 ? freq.subarray(warmupSamples) : freq;
   },
 
-  _visDetect(samples) {
-    const SR = 8000;
-    const WINDOW = 160;
-    const STEP = 40;
-    let state = 0;
-    let leadCount = 0;
-    let bits = [];
-    let bitStart = 0;
-    for (let pos = 0; pos < samples.length - WINDOW; pos += STEP) {
-      const win = samples.subarray(pos, pos + WINDOW);
-      const e1900 = this._goertzel(win, 1900, SR);
-      const e1200 = this._goertzel(win, 1200, SR);
-      const e1100 = this._goertzel(win, 1100, SR);
-      const e1300 = this._goertzel(win, 1300, SR);
-      if (state === 0) {
-        if (e1900 > e1200 && e1900 > e1100 && e1900 > e1300 && e1900 > 0.02) {
-          leadCount++;
-          if (leadCount > 15) { state = 1; leadCount = 0; }
-        } else { leadCount = 0; }
-      } else if (state === 1) {
-        if (e1200 > e1900 && e1200 > e1100 && e1200 > e1300 && e1200 > 0.02) {
-          state = 2;
-        }
-      } else if (state === 2) {
-        if (e1100 > e1200 && e1100 > e1300 && e1100 > e1900 && e1100 > 0.02) {
-          state = 3;
-          bitStart = pos;
-          bits = [];
-        }
-      } else if (state === 3) {
-        if (e1100 > e1200 && e1100 > e1300 && e1100 > e1900 && e1100 > 0.015) {
-          const elapsedSinceStart = pos - bitStart;
-          const bitIdx = Math.floor(elapsedSinceStart / 240);
-          if (bitIdx < 8 && bits.length === bitIdx) {
-            bits.push(1);
-          }
-        } else if (e1300 > e1200 && e1300 > e1100 && e1300 > e1900 && e1300 > 0.015) {
-          const elapsedSinceStart = pos - bitStart;
-          const bitIdx = Math.floor(elapsedSinceStart / 240);
-          if (bitIdx < 8 && bits.length === bitIdx) {
-            bits.push(0);
-          }
-        }
-        if (bits.length >= 8) {
-          let visCode = 0;
-          for (let i = 0; i < 8; i++) visCode |= (bits[i] << i);
-          return { visCode, endOffset: pos + WINDOW };
-        }
+  /* FmoDeck VIS 检测器: 在原 PCM 上做 Goertzel 音调检测, 完整前导+bit+parity 校验 */
+
+  _visDetect(samples, sampleRate) {
+    const bs = Math.round((30 / 1000) * sampleRate); // bit=30ms
+    const step = Math.max(1, Math.floor(bs / 4));
+    const n = samples.length;
+    const preambleSamples = Math.round((300 * 2 + 10) / 1000 * sampleRate); // 300+10+300ms
+
+    const isLeader1900 = (start, len) => {
+      if (start < 0 || start + len > n) return false;
+      const e1900 = this._goertzel(samples.subarray(start, start + len), 1900, sampleRate);
+      const e2400 = this._goertzel(samples.subarray(start, start + len), 2400, sampleRate);
+      return e1900 > e2400 * 3;
+    };
+
+    const hasPreamble = (startBitOff) => {
+      const leaderCoreSamples = Math.round((200 / 1000) * sampleRate);
+      const firstCoreStart = startBitOff - Math.round(((300 + 10 + 300 - 250) / 1000) * sampleRate);
+      const secondCoreStart = startBitOff - Math.round(((300 - 250) / 1000) * sampleRate);
+      const leader1Ok = isLeader1900(firstCoreStart, leaderCoreSamples);
+      const leader2Ok = isLeader1900(secondCoreStart, leaderCoreSamples);
+      if (!leader1Ok && !leader2Ok) return false;
+      const searchStart = startBitOff - Math.round(((300 + 10 + 20) / 1000) * sampleRate);
+      const searchEnd = startBitOff - Math.round(((300 + 10 - 20) / 1000) * sampleRate);
+      for (let off = searchStart; off + Math.round((10 / 1000) * sampleRate) <= searchEnd; off += Math.max(1, Math.floor(sampleRate / 500))) {
+        const win = samples.subarray(off, off + Math.round((10 / 1000) * sampleRate));
+        const e1200 = this._goertzel(win, 1200, sampleRate);
+        const e1700 = this._goertzel(win, 1700, sampleRate);
+        if (e1200 > e1700 * 3) return true;
       }
+      return false;
+    };
+
+    const bitValue = (off) => {
+      if (off + bs > n) return -1;
+      const win = samples.subarray(off, off + bs);
+      const e1100 = this._goertzel(win, 1100, sampleRate);
+      const e1300 = this._goertzel(win, 1300, sampleRate);
+      const noiseFloor = this._goertzel(win, 500, sampleRate);
+      const max = Math.max(e1100, e1300);
+      if (max < noiseFloor * 3) return -1;
+      return e1100 > e1300 ? 1 : 0;
+    };
+
+    const isStartBit1200 = (off) => {
+      if (off + bs > n) return false;
+      const win = samples.subarray(off, off + bs);
+      const e1200 = this._goertzel(win, 1200, sampleRate);
+      const e1700 = this._goertzel(win, 1700, sampleRate);
+      const e1900 = this._goertzel(win, 1900, sampleRate);
+      return e1200 > e1700 * 3 && e1200 > e1900 * 3;
+    };
+
+    for (let s = preambleSamples; s + 10 * bs <= n; s += step) {
+      if (!hasPreamble(s)) continue;
+      if (!isStartBit1200(s)) continue;
+      let code = 0, ok = true;
+      for (let b = 0; b < 8; b++) {
+        const v = bitValue(s + (1 + b) * bs);
+        if (v === -1) { ok = false; break; }
+        if (v === 1) code |= (1 << b);
+      }
+      if (!ok) continue;
+      let pc = 0, cv = code;
+      while (cv) { pc += cv & 1; cv >>>= 1; }
+      if (pc % 2 !== 0) continue;
+      const stopOff = s + 9 * bs;
+      const win = samples.subarray(stopOff, stopOff + bs);
+      const e1200 = this._goertzel(win, 1200, sampleRate);
+      const e1700 = this._goertzel(win, 1700, sampleRate);
+      if (e1200 <= e1700 * 3) continue;
+      return { visCode: code, endOffset: n - (stopOff + bs) };
     }
     return null;
   },
@@ -1477,12 +1542,13 @@ const App = {
     const tap = this._sstvAudioTap;
     const SR = 8000;
     const MODE = ROBOT36_MODE;
+    const WARMUP_MS = 5; // LPF transient discard
+    const warmupSamples = Math.round((WARMUP_MS * SR) / 1000);
 
     if (this._sstvState === 'idle') {
       const recent = tap.recent(1200, SR);
       if (recent.length < 800) return;
-      const demod = this._fmDemodulate(recent);
-      const vis = this._visDetect(demod);
+      const vis = this._visDetect(recent, SR);
       if (vis && vis.visCode === MODE.visCode) {
         this._sstvState = 'decoding';
         this._sstvMode = MODE;
@@ -1517,10 +1583,12 @@ const App = {
       while (this._sstvNextScanLine < Math.min(targetScanLine, MODE.totalScanLines)) {
         const rowSamples = Math.round(MODE.scanLineMs * SR / 1000);
         const scanLineStart = this._sstvT0 + Math.round(this._sstvNextScanLine * MODE.scanLineMs * SR / 1000);
-        const samples = tap.slice(scanLineStart, rowSamples);
+        const oldest = Math.max(0, tap.totalWritten - tap.capacity);
+        const actualWarmup = Math.max(0, Math.min(warmupSamples, scanLineStart - oldest));
+        const samples = tap.slice(scanLineStart - actualWarmup, rowSamples + actualWarmup);
         if (!samples || samples.length < 100) break;
 
-        const demod = this._fmDemodulate(samples);
+        const demod = this._fmDemodulate(samples, SR, actualWarmup);
         const channel = this._sstvNextScanLine % 3;
         const buf = this._extractPixels(demod, SR, MODE);
 
@@ -1614,14 +1682,13 @@ const App = {
 
   _extractPixels(demod, sampleRate, mode) {
     const pixels = new Float32Array(mode.width);
-    const skipSamples = Math.round(0.01 * sampleRate);
-    const usableLen = demod.length - skipSamples;
-    if (usableLen <= 0) return pixels;
-    const samplesPerPixel = usableLen / mode.width;
+    if (demod.length <= 0) return pixels;
+    const samplesPerPixel = demod.length / mode.width;
     for (let i = 0; i < mode.width; i++) {
-      const idx = skipSamples + Math.round(i * samplesPerPixel);
+      const idx = Math.round(i * samplesPerPixel);
       if (idx < demod.length) {
-        pixels[i] = (demod[idx] + 1) / 2;
+        const hz = Math.max(1500, Math.min(2300, demod[idx]));
+        pixels[i] = (hz - 1500) / 800;
       }
     }
     return pixels;
