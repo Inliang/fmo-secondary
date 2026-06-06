@@ -1,5 +1,5 @@
 /* ============================================================
-   FMO 副屏伴侣 — app.js v5
+   FMO 副屏伴侣 — app.js v6
    参照 FmoDeck 协议层改写：
    - QSO 用 qso.getList({page}) 分页拉取全量
    - Station 用 station.getListRange({start,count}) 循环翻页全量
@@ -44,6 +44,8 @@ const App = {
   audioConnected: false,
   isMuted: false,
   vuLevel: 0,
+  volume: 80,
+  gainNode: null,
 
   // --- Speaking ---
   _currentSpeaker: null,
@@ -63,6 +65,7 @@ const App = {
     this.startDatetime();
     this.updateConnectionUI(false);
     this.initAudioCtx();
+    this.initVolume();
   },
 
   bindEvents() {
@@ -82,6 +85,8 @@ const App = {
         this.renderServerList();
       });
     }
+    const eq = $('export-qso-btn');
+    if (eq) eq.addEventListener('click', () => this.exportQso());
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') this.closeSettings();
     });
@@ -400,17 +405,16 @@ const App = {
     tasks.push((async () => {
       try {
         const r = await this.send({ type: 'config', subType: 'getCordinate' });
-        if (r.code === 0 && r.data) {
+        if (r.code === 0 && r.data && typeof r.data === 'object') {
           this._myLat = r.data.latitude;
           this._myLon = r.data.longitude;
           const grid = this.latLonToGrid(r.data.latitude, r.data.longitude);
           this.myGrid = grid;
           document.getElementById('info-grid').textContent = grid;
           document.getElementById('status-grid').textContent = grid;
-          if (r.data.altitude !== undefined) {
-            document.getElementById('info-altitude').textContent = `${r.data.altitude} m`;
-          } else if (r.data.elevation !== undefined) {
-            document.getElementById('info-altitude').textContent = `${r.data.elevation} m`;
+          const alt = r.data.altitude ?? r.data.elevation ?? r.data.height ?? r.data.alt;
+          if (alt !== undefined) {
+            document.getElementById('info-altitude').textContent = `${alt} m`;
           }
         }
       } catch (e) {}
@@ -420,8 +424,11 @@ const App = {
     tasks.push((async () => {
       try {
         const r = await this.send({ type: 'config', subType: 'getAltitude' });
-        if (r.code === 0 && r.data?.altitude !== undefined) {
-          document.getElementById('info-altitude').textContent = `${r.data.altitude} m`;
+        if (r.code === 0 && r.data) {
+          const alt = r.data.altitude ?? r.data.height ?? r.data.elevation ?? r.data.alt;
+          if (alt !== undefined) {
+            document.getElementById('info-altitude').textContent = `${alt} m`;
+          }
         }
       } catch (e) {}
     })());
@@ -575,8 +582,10 @@ const App = {
     }
 
     container.innerHTML = filtered.map(s => {
+      const uid = s.uid ?? s._id ?? s.id ?? '--';
       const active = s.name === this.currentServerName;
       return `<div class="server-item${active ? ' active' : ''}" data-server-name="${s.name}">
+        <span class="server-item-uid">#${uid}</span>
         <span class="server-item-name">${s.name || '--'}</span>
         <span>
           <span class="server-item-count">${s.onlineCount ?? s.count ?? '--'} 在线</span>
@@ -1007,6 +1016,9 @@ const App = {
   initAudioCtx() {
     try {
       this.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 8000 });
+      this.gainNode = this.audioCtx.createGain();
+      this.gainNode.gain.value = this.volume / 100;
+      this.gainNode.connect(this.audioCtx.destination);
     } catch (e) {}
   },
 
@@ -1022,7 +1034,7 @@ const App = {
     for (let i = 0; i < raw.length; i++) channel[i] = raw[i] / 32768;
     const source = this.audioCtx.createBufferSource();
     source.buffer = buffer;
-    source.connect(this.audioCtx.destination);
+    source.connect(this.gainNode);
     source.start();
   },
 
@@ -1060,6 +1072,59 @@ const App = {
         btn.classList.remove('muted');
       }
     }
+  },
+
+  setVolume(val) {
+    this.volume = val;
+    if (this.gainNode) {
+      this.gainNode.gain.value = val / 100;
+    }
+    const slider = document.getElementById('volume-slider');
+    if (slider) slider.value = val;
+  },
+
+  initVolume() {
+    const slider = document.getElementById('volume-slider');
+    if (slider) {
+      slider.value = this.volume;
+      slider.addEventListener('input', (e) => this.setVolume(parseInt(e.target.value)));
+    }
+  },
+
+  exportQso() {
+    if (!this.qsoList.length) {
+      alert('暂无通联记录可导出');
+      return;
+    }
+    const header = '序号,对方呼号,网格,时间,频率,模式,中继,留言';
+    const rows = this.qsoList.map(item => {
+      const logId = item.logId ?? '';
+      const toCallsign = item.toCallsign ?? item.callsign ?? '';
+      const grid = item.grid ?? item.locator ?? '';
+      const ts = item.timestamp ? new Date(item.timestamp * 1000) : null;
+      const timeStr = ts
+        ? `${ts.getFullYear()}-${String(ts.getMonth()+1).padStart(2,'0')}-${String(ts.getDate()).padStart(2,'0')} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}:${String(ts.getSeconds()).padStart(2,'0')}`
+        : '';
+      const freq = item.frequency ?? item.freq ?? '';
+      const mode = item.mode ?? '';
+      const repeater = item.repeater ?? item.relay ?? '';
+      const memo = item.memo ?? item.message ?? '';
+      return [logId, toCallsign, grid, timeStr, freq, mode, repeater, memo]
+        .map(v => `"${String(v).replace(/"/g,'""')}"`)
+        .join(',');
+    });
+    const csv = '\uFEFF' + header + '\n' + rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const now = new Date();
+    const filename = `fmo-qso-export-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.csv`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   },
 
   // ============ 设置 ============

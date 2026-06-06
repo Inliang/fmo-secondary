@@ -25,6 +25,7 @@
       <div class="status-bar-right">
         <span class="status-ip" id="status-ip">--</span>
         <span class="status-time" id="status-time">--</span>
+        <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="80" title="音量">
         <button class="mute-btn" id="mute-btn" title="静音切换">&#x1F50A;</button>
         <button class="theme-toggle" id="theme-toggle">暗色</button>
         <button class="settings-btn" id="settings-btn" title="设置">&#x2699;</button>
@@ -89,7 +90,10 @@
 
       <!-- 右下：最近通联列表 -->
       <div class="panel">
-        <div class="panel-title">最近通联</div>
+        <div class="panel-title-row">
+          <span class="panel-title">最近通联</span>
+          <button class="export-btn" id="export-qso-btn" title="导出日志">导出 CSV</button>
+        </div>
         <div class="panel-content">
           <div class="qso-list" id="qso-container">
             <div class="idle-text" style="padding:20px;text-align:center">暂无通联记录</div>

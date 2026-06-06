@@ -1,7 +1,7 @@
 /* ============================================================
-   FMO 副屏伴侣 — 样式表 v4
+   FMO 副屏伴侣 — 样式表 v5
    三主题：dark (默认) / light / eink (墨水屏)
-   新增：server-search 搜索框样式
+   新增：server-search 搜索框样式 / volume-slider / export-btn / server-item-uid
    ============================================================ */
 
 /* --- CSS Variables --- */
@@ -158,6 +158,25 @@ html, body {
 .mute-btn:hover { color: var(--accent); border-color: var(--accent); }
 .mute-btn.muted { color: var(--danger); border-color: var(--danger); }
 
+/* --- Volume Slider --- */
+.volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 60px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px; height: 12px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
 .settings-btn {
   background: none; border: 1px solid var(--border);
   color: var(--text-secondary); font-size: 16px;
@@ -198,6 +217,34 @@ html, body {
   flex-shrink: 0;
   border-bottom: 1px solid var(--border);
   padding-bottom: 8px;
+}
+.panel-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  flex-shrink: 0;
+}
+.panel-title-row .panel-title {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.export-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.export-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 .panel-content {
   flex: 1;
@@ -335,6 +382,14 @@ html, body {
 .server-item.active {
   background: var(--accent-glow);
   border-color: var(--accent);
+}
+.server-item-uid {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  min-width: 36px;
+  text-align: right;
+  margin-right: 8px;
 }
 .server-item-name { font-weight: 600; color: var(--text-primary); }
 .server-item-count { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); }
