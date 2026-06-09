@@ -1261,10 +1261,11 @@ const App = {
       const count = contactCounts.get(call) || 0;
       const timeStr = this.formatTimeAgo(item.utcTime, now);
       const isActive = activeCallsigns.has(item.callsign);
-      return '<div class="recent-item' + (isActive ? ' is-speaking' : '') + '" data-callsign="' + item.callsign + '">'
+      const isSelf = this.isSameOperator(item.callsign, this.myCallsign);
+      return '<div class="recent-item' + (isActive ? ' is-speaking' : '') + (isSelf ? ' is-self' : '') + '" data-callsign="' + item.callsign + '">'
         + '<span class="recent-index-bg">' + (index + 1) + '</span>'
         + '<div class="recent-main">'
-        + '<div class="recent-callsign-line"><strong>' + item.callsign + '</strong></div>'
+        + '<div class="recent-callsign-line"><strong>' + item.callsign + '</strong>' + (isSelf ? '<span class="self-tag">您</span>' : '') + '</div>'
         + '<span>' + timeStr + '</span>'
         + '</div>'
         + '<span class="recent-count">x' + count + '</span>'
@@ -1308,10 +1309,10 @@ const App = {
       tags += '<span class="speaking-tag">[HOST]</span>';
     }
 
-    // 自己
+    // 您
     const isSelf = this.isSameOperator(sp.callsign, this.myCallsign);
     if (isSelf) {
-      tags += '<span class="speaking-tag">自己</span>';
+      tags += '<span class="speaking-tag">您</span>';
     }
 
     // 通联次数 / 新朋友

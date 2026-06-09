@@ -42,7 +42,7 @@ FMO 副屏伴侣 — 单 HTML 零依赖、四象限面板、三主题 Web 控制
 
 - **设备信息面板**：呼号大号居中、天线 / 固件版本 / 坐标 / 高度 / 网格
 - **服务器列表**：翻页全量加载、点击切换、当前服务器高亮
-- **Speaking Bar**：单行紧凑布局，实时显示讲话者呼号 + 方位角 / 距离 / Grid / 服务器名 + HOST/自己/新朋友徽章 + 通联计时
+- **Speaking Bar**：单行紧凑布局，实时显示讲话者呼号 + 方位角 / 距离 / Grid / 服务器名 + HOST/您/新朋友徽章 + 通联计时
 - **QSO 统计**：Top N 统计卡片、删除按钮
 - **音频收听**：VU 电平 + 迷你频谱（24 柱真实 FFT，200-3800Hz 对数分频）+ 静音按钮
 - **移动端适配**：响应式布局、呼号 / 频谱 / 信息栏自动缩放
@@ -78,6 +78,17 @@ fmo-secondary/
 本项目是基于 fmo-show（作者 [@EthanYan6](https://github.com/EthanYan6)）、FmoDeck（作者 [@wh0am1i](https://github.com/wh0am1i)）的二次开发作品。原项目完整搭建了与 FMO 设备交互的协议实现、日志同步、APRS 相关能力等核心业务逻辑。本仓库在其基础上做界面与交互层的重写，但所有"能用起来"的根基都来自 fmo-show。特此鸣谢 ✨
 
 ## 更新日志
+
+### 2026-06-09 (v0.3.16)
+
+**修复 — Recent Speakers 呼号字体 + 自我识别**
+
+- Recent Speakers 呼号字体与 Speaking Bar 对齐：桌面端 1.5rem → 1.125rem（18px），移动端 1.3rem → 0.875rem（14px）
+- 修复自我识别：`myCallsign` 已获取但从未用于 Recent Speakers；新增 `isSelf` 比对逻辑，匹配时添加 `is-self` CSS 类 + "您" 标签
+- Speaking Bar "自己"标签统一改为"您"（与 FmoLogs 风格一致）
+- 新增 CSS：`.recent-item.is-self strong { color: var(--accent) }` / `.self-tag { font-size: 0.7em; font-weight: 500 }`
+
+**修改文件**：style.css, app.js, README.md
 
 ### 2026-06-09 (v0.3.15)
 
@@ -171,7 +182,7 @@ fmo-secondary/
 
 - 彻底废弃旧卡片式设计（border + border-radius + card bg），改为 FmoLogs 扁平单行状态条
 - 结构：脉冲圆点指示器（发言绿/空闲灰） + 单行文字 + 紧凑 VU 表
-- 格式：`正在发言: CALLSIGN 方位东24° 12km OL63ma [HOST] 自己 ✦新朋友 xN [服务器名] elapsed`
+- 格式：`正在发言: CALLSIGN 方位东24° 12km OL63ma [HOST] 您 ✦新朋友 xN [服务器名] elapsed`
 - 空闲态：`当前无人发言`（灰色圆点）
 - CSS 全部重写：移除 speaker-callsign/speaker-badge/speaker-grid/speaker-server/speaker-extra/idle-text/idle-sub 等旧类，统一为 speaking-indicator / speaking-text / speaking-tag / speaking-count / speaking-elapsed / speaking-meta
 - 彻底消除多层嵌套、双层显示、flex-wrap 换行等问题
