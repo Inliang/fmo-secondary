@@ -249,6 +249,13 @@ fmo-secondary/
 - SSTV：FM 解调重写为 mixer + Butterworth LPF + analytic signal 瞬时频率估计，新增 5ms LPF 瞬态丢弃
 - SSTV：`_extractPixels` 适配正确频率输出（1500-2300Hz → 0-1 线性映射）
 
+### 2026-06-09 (v0.3.1)
+
+参照 FmoLogs（作者 BH5HSJ）
+
+**优化**
+- Speaking Bar：放大 idle 状态卡片（indicator 14→16px、字体 16→18px、strong 15→16px、gap 0.6→0.75rem），移动端同步放大
+
 ### 2026-06-06 (v0.3.0)
 
 参照 FmoLogs（作者 BH5HSJ）
