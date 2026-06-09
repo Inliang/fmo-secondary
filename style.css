@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    FMO 副屏伴侣 — 样式表 v5
    三主题：dark (默认) / light / eink (墨水屏)
    新增：server-search 搜索框样式 / volume-slider / export-btn / server-item-uid
@@ -499,15 +499,15 @@ html, body {
   border-top: 1px solid var(--border);
   padding: 8px 0 0 0;
   margin-top: 8px;
-  max-height: 180px;
+  max-height: 200px;
   overflow-y: auto;
 }
 
 .recent-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
+  gap: 10px;
+  padding: 6px 10px;
   border-radius: 4px;
   cursor: pointer;
   transition: background 0.15s;
@@ -528,7 +528,7 @@ html, body {
   right: 6px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 36px;
+  font-size: 48px;
   font-weight: 900;
   color: rgba(255, 255, 255, 0.04);
   line-height: 1;
@@ -540,7 +540,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
   z-index: 1;
 }
@@ -548,22 +548,22 @@ html, body {
 .recent-callsign-line {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .recent-callsign-line strong {
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   color: var(--text-primary);
   font-weight: 700;
 }
 
 .recent-main > span {
-  font-size: 0.8rem;
+  font-size: 1rem;
   color: var(--text-secondary);
 }
 
 .recent-count {
-  font-size: 0.85rem;
+  font-size: 1rem;
   color: var(--text-secondary);
   z-index: 1;
   flex-shrink: 0;
@@ -589,7 +589,7 @@ html, body {
   text-align: center;
   padding: 8px;
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 1rem;
 }
 
 /* --- QSO List --- */
@@ -716,6 +716,13 @@ html, body {
   .info-hero { font-size: 38px; }
   .info-card-value { font-size: 14px; }
   .info-card-label { font-size: 11px; }
+
+  /* Recent Speakers mobile */
+  .recent-callsign-line strong { font-size: 1.3rem; }
+  .recent-main > span { font-size: 0.9rem; }
+  .recent-count { font-size: 0.9rem; }
+  .recent-speakers:empty::after { font-size: 0.9rem; }
+  .recent-index-bg { font-size: 38px; }
 }
 
 /* --- Feature Dropdown --- */
