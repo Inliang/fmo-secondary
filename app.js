@@ -1364,127 +1364,9 @@ const App = {
     this.vuLevel = Math.min(100, level);
     const fill = document.querySelector('.vu-meter-fill');
     if (fill) fill.style.width = this.vuLevel + '%';
-    this.updateMiniSpectrum();
   },
 
-  updateMiniSpectrum() {
-    const container = document.getElementById('mini-spectrum');
-    if (!container) return;
-
-    const bars = 24;
-    const raw = this._lastAudioChunk;
-    if (!raw || raw.length < 256) {
-      // 无音频数据时显示基线（低噪声条）
-      let html = '';
-      for (let i = 0; i < bars; i++) {
-        html += `<div class="bar" style="height:2px;opacity:0.25"></div>`;
-      }
-      container.innerHTML = html;
-      return;
-    }
-
-    // 取 2 的幂次样本做 FFT（1024 样本 @ 8kHz = 128ms 窗口）
-    const N = 1024;
-    const samples = new Float32Array(N);
-    const src = raw.length >= N ? raw.slice(raw.length - N) : raw;
-    const offset = raw.length >= N ? 0 : N - src.length;
-    const hann = (i) => 0.5 * (1 - Math.cos(2 * Math.PI * i / (N - 1)));
-    for (let i = 0; i < src.length; i++) {
-      samples[offset + i] = (src[i] / 32768) * hann(i + offset);
-    }
-
-    // Radix-2 FFT（Cooley-Tukey）
-    const fft = (re, im) => {
-      const n = re.length;
-      // bit-reversal
-      for (let i = 1, j = 0; i < n; i++) {
-        let bit = n >> 1;
-        for (; j & bit; bit >>= 1) j ^= bit;
-        j ^= bit;
-        if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
-      }
-      for (let len = 2; len <= n; len <<= 1) {
-        const ang = -2 * Math.PI / len;
-        const wRe = Math.cos(ang), wIm = Math.sin(ang);
-        for (let i = 0; i < n; i += len) {
-          let curRe = 1, curIm = 0;
-          for (let j = 0; j < len / 2; j++) {
-            const a = i + j, b = i + j + len / 2;
-            const tRe = curRe * re[b] - curIm * im[b];
-            const tIm = curRe * im[b] + curIm * re[b];
-            re[b] = re[a] - tRe; im[b] = im[a] - tIm;
-            re[a] += tRe; im[a] += tIm;
-            const nRe = curRe * wRe - curIm * wIm;
-            curIm = curRe * wIm + curIm * wRe;
-            curRe = nRe;
-          }
-        }
-      }
-    };
-
-    const re = new Float32Array(samples);
-    const im = new Float32Array(N);
-    fft(re, im);
-    const mag = new Float32Array(N / 2);
-    for (let i = 0; i < N / 2; i++) {
-      mag[i] = Math.sqrt(re[i] * re[i] + im[i] * im[i]);
-    }
-
-    // 24 条对数频率 bin：200Hz → 3800Hz（人声频段 + 谐波），@ Nyquist=4000Hz
-    const sampleRate = 8000;
-    const fMin = 200, fMax = 3800;
-    const binEdges = [];
-    for (let i = 0; i <= bars; i++) {
-      binEdges.push(fMin * Math.pow(fMax / fMin, i / bars));
-    }
-
-    const binValues = new Array(bars).fill(0);
-    for (let i = 1; i < N / 2; i++) {
-      const freq = i * sampleRate / N;
-      if (freq < fMin || freq > fMax) continue;
-      // 找到所属 bin
-      let b = 0;
-      while (b < bars && freq > binEdges[b + 1]) b++;
-      binValues[b] = Math.max(binValues[b], mag[i]);
-    }
-
-    // 归一化并平滑
-    const maxMag = binValues.reduce((a, b) => Math.max(a, b), 0.001);
-    const maxHeight = 48;
-    if (!this._specHistory || this._specHistory.length !== bars) {
-      this._specHistory = new Array(bars).fill(0);
-    }
-
-    let html = '';
-    for (let i = 0; i < bars; i++) {
-      const target = Math.min(1, binValues[i] / (maxMag * 1.5));
-      const prev = this._specHistory[i];
-      const smoothed = prev * 0.55 + target * 0.45;
-      this._specHistory[i] = smoothed;
-      const h = Math.max(2, Math.round(smoothed * maxHeight));
-
-      const ratio = smoothed;
-      let r, g, b;
-      if (ratio < 0.33) {
-        const t = ratio / 0.33;
-        r = Math.round(t * 200);
-        g = Math.round(180 + t * 75);
-        b = Math.round(60 - t * 40);
-      } else if (ratio < 0.66) {
-        const t = (ratio - 0.33) / 0.33;
-        r = Math.round(200 + t * 55);
-        g = Math.round(255 - t * 100);
-        b = Math.round(20 - t * 20);
-      } else {
-        const t = (ratio - 0.66) / 0.34;
-        r = 255;
-        g = Math.round(155 - t * 100);
-        b = 0;
-      }
-      html += `<div class="bar" style="height:${h}px;background:rgb(${r},${g},${b});opacity:${0.4 + smoothed * 0.6}"></div>`;
-    }
-    container.innerHTML = html;
-  },
+  
 
   // ============ 音频 ============
 
@@ -1527,8 +1409,6 @@ const App = {
     const rms = Math.sqrt(sum / raw.length);
     const db = 20 * Math.log10(rms + 0.0001);
     this.updateVU(Math.max(0, Math.min(100, (db + 60) * (100 / 60))));
-    // 保存最新音频块供 FFT 频谱分析
-    this._lastAudioChunk = raw;
   },
 
   // ============ 轮询 ============
