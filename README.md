@@ -79,6 +79,24 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-09 (v0.3.15)
+
+**优化 — Recent Speakers 区域放大（参照 FmoLogs SpeakingHistoryModal）**
+
+- `.recent-speakers` max-height：180px → 200px
+- `.recent-item`：gap 8px→10px，padding 4px 8px→6px 10px
+- `.recent-index-bg` font-size：36px → 48px（桌面端），移动端 768px 下 36px → 38px
+- `.recent-callsign-line strong` font-size：1.2rem → 1.5rem（参照 FmoLogs 1.6rem，约 1.45x speaking bar）
+- `.recent-main > span` font-size：0.8rem → 1rem
+- `.recent-count` font-size：0.85rem → 1rem
+- `.recent-speakers:empty::after` font-size：0.85rem → 1rem
+- 移动端 768px：`strong` 1.3rem / `span` 0.9rem / `count` 0.9rem / `empty` 0.9rem
+
+**修改文件**：style.css
+
+<details>
+<summary>历史日志</summary>
+
 ### 2026-06-09 (v0.3.14)
 
 **修复 — SSTV Robot 36 无法接收信号**
