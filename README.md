@@ -66,9 +66,10 @@ fmo-secondary/
 
 ## 参考项目
 
-- [FmoDeck](https://github.com/wh0am1i/FmoDeck) — 战术 HUD 主题，SpeakingBar 单行布局参考
+- [FmoDeck](https://github.com/wh0am1i/FmoDeck) — 战术 HUD 主题，SpeakingBar 单行布局 + SSTV 解码参考
 - [FmoLogs](https://github.com/dingle1122/FmoLogs) — 原始 FMO 日志平台
 - [fmo-show](https://github.com/EthanYan6/fmo-show) — 墨水屏风格单行紧凑布局参考
+- [colaclanth/sstv](https://github.com/colaclanth/sstv) — Python SSTV 解码器，Robot 36 规范与时间分段参考
 - [FMO 文档](https://bg5esn.com/categories/docs/) — 固件接口文档参考
 - [FmoLogs Dashboard](https://fmologs.bh5hsj.org/dashboard) — SpeakingBar 设计参考
 
@@ -77,6 +78,20 @@ fmo-secondary/
 本项目是基于 fmo-show（作者 [@EthanYan6](https://github.com/EthanYan6)）、FmoDeck（作者 [@wh0am1i](https://github.com/wh0am1i)）的二次开发作品。原项目完整搭建了与 FMO 设备交互的协议实现、日志同步、APRS 相关能力等核心业务逻辑。本仓库在其基础上做界面与交互层的重写，但所有"能用起来"的根基都来自 fmo-show。特此鸣谢 ✨
 
 ## 更新日志
+
+### 2026-06-09 (v0.3.14)
+
+**修复 — SSTV Robot 36 无法接收信号**
+
+- 根因：`totalScanLines` 配置为 36，实际 Robot 36 为 240 条扫描线（36 秒）；导致解码器在 5.4 秒后即停止并触发超时重置
+- 修复 `ROBOT36_MODE.totalScanLines`：36 → 240
+- 修复 `_sstvForceStart`：`_sstvT0` 回退量从 5 秒改为 2.5 秒，确保在 3 秒环形缓冲区容量内
+- 参照 [colaclanth/sstv](https://github.com/colaclanth/sstv) Robot 36 规范（LINE_COUNT=240, LINE_TIME=150ms）
+
+**修改文件**：app.js, README.md
+
+<details>
+<summary>历史日志</summary>
 
 ### 2026-06-06 (v0.3.13)
 

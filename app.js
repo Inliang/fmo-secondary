@@ -62,7 +62,7 @@ const ROBOT36_MODE = {
   width: 320,
   height: 240,
   scanLineMs: 150,
-  totalScanLines: 36,
+  totalScanLines: 240,
   preludeMs: 0,
   // Segment timing within 150ms scan line (Robot 36 spec)
   syncMs: 9,
@@ -2197,7 +2197,7 @@ const App = {
     this._sstvState = 'decoding';
     this._sstvMode = MODE;
     this._sstvNextScanLine = 0;
-    this._sstvT0 = tap.totalWritten - Math.round(5 * SR);
+    this._sstvT0 = tap.totalWritten - Math.round(2.5 * SR);
     this._sstvFullRgba = new Uint8ClampedArray(MODE.width * MODE.height * 4);
     this._sstvYbuf = null;
     this._sstvRYbuf = null;
