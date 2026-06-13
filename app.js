@@ -539,23 +539,9 @@ const App = {
           this.myGrid = grid;
           document.getElementById('info-grid').textContent = grid;
           document.getElementById('status-grid').textContent = grid;
-          const alt = r.data.altitude ?? r.data.elevation ?? r.data.height ?? r.data.alt;
-          if (alt !== undefined) {
-            document.getElementById('info-altitude').textContent = `${alt} m`;
-          }
-        }
-      } catch (e) {}
-    })());
-
-    // config: 高度兜底
-    tasks.push((async () => {
-      try {
-        const r = await this.send({ type: 'config', subType: 'getAltitude' });
-        if (r.code === 0 && r.data) {
-          const alt = r.data.altitude ?? r.data.height ?? r.data.elevation ?? r.data.alt;
-          if (alt !== undefined) {
-            document.getElementById('info-altitude').textContent = `${alt} m`;
-          }
+          // 用户坐标显示（经纬度 + 网格）
+          const coordEl = document.getElementById('info-coord');
+          if (coordEl) coordEl.textContent = `${r.data.latitude.toFixed(4)}, ${r.data.longitude.toFixed(4)}`;
         }
       } catch (e) {}
     })());
@@ -575,15 +561,6 @@ const App = {
         const r = await this.send({ type: 'config', subType: 'getUserPhyAnt' });
         if (r.code === 0 && r.data?.ant)
           document.getElementById('info-antenna').textContent = r.data.ant;
-      } catch (e) {}
-    })());
-
-    // config: 固件版本
-    tasks.push((async () => {
-      try {
-        const r = await this.send({ type: 'config', subType: 'getFirmwareVersion' });
-        if (r.code === 0 && r.data?.version)
-          document.getElementById('info-firmware').textContent = r.data.version;
       } catch (e) {}
     })());
 
@@ -836,6 +813,7 @@ const App = {
 
     this.qsoList = all;
     this.renderQsoList();
+    this.updateQsoCount();
   },
 
   renderQsoList() {
@@ -869,6 +847,12 @@ const App = {
     const first = document.querySelector('.qso-item');
     if (first) first.classList.add('new-highlight');
     this.fetchStats();
+    this.updateQsoCount();
+  },
+
+  updateQsoCount() {
+    const el = document.getElementById('info-qso-count');
+    if (el) el.textContent = this.qsoList.length;
   },
 
   // ============ Speaking Bar ============

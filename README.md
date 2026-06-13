@@ -134,6 +134,16 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-13 (v0.3.21)
+
+**功能 — 设备信息面板重构**
+
+- 删除两个字段：固件版本（`info-firmware`）、高度（`info-altitude`），同时移除对应的 `config.getFirmwareVersion` 和 `config.getAltitude` 请求
+- 新增通联统计：显示累计 QSO 次数（`info-qso-count`），数据来源 `qsoList.length`，在加载 QSO 列表和新通联到达时实时更新
+- 新增用户坐标：显示经纬度（`info-coord`），精确到 4 位小数，数据来源 `config.getCordinate` 接口
+
+<details>
+<summary>历史版本日志</summary>
 ### 2026-06-13 (v0.3.20)
 
 **功能 — 服务器搜索框 x 清除按钮**
@@ -143,8 +153,6 @@ fmo-secondary/
 - 选择服务器后搜索文字自动清空并收起搜索结果
 - **Bugfix**：修复 v0.3.20 引入的 `ReferenceError: $ is not defined` — `switchServer()` 中误用了 `bindEvents()` 局部作用域内的 `$` 函数，导致点击服务器列表项无法切换。改为 `document.getElementById()`
 
-<details>
-<summary>历史版本日志</summary>
 ### 2026-06-13 (v0.3.19)
 
 **优化 — 字体排版精细化 & 品牌一致性增强**
