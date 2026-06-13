@@ -29,8 +29,8 @@ FMO 副屏伴侣 — 单 HTML 零依赖、四象限面板、三主题 Web 控制
 |  (info-hero)   |  (station)     |
 +----------------+----------------+
 |  左下           |  右下           |
-|  Speaking Bar  |  QSO 统计       |
-|                |  + 迷你频谱     |
+|  Speaking Bar  |  QSO 列表       |
+|  + 最近发言     |  + 迷你频谱     |
 +----------------+----------------+
 ```
 
@@ -104,9 +104,12 @@ FMO 副屏伴侣 — 单 HTML 零依赖、四象限面板、三主题 Web 控制
 
 ```
 fmo-secondary/
-├── index.html    # 主页面（四象限布局 + 状态条）
-├── app.js        # 核心逻辑（WebSocket / 串行队列 / UI 渲染）
-├── style.css     # 样式（三主题 + 响应式）
+├── index.html       # 主页面（四象限布局 + 状态条）
+├── app.js           # 核心逻辑（WebSocket / 串行队列 / UI 渲染）
+├── style.css        # 样式（三主题 + 响应式）
+├── ARCHITECTURE.md  # 架构设计文档
+├── PROTOCOL.md      # WebSocket 协议映射
+├── UI_DESIGN.md     # UI/UX 设计规范
 └── README.md
 ```
 

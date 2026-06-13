@@ -788,7 +788,8 @@ body::before {
   border-top: 1px solid var(--border-subtle);
   padding: 10px 0 0 0;
   margin-top: 10px;
-  max-height: 200px;
+  flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
 }
 .recent-item {
