@@ -1,14 +1,3 @@
----
-AIGC:
-    Label: "1"
-    ContentProducer: 001191440300708461136T1XGW3
-    ProduceID: 4d32f127e120f5be24dadce57b263d70_e5e7f04666e911f1a0095254002afed2
-    ReservedCode1: gxUr8F2gZkhY/71zyhz4rjnxLOs7UJO0mrd6A7zJ03JT/lNQS288ZStMEncbYJqAAw+7CNu7tOoOicav4j5SLFkPCO7LyPGtvLJXaxvckr5RF17pb9xia3n6LbZa1LIsrp2SYSiQQUqzkblCMrVcTumOOmFOLzUvkHSgCVbTRtFaOTqpNe06GPYuYic=
-    ContentPropagator: 001191440300708461136T1XGW3
-    PropagateID: 4d32f127e120f5be24dadce57b263d70_e5e7f04666e911f1a0095254002afed2
-    ReservedCode2: gxUr8F2gZkhY/71zyhz4rjnxLOs7UJO0mrd6A7zJ03JT/lNQS288ZStMEncbYJqAAw+7CNu7tOoOicav4j5SLFkPCO7LyPGtvLJXaxvckr5RF17pb9xia3n6LbZa1LIsrp2SYSiQQUqzkblCMrVcTumOOmFOLzUvkHSgCVbTRtFaOTqpNe06GPYuYic=
----
-
 # fmo-secondary
 
 FMO 副屏伴侣 — 单 HTML 零依赖、四象限面板、三主题 Web 控制面板。
@@ -99,6 +88,8 @@ fmo-secondary/
 - 选择服务器后搜索文字自动清空并收起搜索结果
 - **Bugfix**：修复 v0.3.20 引入的 `ReferenceError: $ is not defined` — `switchServer()` 中误用了 `bindEvents()` 局部作用域内的 `$` 函数，导致点击服务器列表项无法切换。改为 `document.getElementById()`
 
+<details>
+<summary>历史版本日志</summary>
 ### 2026-06-13 (v0.3.19)
 
 **优化 — 字体排版精细化 & 品牌一致性增强**
@@ -177,9 +168,6 @@ fmo-secondary/
 
 **修改文件**：style.css
 
-<details>
-<summary>历史日志</summary>
-
 ### 2026-06-09 (v0.3.14)
 
 **修复 — SSTV Robot 36 无法接收信号**
@@ -191,9 +179,6 @@ fmo-secondary/
 
 **修改文件**：app.js, README.md
 
-<details>
-<summary>历史日志</summary>
-
 ### 2026-06-06 (v0.3.13)
 
 **修复 — 服务器列表无法加载**
@@ -202,9 +187,6 @@ fmo-secondary/
 - 在 App 对象 SSTV 段补充 `_serverLatency: {}` / `_serverLatencyPending: {}`
 
 **修改文件**：app.js
-
-<details>
-<summary>历史日志</summary>
 
 ### 2026-06-06 (v0.3.12)
 
@@ -216,9 +198,6 @@ fmo-secondary/
 - 新增 `_serverLatency` / `_serverLatencyPending` 缓存字段防止并发重复测量
 
 **修改文件**：app.js, style.css
-
-<details>
-<summary>历史日志</summary>
 
 ### 2026-06-06 (v0.3.11)
 
@@ -260,9 +239,6 @@ fmo-secondary/
 - 彻底消除多层嵌套、双层显示、flex-wrap 换行等问题
 
 **修改文件**：index.html, style.css, app.js
-
-<details>
-<summary>历史日志</summary>
 
 ### 2026-06-06 (v0.3.7)
 
@@ -397,6 +373,4 @@ fmo-secondary/
 - [FmoDeck](https://github.com/wh0am1i/FmoDeck)：协议参考（串行队列 / RESPONSE_ALIASES / `qso/callsign` 事件）
 - [fmo-show](https://github.com/EthanYan6/fmo-show)：界面灵感
 - [bg5esn.com](https://bg5esn.com/categories/docs/)：固件接口文档
-
 </details>
-*（内容由AI生成，仅供参考）*
