@@ -1245,11 +1245,25 @@ const App = {
       activeCallsigns.add(this._currentSpeaker.callsign);
     }
 
-    // 优先使用 _historyEvents，为空时用 _speakingHistory
-    let items = [];
-    if (this._historyEvents.length > 0) {
-      // 取最近10条，去重
-      const seen = new Set();
+    // 合并 _speakingHistory（实时）与 _historyEvents（服务端历史），去重后取最近 10 条
+    const seen = new Set();
+    const items = [];
+
+    // 第一阶段：_speakingHistory 优先，活跃/最近发言者置顶
+    for (const h of this._speakingHistory) {
+      const call = this.parseCallsignSsid(h.callsign).call;
+      if (!seen.has(call)) {
+        seen.add(call);
+        items.push({
+          callsign: h.callsign,
+          utcTime: Math.floor((h.endTime || h.startTime) / 1000)
+        });
+        if (items.length >= 10) break;
+      }
+    }
+
+    // 第二阶段：用 _historyEvents 补足剩余槽位
+    if (items.length < 10 && this._historyEvents.length > 0) {
       for (const evt of this._historyEvents) {
         const call = this.parseCallsignSsid(evt.callsign).call;
         if (!seen.has(call)) {
@@ -1261,11 +1275,6 @@ const App = {
           if (items.length >= 10) break;
         }
       }
-    } else {
-      items = this._speakingHistory.slice(0, 10).map(h => ({
-        callsign: h.callsign,
-        utcTime: Math.floor((h.endTime || h.startTime) / 1000)
-      }));
     }
 
     if (!items.length) {
