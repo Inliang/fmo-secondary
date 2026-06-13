@@ -79,6 +79,18 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-13 (v0.3.19)
+
+**优化 — 字体排版精细化 & 品牌一致性增强**
+
+- 字体系统：移除外部 Inter 依赖，改用 FMOC 同款系统字体栈（含 PingFang SC / Microsoft YaHei 中文优化）
+- 字号层级修复：面板标题 11→12px，hero 呼号 52→44px（消除字号断层），全局 11px 标注统一升至 12px
+- 卡片间距统一：面板 padding 基准 16px，标题与内容区间距 12px
+- 品牌色渗透：面板标题左侧 2px accent 竖条装饰，卡片 hover 边框改为 accent 色 + 光晕
+- 呼号光晕：hero callsign text-shadow 改用 accent-glow
+- 背景网格透明度降低至 0.008，纹理更淡雅
+- 入场动画：面板 stagger fadeIn（延迟 50-70ms，0.4s ease-out）
+
 ### 2026-06-13 (v0.3.18)
 
 **重构 — 全面 UI 重设计：现代暗色仪表盘（玻璃态 + 卡片系统）**
