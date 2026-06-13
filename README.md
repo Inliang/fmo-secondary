@@ -1,3 +1,14 @@
+---
+AIGC:
+    Label: "1"
+    ContentProducer: 001191440300708461136T1XGW3
+    ProduceID: 4d32f127e120f5be24dadce57b263d70_e5e7f04666e911f1a0095254002afed2
+    ReservedCode1: gxUr8F2gZkhY/71zyhz4rjnxLOs7UJO0mrd6A7zJ03JT/lNQS288ZStMEncbYJqAAw+7CNu7tOoOicav4j5SLFkPCO7LyPGtvLJXaxvckr5RF17pb9xia3n6LbZa1LIsrp2SYSiQQUqzkblCMrVcTumOOmFOLzUvkHSgCVbTRtFaOTqpNe06GPYuYic=
+    ContentPropagator: 001191440300708461136T1XGW3
+    PropagateID: 4d32f127e120f5be24dadce57b263d70_e5e7f04666e911f1a0095254002afed2
+    ReservedCode2: gxUr8F2gZkhY/71zyhz4rjnxLOs7UJO0mrd6A7zJ03JT/lNQS288ZStMEncbYJqAAw+7CNu7tOoOicav4j5SLFkPCO7LyPGtvLJXaxvckr5RF17pb9xia3n6LbZa1LIsrp2SYSiQQUqzkblCMrVcTumOOmFOLzUvkHSgCVbTRtFaOTqpNe06GPYuYic=
+---
+
 # fmo-secondary
 
 FMO 副屏伴侣 — 单 HTML 零依赖、四象限面板、三主题 Web 控制面板。
@@ -78,6 +89,14 @@ fmo-secondary/
 本项目是基于 fmo-show（作者 [@EthanYan6](https://github.com/EthanYan6)）、FmoDeck（作者 [@wh0am1i](https://github.com/wh0am1i)）的二次开发作品。原项目完整搭建了与 FMO 设备交互的协议实现、日志同步、APRS 相关能力等核心业务逻辑。本仓库在其基础上做界面与交互层的重写，但所有"能用起来"的根基都来自 fmo-show。特此鸣谢 ✨
 
 ## 更新日志
+
+### 2026-06-13 (v0.3.20)
+
+**功能 — 服务器搜索框 × 清除按钮**
+
+- 搜索框右侧新增 × 清除按钮，仅在输入文字后显示，hover 有圆形背景反馈
+- 点击 × 清空搜索文字、恢复完整服务器列表，焦点保持在输入框
+- 选择服务器后搜索文字自动清空并收起搜索结果
 
 ### 2026-06-13 (v0.3.19)
 
@@ -379,3 +398,4 @@ fmo-secondary/
 - [bg5esn.com](https://bg5esn.com/categories/docs/)：固件接口文档
 
 </details>
+*（内容由AI生成，仅供参考）*

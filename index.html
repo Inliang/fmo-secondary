@@ -76,7 +76,10 @@
       <div class="panel">
         <div class="panel-title">服务器列表</div>
         <div class="panel-content">
-          <input type="text" class="server-search" id="server-search" placeholder="搜索服务器...">
+          <div class="server-search-wrapper">
+            <input type="text" class="server-search" id="server-search" placeholder="搜索服务器...">
+            <button class="server-search-clear" id="server-search-clear" title="清除搜索">&times;</button>
+          </div>
           <div class="server-list" id="server-list-container">
             <div class="server-list-empty">加载中...</div>
           </div>

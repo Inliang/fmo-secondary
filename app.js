@@ -172,11 +172,22 @@ const App = {
     $('theme-toggle').addEventListener('click', () => this.cycleTheme());
     $('mute-btn').addEventListener('click', () => this.toggleMute());
     const si = $('server-search');
+    const sc = $('server-search-clear');
     if (si) {
       si.addEventListener('input', (e) => {
         this.serverSearch = e.target.value.toLowerCase();
         this.renderServerList();
+        if (sc) sc.classList.toggle('visible', e.target.value.length > 0);
       });
+      if (sc) {
+        sc.addEventListener('click', () => {
+          si.value = '';
+          this.serverSearch = '';
+          this.renderServerList();
+          si.focus();
+          sc.classList.remove('visible');
+        });
+      }
     }
     const eq = $('export-qso-btn');
     if (eq) eq.addEventListener('click', () => this.exportQso());
@@ -727,6 +738,13 @@ const App = {
 
   async switchServer(name) {
     if (name === this.currentServerName) return;
+
+    // 清空搜索框
+    this.serverSearch = '';
+    const si = $('server-search');
+    if (si) si.value = '';
+    const sc = $('server-search-clear');
+    if (sc) sc.classList.remove('visible');
 
     // 保存切换前服务器，失败时回退
     this._prevServer = this.currentServerName;
