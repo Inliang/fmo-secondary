@@ -1378,6 +1378,15 @@ const App = {
       this.gainNode.gain.value = this.volume / 100;
       this.gainNode.connect(this.audioCtx.destination);
     } catch (e) {}
+    // 浏览器 autoplay 策略：在用户手势时恢复 AudioContext
+    const resume = () => {
+      if (this.audioCtx && this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume().catch(() => {});
+      }
+    };
+    document.addEventListener('click', resume, { once: false });
+    document.addEventListener('keydown', resume, { once: false });
+    document.addEventListener('touchstart', resume, { once: false });
   },
 
   handleAudioFrame(buf) {
@@ -1517,7 +1526,68 @@ const App = {
 
   // ============ SSTV 解码 ============
 
-  /* 参照 FmoDeck 重写的 FM 解调 + VIS 检测 + Goertzel */
+  /* FM 解调器：Hilbert 变换 FIR (31-tap Blackman window) + 交叉乘积鉴频器
+     参照 PhosphorSSTV 的 Hilbert 解调方案，相比 IIR biquad 低通，
+     FIR 线性相位 + 更好阻带抑制避免 3800Hz 镜像污染解调输出。
+     消除 IQ 频移步骤，直接从解析信号计算瞬时频率。 */
+
+  _firConvolve(signal, coeffs) {
+    const len = coeffs.length;
+    const out = new Float32Array(signal.length);
+    for (let i = len - 1; i < signal.length; i++) {
+      let sum = 0;
+      for (let j = 0; j < len; j++) sum += coeffs[j] * signal[i - j];
+      out[i] = sum;
+    }
+    return out;
+  },
+
+  _designHilbertFir(numTaps) {
+    const h = new Float32Array(numTaps);
+    const mid = (numTaps - 1) / 2;
+    for (let i = 0; i < numTaps; i++) {
+      const n = i - mid;
+      if (n === 0) {
+        h[i] = 0;
+      } else if (n % 2 !== 0) {
+        h[i] = 2 / (Math.PI * n);
+      }
+      // Blackman window
+      const w = 0.42 - 0.5 * Math.cos(2 * Math.PI * i / (numTaps - 1)) +
+                0.08 * Math.cos(4 * Math.PI * i / (numTaps - 1));
+      h[i] *= w;
+    }
+    return h;
+  },
+
+  _fmDemodulate(samples, sampleRate, warmupSamples) {
+    if (!warmupSamples) warmupSamples = 0;
+    const n = samples.length;
+
+    // 缓存 Hilbert FIR 系数（31-tap Blackman window，与 PhosphorSSTV 一致）
+    if (!this._hilbertCoefs) {
+      this._hilbertCoefs = this._designHilbertFir(31);
+    }
+    const hilbert = this._hilbertCoefs;
+    const delay = Math.floor(hilbert.length / 2); // 15 samples
+
+    const q = this._firConvolve(samples, hilbert); // q[k] ≈ Hilbert(samples[k - delay])
+    // I 通道：对齐群延迟，使 I[k] 和 Q[k] 对应同一时刻
+    const i = new Float32Array(n);
+    for (let k = delay; k < n; k++) i[k] = samples[k - delay];
+    for (let k = 0; k < delay; k++) i[k] = samples[0];
+
+    const out = new Float32Array(n);
+    const scale = sampleRate / (2 * Math.PI);
+    for (let k = delay + 1; k < n; k++) {
+      const re = i[k] * i[k - 1] + q[k] * q[k - 1];
+      const im = q[k] * i[k - 1] - i[k] * q[k - 1];
+      out[k] = scale * Math.atan2(im, re);
+    }
+    // 前 (delay+1) 个样本用最近有效值填充
+    for (let k = 0; k <= delay; k++) out[k] = out[delay + 1] || 1500;
+    return warmupSamples > 0 ? out.subarray(warmupSamples) : out;
+  },
 
   _goertzel(samples, targetHz, sampleRate) {
     const omega = (2 * Math.PI * targetHz) / sampleRate;
@@ -1531,90 +1601,48 @@ const App = {
     return s1 * s1 + s2 * s2 - s1 * s2 * coeff;
   },
 
-  _applyBiquad(x, b0, b1, b2, a1, a2) {
-    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
-    for (let n = 0; n < x.length; n++) {
-      const xn = x[n];
-      const yn = b0 * xn + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
-      x2 = x1; x1 = xn;
-      y2 = y1; y1 = yn;
-      x[n] = yn;
-    }
-  },
-
-  _toAnalytic(samples, sampleRate, centerHz, cutoffHz) {
-    const n = samples.length;
-    const i = new Float32Array(n);
-    const q = new Float32Array(n);
-    const omegaC = (2 * Math.PI * centerHz) / sampleRate;
-    for (let k = 0; k < n; k++) {
-      const phase = omegaC * k;
-      i[k] = samples[k] * Math.cos(phase);
-      q[k] = -samples[k] * Math.sin(phase);
-    }
-    const omega = (2 * Math.PI * cutoffHz) / sampleRate;
-    const alpha = Math.sin(omega) / (2 * Math.SQRT1_2);
-    const cosW = Math.cos(omega);
-    const a0 = 1 + alpha;
-    const b0 = (1 - cosW) / 2 / a0;
-    const b1 = (1 - cosW) / a0;
-    const b2 = b0;
-    const a1 = (-2 * cosW) / a0;
-    const a2 = (1 - alpha) / a0;
-    this._applyBiquad(i, b0, b1, b2, a1, a2);
-    this._applyBiquad(q, b0, b1, b2, a1, a2);
-    return { i, q };
-  },
-
-  _instantFreq(i, q, sampleRate, centerHz) {
-    const n = i.length;
-    const out = new Float32Array(n);
-    out[0] = centerHz;
-    const scale = sampleRate / (2 * Math.PI);
-    for (let k = 1; k < n; k++) {
-      const re = i[k] * i[k - 1] + q[k] * q[k - 1];
-      const im = q[k] * i[k - 1] - i[k] * q[k - 1];
-      out[k] = centerHz + scale * Math.atan2(im, re);
-    }
-    return out;
-  },
-
-  _fmDemodulate(samples, sampleRate, warmupSamples) {
-    if (!warmupSamples) warmupSamples = 0;
-    const { i, q } = this._toAnalytic(samples, sampleRate, 1900, 600);
-    const freq = this._instantFreq(i, q, sampleRate, 1900);
-    return warmupSamples > 0 ? freq.subarray(warmupSamples) : freq;
-  },
-
-  /* FmoDeck VIS 检测器: 在原 PCM 上做 Goertzel 音调检测, 完整前导+bit+parity 校验 */
+  /* VIS 检测器：Goertzel 音调检测 + 前导 + bit + parity + stop 校验。
+     网页音频可能有频率偏移（±35Hz）和 AGC 幅度波动，
+     使用宽松但安全的能量比阈值（2x 而非 3x），并加入低频噪声地板检查。 */
 
   _visDetect(samples, sampleRate) {
     const bs = Math.round((30 / 1000) * sampleRate); // bit=30ms
     const step = Math.max(1, Math.floor(bs / 4));
     const n = samples.length;
-    const preambleSamples = Math.round((300 * 2 + 10) / 1000 * sampleRate); // 300+10+300ms
+    if (n < Math.round((610 / 1000) * sampleRate)) return null; // min: preamble + start + 8 data + stop ≈ 610ms
+    const preambleSamples = Math.round((300 * 2 + 10) / 1000 * sampleRate);
+
+    const leaderLen = Math.round((200 / 1000) * sampleRate);
+    const amNoise = () => {
+      // 用低频带 (400Hz) 估计环境噪声能量基准
+      const seg = samples.subarray(Math.max(0, n - Math.round((100 / 1000) * sampleRate)), n);
+      return this._goertzel(seg, 400, sampleRate);
+    };
+    const noiseFloor = amNoise();
 
     const isLeader1900 = (start, len) => {
       if (start < 0 || start + len > n) return false;
       const e1900 = this._goertzel(samples.subarray(start, start + len), 1900, sampleRate);
       const e2400 = this._goertzel(samples.subarray(start, start + len), 2400, sampleRate);
-      return e1900 > e2400 * 3;
+      // 1900 Hz leader must dominate, and must exceed ambient noise
+      return e1900 > e2400 * 2 && e1900 > noiseFloor * 4;
     };
 
     const hasPreamble = (startBitOff) => {
-      const leaderCoreSamples = Math.round((200 / 1000) * sampleRate);
       const firstCoreStart = startBitOff - Math.round(((300 + 10 + 300 - 250) / 1000) * sampleRate);
       const secondCoreStart = startBitOff - Math.round(((300 - 250) / 1000) * sampleRate);
-      const leader1Ok = isLeader1900(firstCoreStart, leaderCoreSamples);
-      const leader2Ok = isLeader1900(secondCoreStart, leaderCoreSamples);
+      const leader1Ok = isLeader1900(firstCoreStart, leaderLen);
+      const leader2Ok = isLeader1900(secondCoreStart, leaderLen);
       if (!leader1Ok && !leader2Ok) return false;
+      // 找 10ms break tone (1200 Hz)
+      const breakLen = Math.round((10 / 1000) * sampleRate);
       const searchStart = startBitOff - Math.round(((300 + 10 + 20) / 1000) * sampleRate);
       const searchEnd = startBitOff - Math.round(((300 + 10 - 20) / 1000) * sampleRate);
-      for (let off = searchStart; off + Math.round((10 / 1000) * sampleRate) <= searchEnd; off += Math.max(1, Math.floor(sampleRate / 500))) {
-        const win = samples.subarray(off, off + Math.round((10 / 1000) * sampleRate));
+      for (let off = searchStart; off + breakLen <= searchEnd; off += Math.max(1, Math.floor(sampleRate / 500))) {
+        const win = samples.subarray(off, off + breakLen);
         const e1200 = this._goertzel(win, 1200, sampleRate);
         const e1700 = this._goertzel(win, 1700, sampleRate);
-        if (e1200 > e1700 * 3) return true;
+        if (e1200 > e1700 * 2) return true;
       }
       return false;
     };
@@ -1624,10 +1652,12 @@ const App = {
       const win = samples.subarray(off, off + bs);
       const e1100 = this._goertzel(win, 1100, sampleRate);
       const e1300 = this._goertzel(win, 1300, sampleRate);
-      const noiseFloor = this._goertzel(win, 500, sampleRate);
       const max = Math.max(e1100, e1300);
-      if (max < noiseFloor * 3) return -1;
-      return e1100 > e1300 ? 1 : 0;
+      if (max < noiseFloor * 4) return -1;
+      // 要求主导频率至少 2 倍于对侧
+      if (e1100 > e1300 * 2) return 1;
+      if (e1300 > e1100 * 2) return 0;
+      return -1;
     };
 
     const isStartBit1200 = (off) => {
@@ -1636,7 +1666,7 @@ const App = {
       const e1200 = this._goertzel(win, 1200, sampleRate);
       const e1700 = this._goertzel(win, 1700, sampleRate);
       const e1900 = this._goertzel(win, 1900, sampleRate);
-      return e1200 > e1700 * 3 && e1200 > e1900 * 3;
+      return e1200 > e1700 * 2 && e1200 > e1900 * 2;
     };
 
     for (let s = preambleSamples; s + 10 * bs <= n; s += step) {
@@ -1656,7 +1686,7 @@ const App = {
       const win = samples.subarray(stopOff, stopOff + bs);
       const e1200 = this._goertzel(win, 1200, sampleRate);
       const e1700 = this._goertzel(win, 1700, sampleRate);
-      if (e1200 <= e1700 * 3) continue;
+      if (e1200 <= e1700 * 2) continue;
       return { visCode: code, endOffset: n - (stopOff + bs) };
     }
     return null;
@@ -1671,6 +1701,7 @@ const App = {
     const warmupSamples = Math.round((WARMUP_MS * SR) / 1000);
 
     if (this._sstvState === 'idle') {
+      const recentTotal = tap.totalWritten;
       const recent = tap.recent(1200, SR);
       if (recent.length < 800) return;
       const vis = this._visDetect(recent, SR);
@@ -1678,7 +1709,7 @@ const App = {
         this._sstvState = 'decoding';
         this._sstvMode = MODE;
         this._sstvNextScanLine = 0;
-        this._sstvT0 = tap.totalWritten - vis.endOffset;
+        this._sstvT0 = recentTotal - vis.endOffset;
         this._sstvFullRgba = new Uint8ClampedArray(MODE.width * MODE.height * 4);
         this._sstvYbuf = null;
         this._sstvRYbuf = null;
@@ -1805,19 +1836,47 @@ const App = {
   },
 
   _detectSstvSync(freq, sampleRate, syncMs, searchMs) {
+    // 同步脉冲检测策略：
+    // 1. 在 searchMs 范围内搜索 1200 Hz ±100 Hz 的连续区域（sync 脉冲）
+    // 2. 要求该区域前方有高频→低频的过渡（上一扫描行结束时 ~2300 Hz）
+    // 3. 使用加权滑动平均而非简单均值，以找到脉冲中心
+    // PhosphorSSTV 参考容差：±80 Hz，此处使用 ±100 Hz 以兼容网页音频漂移
     const searchSamples = Math.min(freq.length, Math.round((searchMs * sampleRate) / 1000));
     const winSamples = Math.max(4, Math.round((syncMs * sampleRate) / 1000));
-    if (searchSamples < winSamples + 4) return 0;
+    if (searchSamples < winSamples + 8) return 0;
+
+    // 跳过 FM 解调器的初始化暂态 (前 1ms = 8 samples @ 8kHz)
+    const skipSamples = Math.max(0, Math.round((1 * sampleRate) / 1000));
 
     let sum = 0;
-    for (let k = 0; k < winSamples; k++) sum += freq[k] || 0;
+    for (let k = skipSamples; k < skipSamples + winSamples; k++) sum += freq[k] || 0;
 
-    let bestCenterIdx = winSamples / 2;
+    let bestCenterIdx = skipSamples + winSamples / 2;
     let bestDist = Infinity;
 
-    for (let start = 0; start + winSamples <= searchSamples; start++) {
+    for (let start = skipSamples; start + winSamples <= searchSamples; start++) {
       const mean = sum / winSamples;
       const dist = Math.abs(mean - 1200);
+      // 检测 sync 前 2ms 的高频过渡（前一行结束时 ~2300 Hz）
+      const preStart = Math.max(skipSamples, start - Math.round((2 * sampleRate) / 1000));
+      if (preStart < start) {
+        let preSum = 0;
+        for (let p = preStart; p < start; p++) preSum += freq[p] || 0;
+        const preMean = preSum / (start - preStart);
+        // 前方频率应明显更高（>1600 Hz），说明有真实的下降沿
+        if (preMean < 1600) {
+          // 不满足下降沿条件，加权惩罚
+          const penaltyDist = dist + 80;
+          if (penaltyDist < bestDist) {
+            bestDist = penaltyDist;
+            bestCenterIdx = start + winSamples / 2;
+          }
+          if (start + winSamples < searchSamples) {
+            sum += (freq[start + winSamples] || 0) - (freq[start] || 0);
+          }
+          continue;
+        }
+      }
       if (dist < bestDist) {
         bestDist = dist;
         bestCenterIdx = start + winSamples / 2;
@@ -1827,7 +1886,8 @@ const App = {
       }
     }
 
-    if (bestDist > 200) return 0;
+    // 严格容差：±100 Hz（原 ±200 Hz 太宽，可能误锁 porch 或 chroma 段）
+    if (bestDist > 100) return 0;
     const detectedMs = (bestCenterIdx / sampleRate) * 1000;
     return detectedMs - syncMs / 2;
   },
@@ -1867,6 +1927,21 @@ const App = {
     return out;
   },
 
+  /* SSTV de-emphasis: 发射端有 6dB/oct 预加重，解码端用一阶递归低通去加重
+     tau ≈ 300µs, fs=8000, k=exp(-1/(fs*tau)) ≈ 0.659 (仅用于亮度通道) */
+  _deEmphasisLuma(luma) {
+    const out = new Uint8ClampedArray(luma.length);
+    let prev = luma[0];
+    out[0] = luma[0];
+    const k = 0.659; // exp(-1/(8000 * 0.0003))
+    for (let i = 1; i < luma.length; i++) {
+      const val = luma[i] + k * (prev - luma[i]); // 低通平滑
+      out[i] = Math.max(0, Math.min(255, Math.round(val)));
+      prev = out[i];
+    }
+    return out;
+  },
+
   _decodeSstvLinePair(samplesEven, samplesOdd, sampleRate, mode, warmupEven, warmupOdd) {
     const freqEven = this._fmDemodulate(samplesEven, sampleRate, warmupEven);
     const freqOdd = this._fmDemodulate(samplesOdd, sampleRate, warmupOdd);
@@ -1891,10 +1966,14 @@ const App = {
 
     const chromaWidth = Math.floor(mode.width / 2); // 160 for Robot 36
 
-    const yEven = this._sampleSstvSection(freqEven, sampleRate, yEvenStart, yEvenEnd, mode.width);
+    const yEvenRaw = this._sampleSstvSection(freqEven, sampleRate, yEvenStart, yEvenEnd, mode.width);
+    const yOddRaw = this._sampleSstvSection(freqOdd, sampleRate, yOddStart, yOddEnd, mode.width);
     const cr = this._sampleSstvSection(freqEven, sampleRate, crStart, crEnd, chromaWidth);
-    const yOdd = this._sampleSstvSection(freqOdd, sampleRate, yOddStart, yOddEnd, mode.width);
     const cb = this._sampleSstvSection(freqOdd, sampleRate, cbStart, cbEnd, chromaWidth);
+
+    // 对亮度通道应用去加重（色度通道不去加重）
+    const yEven = this._deEmphasisLuma(yEvenRaw);
+    const yOdd = this._deEmphasisLuma(yOddRaw);
 
     // YCbCr→RGB, 2 rows, chroma subsampling 2:1
     const rgba = new Uint8ClampedArray(mode.width * 2 * 4);

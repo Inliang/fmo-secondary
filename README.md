@@ -79,6 +79,27 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-13 (v0.3.17)
+
+**修复 — SSTV 解码器无法识别网页音频信号**
+
+- FM 解调器重构：将 IQ 频移 + 二阶 biquad 低通方案替换为 **Hilbert 变换 FIR (31-tap Blackman window)** 直接解析信号方案，参照 PhosphorSSTV 实现
+  - 消除 3800Hz 镜像污染（biquad 阻带抑制不足 → 噪声混入解调输出）
+  - I/Q 通道群延迟对齐（15 samples），消除相位失配导致的频率估计偏移
+  - FIR 系数缓存避免重复计算
+- VIS 检测鲁棒性提升：能量比阈值从 3x 放宽至 2x，新增环境噪声地板（400Hz）估计
+  - 前置长度校验（< 610ms 直接拒绝，避免缓冲区不足误检）
+  - 比特值判定加入 2x 主导比要求，防止弱信号误读
+- 同步脉冲检测改进：容差从 ±200 Hz 收紧至 ±100 Hz（PhosphorSSTV 参考 ±80 Hz）
+  - 新增下降沿检测（sync 前 2ms 频率 >1600 Hz），惩罚不具真过渡的候选
+  - 跳过 FM 解调器前 1ms 初始化暂态
+- 亮度通道去加重：新增 `_deEmphasisLuma`（一阶递归低通，τ≈300µs，k=0.659），匹配 SSTV 发射预加重
+- 时序修复：`_sstvT0` 使用 `recentTotal` 快照避免 `totalWritten` 竞态
+- AudioContext autoplay：`initAudioCtx` 注册 click/keydown/touchstart 事件自动 `resume()`
+- 移除废弃函数：`_toAnalytic`、`_applyBiquad`、`_instantFreq`
+
+**修改文件**：app.js, README.md
+
 ### 2026-06-09 (v0.3.16)
 
 **修复 — Recent Speakers 呼号字体 + 自我识别**
