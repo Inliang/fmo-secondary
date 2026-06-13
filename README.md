@@ -97,6 +97,7 @@ fmo-secondary/
 - 搜索框右侧新增 × 清除按钮，仅在输入文字后显示，hover 有圆形背景反馈
 - 点击 × 清空搜索文字、恢复完整服务器列表，焦点保持在输入框
 - 选择服务器后搜索文字自动清空并收起搜索结果
+- **Bugfix**：修复 v0.3.20 引入的 `ReferenceError: $ is not defined` — `switchServer()` 中误用了 `bindEvents()` 局部作用域内的 `$` 函数，导致点击服务器列表项无法切换。改为 `document.getElementById()`
 
 ### 2026-06-13 (v0.3.19)
 

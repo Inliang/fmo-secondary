@@ -741,9 +741,9 @@ const App = {
 
     // 清空搜索框
     this.serverSearch = '';
-    const si = $('server-search');
+    const si = document.getElementById('server-search');
     if (si) si.value = '';
-    const sc = $('server-search-clear');
+    const sc = document.getElementById('server-search-clear');
     if (sc) sc.classList.remove('visible');
 
     // 保存切换前服务器，失败时回退
