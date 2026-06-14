@@ -539,9 +539,9 @@ const App = {
           this.myGrid = grid;
           document.getElementById('info-grid').textContent = grid;
           document.getElementById('status-grid').textContent = grid;
-          // 用户坐标显示（经纬度 + 网格）
-          const coordEl = document.getElementById('info-coord');
-          if (coordEl) coordEl.textContent = `${r.data.latitude.toFixed(4)}, ${r.data.longitude.toFixed(4)}`;
+          // 用户坐标显示（经纬度 + 逆地理地址）
+          this.updateCoordDisplay();
+          this._resolveGridLocation(grid);
         }
       } catch (e) {}
     })());
@@ -852,7 +852,22 @@ const App = {
 
   updateQsoCount() {
     const el = document.getElementById('info-qso-count');
-    if (el) el.textContent = this.qsoList.length;
+    if (!el) return;
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStartUnix = Math.floor(todayStart.getTime() / 1000);
+    const todayCount = this.qsoList.filter(q => (q.timestamp || 0) >= todayStartUnix).length;
+    el.textContent = `${todayCount} / ${this.qsoList.length}`;
+  },
+
+  updateCoordDisplay() {
+    const el = document.getElementById('info-coord');
+    if (!el) return;
+    const lat = this._myLat?.toFixed(4) ?? '--';
+    const lon = this._myLon?.toFixed(4) ?? '--';
+    const loc = this._gridLocationCache[this.myGrid] || this.myGrid || '';
+    const sep = loc ? ' / ' : '';
+    el.textContent = `${lat}, ${lon}${sep}${loc}`;
   },
 
   // ============ Speaking Bar ============
@@ -947,9 +962,13 @@ const App = {
       }
       const region = parts.join('');
       this._gridLocationCache[grid] = region;
-      // 如果当前发言人网格匹配，立即更新显示
+      // 如果匹配当前发言人网格，更新 Speaking Bar
       if (this._currentSpeaker && this._currentSpeaker.grid === grid) {
         this.renderSpeakingBar();
+      }
+      // 如果匹配用户自己的网格，更新坐标显示
+      if (grid === this.myGrid) {
+        this.updateCoordDisplay();
       }
     } catch (e) {
       // 静默失败，仍显示原始 grid
