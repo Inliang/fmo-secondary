@@ -134,6 +134,16 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-14 (v0.3.22)
+
+**功能 — 设备信息面板二轮迭代：通联双值 + 坐标地址反查**
+
+- QSO 通联统计：从单一累计次数改为 `当天次数 / 累计次数` 双值显示（如 `3 / 127`），按 QSO 时间戳筛选当天记录
+- 用户坐标：从经纬度改为 `经度,纬度 / 省 市 区` 格式（如 `116.3972,39.9075 / 北京市朝阳区`），通过 OSM Nominatim 逆地理编码异步获取地址并缓存
+- 新增 `updateCoordDisplay()` 方法，逆地理结果命中用户网格时自动刷新坐标显示，与 Speaking Bar 共享 `_gridLocationCache` 缓存
+
+<details>
+<summary>历史版本日志</summary>
 ### 2026-06-13 (v0.3.21)
 
 **功能 — 设备信息面板重构**
@@ -142,8 +152,6 @@ fmo-secondary/
 - 新增通联统计：显示累计 QSO 次数（`info-qso-count`），数据来源 `qsoList.length`，在加载 QSO 列表和新通联到达时实时更新
 - 新增用户坐标：显示经纬度（`info-coord`），精确到 4 位小数，数据来源 `config.getCordinate` 接口
 
-<details>
-<summary>历史版本日志</summary>
 ### 2026-06-13 (v0.3.20)
 
 **功能 — 服务器搜索框 x 清除按钮**
