@@ -845,7 +845,10 @@ const App = {
     this.qsoList.unshift(qso);
     this.renderQsoList();
     const first = document.querySelector('.qso-item');
-    if (first) first.classList.add('new-highlight');
+    if (first) {
+      first.classList.add('new-highlight');
+      first.classList.add('slide-in');
+    }
     this.fetchStats();
     this.updateQsoCount();
   },
@@ -858,6 +861,9 @@ const App = {
     const todayStartUnix = Math.floor(todayStart.getTime() / 1000);
     const todayCount = this.qsoList.filter(q => (q.timestamp || 0) >= todayStartUnix).length;
     el.textContent = `${todayCount} / ${this.qsoList.length}`;
+    el.classList.remove('pulse');
+    void el.offsetWidth;
+    el.classList.add('pulse');
   },
 
   updateCoordDisplay() {

@@ -134,6 +134,16 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-18 (v0.3.23)
+
+**UI 全面品质提升 — 卡片质感、排版精修、动效微交互**
+
+- 卡片系统：面板默认内发光边框 (`inset 0 0 0 1px`)，hover 时 box-shadow 升级为 accent 微光，圆角 14px 保持玻璃态
+- 排版精修：统计数字启用等宽数字 (`font-variant-numeric: tabular-nums`)，面板标题 letter-spacing 微增 + line-height 1.3，内容区 line-height 1.5
+- 动效微交互：面板入场 stagger 0.5s，Speaking Bar 状态切换 spring 曲线 (`cubic-bezier(0.4,0,0.2,1)`)，QSO 新增条目 slide-in 右侧滑入，统计数字更新 pulse 微缩放，在线指示器扩散光环动画
+- 色彩微调：背景底色加深增强对比 (`--bg-deepest: #04070a`)，卡片不透明度略微提高层次更分明
+- 细节打磨：滚动条 hover accent 色，服务器列表 hover translateX(4px) + 左边框 accent，QSO 分隔线渐变透明，Recent Speakers 自身标识 accent 竖条 + 微背景，设置弹窗 backdrop 加深
+
 ### 2026-06-14 (v0.3.22)
 
 **功能 — 设备信息面板二轮迭代：通联双值 + 坐标地址反查**
