@@ -9,8 +9,8 @@
    ============================================================ */
 :root {
   /* --- 背景色层级 --- */
-  --bg-deepest: #04070a;
-  --bg-body: #070b12;
+  --bg-deepest: #03060a;
+  --bg-body: #060a14;
   --bg-card: rgba(14, 19, 33, 0.88);
   --bg-card-hover: rgba(21, 27, 43, 0.94);
   --bg-card-active: rgba(0, 180, 216, 0.09);
@@ -82,8 +82,7 @@
   --glass-inner-glow: inset 0 0 0 1px rgba(0, 180, 216, 0.06);
 
   /* --- 背景装饰 --- */
-  --bg-grid-color: rgba(255, 255, 255, 0.008);
-  --bg-grid-size: 40px;
+  --bg-dot-color: rgba(255, 255, 255, 0.008);
 }
 
 /* --- 亮色主题 --- */
@@ -179,8 +178,7 @@
   --glass-border: #000000;
   --glass-blur: 0px;
 
-  --bg-grid-color: transparent;
-  --bg-grid-size: 0px;
+  --bg-dot-color: transparent;
 
   --transition-fast: 0s;
   --transition: 0s;
@@ -204,17 +202,35 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 微妙背景网格纹理 */
+/* 微弱点阵纹理 — Dribbble 暗色仪表盘风格 */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background-image:
-    linear-gradient(var(--bg-grid-color) 1px, transparent 1px),
-    linear-gradient(90deg, var(--bg-grid-color) 1px, transparent 1px);
-  background-size: var(--bg-grid-size) var(--bg-grid-size);
+  background-image: radial-gradient(circle, var(--bg-dot-color) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.35;
+}
+
+/* 缓慢移动的 ambient 径向渐变光晕 — Dribbble 暗色氛围 */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 30% 20%, rgba(0, 180, 216, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 70% 80%, rgba(72, 202, 228, 0.03) 0%, transparent 50%);
+  animation: ambientFloat 30s ease-in-out infinite alternate;
+}
+
+@keyframes ambientFloat {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(2%, -1%) scale(1.05); }
+  100% { transform: translate(-1%, 2%) scale(0.98); }
 }
 
 /* ============================================================
@@ -473,7 +489,7 @@ body::before {
   font-family: var(--font-display);
   font-weight: 900;
   font-size: 44px;
-  color: var(--text-hero);
+  color: transparent;
   text-align: center;
   letter-spacing: 0.08em;
   line-height: 1;
@@ -481,6 +497,12 @@ body::before {
   word-break: break-all;
   flex-shrink: 0;
   text-shadow: 0 0 24px var(--accent-glow);
+  background: linear-gradient(90deg, var(--text-hero) 0%, var(--accent) 40%, var(--text-hero) 70%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shine 3s ease-in-out infinite;
 }
 .panel-info .info-card {
   background: var(--bg-card);
@@ -491,6 +513,11 @@ body::before {
   flex-direction: column;
   gap: 2px;
   flex: 1;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.panel-info .info-card:hover {
+  border-color: var(--border-accent);
+  box-shadow: 0 0 14px rgba(0, 180, 216, 0.08);
 }
 .panel-info .info-card-row {
   display: flex;
@@ -646,7 +673,7 @@ body::before {
   background: transparent;
 }
 .server-item:hover {
-  background: var(--bg-card-hover);
+  background: linear-gradient(135deg, var(--bg-card-hover) 0%, rgba(0, 180, 216, 0.05) 100%);
   border-color: var(--border-default);
   border-left: 3px solid var(--accent);
   transform: translateX(4px);
@@ -1290,8 +1317,8 @@ body::before {
    Animations
    ============================================================ */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: scale(0.98) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -1304,14 +1331,16 @@ body::before {
 
 /* — 增补动效 — */
 @keyframes ripple-speaking {
-  0%   { box-shadow: 0 0 0 0 rgba(6, 214, 160, 0.4); }
-  70%  { box-shadow: 0 0 0 8px rgba(6, 214, 160, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(6, 214, 160, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(6, 214, 160, 0.45), 0 0 0 0 rgba(6, 214, 160, 0.3); }
+  30%  { box-shadow: 0 0 0 4px rgba(6, 214, 160, 0.25), 0 0 0 8px rgba(6, 214, 160, 0.12); }
+  70%  { box-shadow: 0 0 0 8px rgba(6, 214, 160, 0.08), 0 0 0 16px rgba(6, 214, 160, 0); }
+  100% { box-shadow: 0 0 0 10px rgba(6, 214, 160, 0), 0 0 0 20px rgba(6, 214, 160, 0); }
 }
 @keyframes ripple-connected {
-  0%   { box-shadow: 0 0 0 0 var(--success-glow); }
-  70%  { box-shadow: 0 0 0 6px rgba(6, 214, 160, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(6, 214, 160, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(6, 214, 160, 0.35), 0 0 0 0 rgba(6, 214, 160, 0.2); }
+  30%  { box-shadow: 0 0 0 3px rgba(6, 214, 160, 0.2), 0 0 0 6px rgba(6, 214, 160, 0.1); }
+  70%  { box-shadow: 0 0 0 6px rgba(6, 214, 160, 0.06), 0 0 0 12px rgba(6, 214, 160, 0); }
+  100% { box-shadow: 0 0 0 8px rgba(6, 214, 160, 0), 0 0 0 16px rgba(6, 214, 160, 0); }
 }
 @keyframes qsoSlideIn {
   from { opacity: 0; transform: translateX(24px); }

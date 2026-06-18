@@ -298,6 +298,24 @@ fmo-secondary/
 
 **修改文件**：app.js, style.css
 
+### 2026-06-18 (v0.3.24)
+
+参考 Dribbble 暗色仪表盘 & react-bits 精修 UI
+
+**优化 — CSS 全面升级**
+- 暗色主题背景加深：`--bg-deepest` → `#03060a`、`--bg-body` → `#060a14`，提升对比度与沉浸感
+- `body::after` ambient 径向光晕双椭圆渐变 + `ambientFloat` 30s 缓慢移动动画，营造暗色氛围
+- `body::before` 点阵纹理变量统一：`--bg-grid-color` → `--bg-dot-color`，三主题（dark/light/eink）同步声明
+- `info-hero` 呼号流光 `shine` 动画：渐变背景 + `background-clip: text` + 3s 循环移动，文字呈现金属质感
+- `panel:hover` 增强光晕：边框切 accent 色 + 外层 glow 阴影 + `inset` accent 内发光
+- `server-item:hover` 渐变背景 + `border-left`：135deg 线性渐变 + 3px accent 左边框 + `translateX(4px)` 微动效
+- `qso-item` `border-image` 渐变分割线：`linear-gradient(90deg, border-subtle, transparent)` 替代实色底线
+- `speaking-bar :has()` 状态切换：idle 柔和暗色 / speaking 强调色光晕，纯 CSS 驱动无需 JS 切换 class
+- 新增 `speak-pulse` 关键帧动画：`opacity` + `scale` 脉冲效果
+- 指示器 `speaking` 态叠加动画：`speak-pulse` 1.5s + `ripple-speaking` 2s 双重呼吸感
+
+**修改文件**：style.css
+
 ### 2026-06-06 (v0.3.9)
 
 **重构 — Speaking Bar 加入方位角/距离/Grid + 频谱改为真实 FFT**
