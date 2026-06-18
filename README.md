@@ -316,6 +316,21 @@ fmo-secondary/
 
 **修改文件**：style.css
 
+### 2026-06-18 (v0.3.25)
+
+参考 awesome-design-md (SpaceX / Linear / NVIDIA / VoltAgent / BMW M) 设计系统 + UI UX Pro Max 精修
+
+**优化 — 色彩体系 + 动效 + 排版精修**
+- 新增暖色次级强调色系 `--accent-warm` / `--accent-warm-glow`（#f59e0b 琥珀金），三主题同步声明
+- 统计卡片 `.stat-value` 切换为暖色调强调，hover 增加暖色外发光；`.info-card-grid` 网格数值同步应用暖色 + text-shadow
+- QSO 列表条目精修：gap 10→12px / padding 8→10px，hover 渐变背景 + 微妙右移 (3px) + accent 外发光边框，呼号增加 0.02em 字距 + hover 变 accent-light
+- Speaking Bar 状态过渡增强：speaking 态增加渐变背景呼吸感 (scale 1.003) + 更大光晕 (24px) + 更深 inset
+- 服务器列表项 hover 增加 accent 侧向发光 box-shadow；搜索框 focus 光晕改为双环 (ring + outer glow)
+- 状态指示器 `ripple-connected` 三环扩散：7 / 11 / 15px 三层套环逐层衰减
+- 连接状态圆点 `.status-dot.connected` 叠加动画 `ripple-connected` 3s 循环
+
+**修改文件**：style.css
+
 ### 2026-06-06 (v0.3.9)
 
 **重构 — Speaking Bar 加入方位角/距离/Grid + 频谱改为真实 FFT**
