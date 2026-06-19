@@ -668,9 +668,10 @@ body::after {
   min-height: 0;
 }
 .server-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
   align-items: center;
-  justify-content: space-between;
   padding: 12px 14px;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -684,7 +685,6 @@ body::after {
   background: linear-gradient(135deg, var(--bg-card-hover) 0%, rgba(0, 180, 216, 0.06) 100%);
   border-color: var(--border-default);
   border-left: 3px solid var(--accent);
-  transform: translateX(4px);
   box-shadow: 2px 0 12px var(--accent-glow);
 }
 .server-item.active {
