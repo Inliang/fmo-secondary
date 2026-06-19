@@ -17,6 +17,7 @@ FMO 副屏伴侣 — 单 HTML 零依赖、四象限面板、三主题 Web 控制
 - **目标场景**：FMO 设备的副屏 / 第二显示器，用于实时监控 QSO 状态
 - **技术特点**：单 HTML 文件、零外部依赖、直接双击可用
 - **协议参考**：FW 接口文档参见 [bg5esn.com/docs](https://bg5esn.com/categories/docs/)
+- **设计参考**：[UI UX Pro Max](https://ui-ux-pro-max-skill.nextlevelbuilder.io/) — 设计智能数据库；[awesome-design-md](https://github.com/VoltAgent/awesome-design-md) — 品牌设计系统 DESIGN.md 集合
 
 ---
 
@@ -298,6 +299,9 @@ fmo-secondary/
 
 **修改文件**：app.js, style.css
 
+<details>
+<summary>历史版本</summary>
+
 ### 2026-06-18 (v0.3.24)
 
 参考 Dribbble 暗色仪表盘 & react-bits 精修 UI
@@ -315,6 +319,24 @@ fmo-secondary/
 - 指示器 `speaking` 态叠加动画：`speak-pulse` 1.5s + `ripple-speaking` 2s 双重呼吸感
 
 **修改文件**：style.css
+
+### 2026-06-19 (v0.3.26)
+
+暗色主题墨绿色调切换 + 历史日志折叠 + 设计参考链接
+
+**优化 — 暗色主题切换为墨绿色调 (NVIDIA / VoltAgent)**
+- 主强调色青蓝 #00b4d8 → 深翡翠绿 #00d68f，accent-light → #3de6a5
+- 背景底色注入绿冷调：bg-deepest #03060a→#010a06、bg-body #060a14→#040f0d
+- success / success-glow 升级为 #00e676 亮绿
+- 所有 accent 系变量（glow / ring / border / shadow / glass-inner-glow / glass-bg / bg-card-active）同步切换绿调
+- body::after ambient 径向光晕双椭圆渐变同步调为绿色调 (rgba(0,214,143) / rgba(61,230,165))
+- accent-warm 琥珀金 #f59e0b 保留作为次级强调色，light / eink 主题不变
+
+**维护 — README 优化**
+- 版本日志折叠：v0.3.24 及更早版本使用 `details`/`summary` 折叠为「历史版本」
+- 项目定位区新增设计参考链接：[UI UX Pro Max](https://ui-ux-pro-max-skill.nextlevelbuilder.io/) + [awesome-design-md](https://github.com/VoltAgent/awesome-design-md)
+
+**修改文件**：style.css, README.md
 
 ### 2026-06-18 (v0.3.25)
 
