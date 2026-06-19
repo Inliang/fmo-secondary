@@ -665,7 +665,20 @@ body::after {
 .server-list {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 214, 143, 0.3) transparent;
+}
+.server-list::-webkit-scrollbar {
+  width: 6px;
+}
+.server-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.server-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 214, 143, 0.3);
+  border-radius: 3px;
 }
 .server-item {
   display: grid;

@@ -135,6 +135,99 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-19 (v0.3.28)
+
+四个象限面板 overflow 裁剪修复 + 服务器列表条目内容溢出截断
+
+**修复 — overflow 遮挡优化**
+- `.panel` overflow: hidden → visible（四个象限面板不再被边界裁剪）
+- `.panel-content` overflow-y: auto → visible（子列表自带滚动，面板层不重复裁剪）
+- `.sstv-body` / `.sstv-sidebar` / `.sstv-panel` overflow 统一为 visible（SSTV 下拉选择器不再被遮挡）
+
+**修复 — 服务器列表条目右侧溢出**
+- `.server-item-name` 新增 overflow:hidden / text-overflow:ellipsis / white-space:nowrap + flex:1 / min-width:0（长名称自动截断）
+- `.server-item-uid` / 右侧 count+latency+check 区域设 flex-shrink:0（防止被压缩）
+- `.server-item-uid` 11→14px、`.server-item-count` 12→14px、`.server-item-latency` 11→13px（与 v0.3.27 规格对齐，此前遗漏）
+
+**修改文件**：style.css
+
+
+
+
+<details>
+<summary>历史版本</summary>
+
+### 2026-06-19 (v0.3.27)
+
+参照设计参考站点（UI UX Pro Max / awesome-design-md / Dribbble / React Bits），以左下象限为基准统一全局字号层级
+
+**优化 — 全局字号统一放大**
+- 服务器列表：名称 13→16px，uid 11→14px，count 12→14px，latency 11→13px，check 10→15px，padding 同步增大
+- 服务器搜索框：13→14px
+- QSO 列表：条目 13→14px，logid/grid/time 11-12→13px，padding 10px 12px→10px 14px
+- 状态栏：status-text / server-label / time / ip 等 12→13px，server 名称 13→14px
+- 面板：panel-title 12→13px，info-card-label 12→13px，info-card-value 15→16px
+- Speaking Bar：speaking-text 16→18px，strong 17→19px，tag/meta/count/elapsed 11-12→13px，distance 13→14px，padding 16→18px
+- 最近发言：callsign 1.05→1.1rem，main/count 0.9→0.95rem，self-tag 0.65→0.7em，recent-item padding 7px 12px→8px 14px
+- SSTV 弹窗：status/mode-h4/select/force-btn/hint/history-h4/history-empty 10-12→12-13px
+- 空态文字：server-list-empty 13→14px
+
+**修改文件**：style.css
+
+### 2026-06-19 (v0.3.26)
+
+暗色主题墨绿色调切换 + 历史日志折叠 + 设计参考链接
+
+**优化 — 暗色主题切换为墨绿色调 (NVIDIA / VoltAgent)**
+- 主强调色青蓝 #00b4d8 → 深翡翠绿 #00d68f，accent-light → #3de6a5
+- 背景底色注入绿冷调：bg-deepest #03060a→#010a06、bg-body #060a14→#040f0d
+- success / success-glow 升级为 #00e676 亮绿
+- 所有 accent 系变量（glow / ring / border / shadow / glass-inner-glow / glass-bg / bg-card-active）同步切换绿调
+- body::after ambient 径向光晕双椭圆渐变同步调为绿色调 (rgba(0,214,143) / rgba(61,230,165))
+- accent-warm 琥珀金 #f59e0b 保留作为次级强调色，light / eink 主题不变
+
+**维护 — README 优化**
+- 版本日志折叠：v0.3.24 及更早版本使用 `details`/`summary` 折叠为「历史版本」
+- 项目定位区新增设计参考链接：[UI UX Pro Max](https://ui-ux-pro-max-skill.nextlevelbuilder.io/) + [awesome-design-md](https://github.com/VoltAgent/awesome-design-md)
+
+**修改文件**：style.css, README.md
+
+### 2026-06-18 (v0.3.25)
+
+参考 awesome-design-md (SpaceX / Linear / NVIDIA / VoltAgent / BMW M) 设计系统 + UI UX Pro Max 精修
+
+**优化 — 色彩体系 + 动效 + 排版精修**
+- 新增暖色次级强调色系 `--accent-warm` / `--accent-warm-glow`（#f59e0b 琥珀金），三主题同步声明
+- 统计卡片 `.stat-value` 切换为暖色调强调，hover 增加暖色外发光；`.info-card-grid` 网格数值同步应用暖色 + text-shadow
+- QSO 列表条目精修：gap 10→12px / padding 8→10px，hover 渐变背景 + 微妙右移 (3px) + accent 外发光边框，呼号增加 0.02em 字距 + hover 变 accent-light
+- Speaking Bar 状态过渡增强：speaking 态增加渐变背景呼吸感 (scale 1.003) + 更大光晕 (24px) + 更深 inset
+- 服务器列表项 hover 增加 accent 侧向发光 box-shadow；搜索框 focus 光晕改为双环 (ring + outer glow)
+- 状态指示器 `ripple-connected` 三环扩散：7 / 11 / 15px 三层套环逐层衰减
+- 连接状态圆点 `.status-dot.connected` 叠加动画 `ripple-connected` 3s 循环
+
+**修改文件**：style.css
+
+### 2026-06-18 (v0.3.24)
+
+参考 Dribbble 暗色仪表盘 & react-bits 精修 UI
+
+**优化 — CSS 全面升级**
+- 暗色主题背景加深：`--bg-deepest` → `#03060a`、`--bg-body` → `#060a14`，提升对比度与沉浸感
+- `body::after` ambient 径向光晕双椭圆渐变 + `ambientFloat` 30s 缓慢移动动画，营造暗色氛围
+- `body::before` 点阵纹理变量统一：`--bg-grid-color` → `--bg-dot-color`，三主题（dark/light/eink）同步声明
+- `info-hero` 呼号流光 `shine` 动画：渐变背景 + `background-clip: text` + 3s 循环移动，文字呈现金属质感
+- `panel:hover` 增强光晕：边框切 accent 色 + 外层 glow 阴影 + `inset` accent 内发光
+- `server-item:hover` 渐变背景 + `border-left`：135deg 线性渐变 + 3px accent 左边框 + `translateX(4px)` 微动效
+- `qso-item` `border-image` 渐变分割线：`linear-gradient(90deg, border-subtle, transparent)` 替代实色底线
+- `speaking-bar :has()` 状态切换：idle 柔和暗色 / speaking 强调色光晕，纯 CSS 驱动无需 JS 切换 class
+- 新增 `speak-pulse` 关键帧动画：`opacity` + `scale` 脉冲效果
+- 指示器 `speaking` 态叠加动画：`speak-pulse` 1.5s + `ripple-speaking` 2s 双重呼吸感
+
+**修改文件**：style.css
+
+
+
+
 ### 2026-06-18 (v0.3.23)
 
 **UI 全面品质提升 — 卡片质感、排版精修、动效微交互**
@@ -153,8 +246,9 @@ fmo-secondary/
 - 用户坐标：从经纬度改为 `经度,纬度 / 省 市 区` 格式（如 `116.3972,39.9075 / 北京市朝阳区`），通过 OSM Nominatim 逆地理编码异步获取地址并缓存
 - 新增 `updateCoordDisplay()` 方法，逆地理结果命中用户网格时自动刷新坐标显示，与 Speaking Bar 共享 `_gridLocationCache` 缓存
 
-<details>
-<summary>历史版本日志</summary>
+
+
+
 ### 2026-06-13 (v0.3.21)
 
 **功能 — 设备信息面板重构**
@@ -299,95 +393,8 @@ fmo-secondary/
 
 **修改文件**：app.js, style.css
 
-<details>
-<summary>历史版本</summary>
 
-### 2026-06-18 (v0.3.24)
 
-参考 Dribbble 暗色仪表盘 & react-bits 精修 UI
-
-**优化 — CSS 全面升级**
-- 暗色主题背景加深：`--bg-deepest` → `#03060a`、`--bg-body` → `#060a14`，提升对比度与沉浸感
-- `body::after` ambient 径向光晕双椭圆渐变 + `ambientFloat` 30s 缓慢移动动画，营造暗色氛围
-- `body::before` 点阵纹理变量统一：`--bg-grid-color` → `--bg-dot-color`，三主题（dark/light/eink）同步声明
-- `info-hero` 呼号流光 `shine` 动画：渐变背景 + `background-clip: text` + 3s 循环移动，文字呈现金属质感
-- `panel:hover` 增强光晕：边框切 accent 色 + 外层 glow 阴影 + `inset` accent 内发光
-- `server-item:hover` 渐变背景 + `border-left`：135deg 线性渐变 + 3px accent 左边框 + `translateX(4px)` 微动效
-- `qso-item` `border-image` 渐变分割线：`linear-gradient(90deg, border-subtle, transparent)` 替代实色底线
-- `speaking-bar :has()` 状态切换：idle 柔和暗色 / speaking 强调色光晕，纯 CSS 驱动无需 JS 切换 class
-- 新增 `speak-pulse` 关键帧动画：`opacity` + `scale` 脉冲效果
-- 指示器 `speaking` 态叠加动画：`speak-pulse` 1.5s + `ripple-speaking` 2s 双重呼吸感
-
-**修改文件**：style.css
-
-</details>
-</details>
-
-### 2026-06-19 (v0.3.28)
-
-四个象限面板 overflow 裁剪修复 + 服务器列表条目内容溢出截断
-
-**修复 — overflow 遮挡优化**
-- `.panel` overflow: hidden → visible（四个象限面板不再被边界裁剪）
-- `.panel-content` overflow-y: auto → visible（子列表自带滚动，面板层不重复裁剪）
-- `.sstv-body` / `.sstv-sidebar` / `.sstv-panel` overflow 统一为 visible（SSTV 下拉选择器不再被遮挡）
-
-**修复 — 服务器列表条目右侧溢出**
-- `.server-item-name` 新增 overflow:hidden / text-overflow:ellipsis / white-space:nowrap + flex:1 / min-width:0（长名称自动截断）
-- `.server-item-uid` / 右侧 count+latency+check 区域设 flex-shrink:0（防止被压缩）
-- `.server-item-uid` 11→14px、`.server-item-count` 12→14px、`.server-item-latency` 11→13px（与 v0.3.27 规格对齐，此前遗漏）
-
-**修改文件**：style.css
-
-### 2026-06-19 (v0.3.27)
-
-参照设计参考站点（UI UX Pro Max / awesome-design-md / Dribbble / React Bits），以左下象限为基准统一全局字号层级
-
-**优化 — 全局字号统一放大**
-- 服务器列表：名称 13→16px，uid 11→14px，count 12→14px，latency 11→13px，check 10→15px，padding 同步增大
-- 服务器搜索框：13→14px
-- QSO 列表：条目 13→14px，logid/grid/time 11-12→13px，padding 10px 12px→10px 14px
-- 状态栏：status-text / server-label / time / ip 等 12→13px，server 名称 13→14px
-- 面板：panel-title 12→13px，info-card-label 12→13px，info-card-value 15→16px
-- Speaking Bar：speaking-text 16→18px，strong 17→19px，tag/meta/count/elapsed 11-12→13px，distance 13→14px，padding 16→18px
-- 最近发言：callsign 1.05→1.1rem，main/count 0.9→0.95rem，self-tag 0.65→0.7em，recent-item padding 7px 12px→8px 14px
-- SSTV 弹窗：status/mode-h4/select/force-btn/hint/history-h4/history-empty 10-12→12-13px
-- 空态文字：server-list-empty 13→14px
-
-**修改文件**：style.css
-
-### 2026-06-19 (v0.3.26)
-
-暗色主题墨绿色调切换 + 历史日志折叠 + 设计参考链接
-
-**优化 — 暗色主题切换为墨绿色调 (NVIDIA / VoltAgent)**
-- 主强调色青蓝 #00b4d8 → 深翡翠绿 #00d68f，accent-light → #3de6a5
-- 背景底色注入绿冷调：bg-deepest #03060a→#010a06、bg-body #060a14→#040f0d
-- success / success-glow 升级为 #00e676 亮绿
-- 所有 accent 系变量（glow / ring / border / shadow / glass-inner-glow / glass-bg / bg-card-active）同步切换绿调
-- body::after ambient 径向光晕双椭圆渐变同步调为绿色调 (rgba(0,214,143) / rgba(61,230,165))
-- accent-warm 琥珀金 #f59e0b 保留作为次级强调色，light / eink 主题不变
-
-**维护 — README 优化**
-- 版本日志折叠：v0.3.24 及更早版本使用 `details`/`summary` 折叠为「历史版本」
-- 项目定位区新增设计参考链接：[UI UX Pro Max](https://ui-ux-pro-max-skill.nextlevelbuilder.io/) + [awesome-design-md](https://github.com/VoltAgent/awesome-design-md)
-
-**修改文件**：style.css, README.md
-
-### 2026-06-18 (v0.3.25)
-
-参考 awesome-design-md (SpaceX / Linear / NVIDIA / VoltAgent / BMW M) 设计系统 + UI UX Pro Max 精修
-
-**优化 — 色彩体系 + 动效 + 排版精修**
-- 新增暖色次级强调色系 `--accent-warm` / `--accent-warm-glow`（#f59e0b 琥珀金），三主题同步声明
-- 统计卡片 `.stat-value` 切换为暖色调强调，hover 增加暖色外发光；`.info-card-grid` 网格数值同步应用暖色 + text-shadow
-- QSO 列表条目精修：gap 10→12px / padding 8→10px，hover 渐变背景 + 微妙右移 (3px) + accent 外发光边框，呼号增加 0.02em 字距 + hover 变 accent-light
-- Speaking Bar 状态过渡增强：speaking 态增加渐变背景呼吸感 (scale 1.003) + 更大光晕 (24px) + 更深 inset
-- 服务器列表项 hover 增加 accent 侧向发光 box-shadow；搜索框 focus 光晕改为双环 (ring + outer glow)
-- 状态指示器 `ripple-connected` 三环扩散：7 / 11 / 15px 三层套环逐层衰减
-- 连接状态圆点 `.status-dot.connected` 叠加动画 `ripple-connected` 3s 循环
-
-**修改文件**：style.css
 
 ### 2026-06-06 (v0.3.9)
 
@@ -545,3 +552,7 @@ fmo-secondary/
 - [FmoDeck](https://github.com/wh0am1i/FmoDeck)：协议参考（串行队列 / RESPONSE_ALIASES / `qso/callsign` 事件）
 - [fmo-show](https://github.com/EthanYan6/fmo-show)：界面灵感
 - [bg5esn.com](https://bg5esn.com/categories/docs/)：固件接口文档
+
+
+
+</details>
