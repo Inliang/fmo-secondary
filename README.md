@@ -320,6 +320,21 @@ fmo-secondary/
 
 **修改文件**：style.css
 
+</details>
+</details>
+
+### 2026-06-19 (v0.3.28)
+
+四个象限面板及 SSTV 弹窗内 overflow 裁剪导致内容/下拉选择器被遮挡的修复
+
+**修复 — overflow 遮挡优化**
+- `.panel` overflow: hidden → visible（四个象限面板内容不再被边界裁剪）
+- `.sstv-body` overflow: hidden → visible（SSTV 内容区域不再被裁剪）
+- `.sstv-sidebar` overflow: hidden → visible（SSTV 侧栏下拉选择器不再被裁剪）
+- `.sstv-panel` overflow: hidden → visible（SSTV 弹窗整体不再被裁剪）
+
+**修改文件**：style.css
+
 ### 2026-06-19 (v0.3.27)
 
 参照设计参考站点（UI UX Pro Max / awesome-design-md / Dribbble / React Bits），以左下象限为基准统一全局字号层级
@@ -526,4 +541,3 @@ fmo-secondary/
 - [FmoDeck](https://github.com/wh0am1i/FmoDeck)：协议参考（串行队列 / RESPONSE_ALIASES / `qso/callsign` 事件）
 - [fmo-show](https://github.com/EthanYan6/fmo-show)：界面灵感
 - [bg5esn.com](https://bg5esn.com/categories/docs/)：固件接口文档
-</details>
