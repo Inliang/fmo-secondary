@@ -481,7 +481,7 @@ body::after {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  overflow-y: auto;
+  overflow: visible;
   min-height: 0;
   line-height: 1.5;
 }
