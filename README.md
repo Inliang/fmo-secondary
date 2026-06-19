@@ -325,13 +325,17 @@ fmo-secondary/
 
 ### 2026-06-19 (v0.3.28)
 
-四个象限面板及 SSTV 弹窗内 overflow 裁剪导致内容/下拉选择器被遮挡的修复
+四个象限面板 overflow 裁剪修复 + 服务器列表条目内容溢出截断
 
 **修复 — overflow 遮挡优化**
-- `.panel` overflow: hidden → visible（四个象限面板内容不再被边界裁剪）
-- `.sstv-body` overflow: hidden → visible（SSTV 内容区域不再被裁剪）
-- `.sstv-sidebar` overflow: hidden → visible（SSTV 侧栏下拉选择器不再被裁剪）
-- `.sstv-panel` overflow: hidden → visible（SSTV 弹窗整体不再被裁剪）
+- `.panel` overflow: hidden → visible（四个象限面板不再被边界裁剪）
+- `.panel-content` overflow-y: auto → visible（子列表自带滚动，面板层不重复裁剪）
+- `.sstv-body` / `.sstv-sidebar` / `.sstv-panel` overflow 统一为 visible（SSTV 下拉选择器不再被遮挡）
+
+**修复 — 服务器列表条目右侧溢出**
+- `.server-item-name` 新增 overflow:hidden / text-overflow:ellipsis / white-space:nowrap + flex:1 / min-width:0（长名称自动截断）
+- `.server-item-uid` / 右侧 count+latency+check 区域设 flex-shrink:0（防止被压缩）
+- `.server-item-uid` 11→14px、`.server-item-count` 12→14px、`.server-item-latency` 11→13px（与 v0.3.27 规格对齐，此前遗漏）
 
 **修改文件**：style.css
 
