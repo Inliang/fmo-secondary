@@ -300,13 +300,13 @@ body::after {
   animation: pulse 1s infinite;
   box-shadow: 0 0 8px var(--warn-glow);
 }
-.status-text { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+.status-text { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
 
 .status-separator { color: var(--border-default); font-size: 14px; }
-.status-server-label { font-size: 12px; color: var(--text-muted); }
+.status-server-label { font-size: 13px; color: var(--text-muted); }
 .status-server {
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--accent);
 }
@@ -320,12 +320,12 @@ body::after {
 }
 .status-grid {
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-secondary);
 }
 
-.status-time { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); }
-.status-ip { font-size: 12px; color: var(--text-muted); }
+.status-time { font-family: var(--font-mono); font-size: 13px; color: var(--text-muted); }
+.status-ip { font-size: 13px; color: var(--text-muted); }
 
 /* --- 按钮通用 --- */
 .mute-btn,
@@ -419,7 +419,7 @@ body::after {
 }
 
 .panel-title {
-  font-size: 12px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--text-muted);
@@ -543,13 +543,13 @@ body::after {
 }
 .panel-info .info-card-label {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   flex-shrink: 0;
 }
 .panel-info .info-card-value {
   font-family: var(--font-mono);
   font-weight: 600;
-  font-size: 15px;
+  font-size: 16px;
   color: var(--text-primary);
   text-align: right;
   word-break: break-all;
@@ -621,7 +621,7 @@ body::after {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 14px;
   font-family: var(--font-base);
   outline: none;
   transition: border-color var(--transition), box-shadow var(--transition);
@@ -671,13 +671,13 @@ body::after {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: 12px 14px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all var(--transition);
   border: 1px solid transparent;
   margin-bottom: 4px;
-  font-size: 13px;
+  font-size: 16px;
   background: transparent;
 }
 .server-item:hover {
@@ -713,7 +713,7 @@ body::after {
   color: var(--text-muted);
   text-align: center;
   padding: 32px 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* ============================================================
@@ -723,7 +723,7 @@ body::after {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px;
+  padding: 18px;
   min-height: 64px;
   flex-shrink: 0;
   border-radius: var(--radius-md);
@@ -772,7 +772,7 @@ body::after {
 /* 发言文字 */
 .speaking-text {
   flex: 1;
-  font-size: 16px;
+  font-size: 18px;
   color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -784,16 +784,16 @@ body::after {
   color: var(--warn);
   font-weight: 700;
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 19px;
 }
 .speaking-tag {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--accent-light);
   margin-left: 4px;
   font-weight: 600;
 }
 .speaking-meta {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
   margin-left: 4px;
 }
@@ -804,16 +804,16 @@ body::after {
   margin-right: 1px;
 }
 .speaking-meta.distance {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 .speaking-count {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-muted);
   margin-left: 3px;
 }
 .speaking-elapsed {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-muted);
   font-family: var(--font-mono);
   margin-left: 4px;
@@ -905,16 +905,16 @@ body::after {
   gap: 6px;
 }
 .recent-callsign-line strong {
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   color: var(--text-primary);
   font-weight: 700;
 }
 .recent-main > span {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--text-secondary);
 }
 .recent-count {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--text-muted);
   z-index: 1;
   flex-shrink: 0;
@@ -924,7 +924,7 @@ body::after {
 .recent-item.is-speaking .recent-main > span { color: var(--success); }
 .recent-item.is-speaking .recent-count { color: var(--success); }
 .self-tag {
-  font-size: 0.65em;
+  font-size: 0.7em;
   font-weight: 600;
   color: var(--accent-light);
   margin-left: 4px;
@@ -938,7 +938,7 @@ body::after {
   text-align: center;
   padding: 10px;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* ============================================================
@@ -954,10 +954,10 @@ body::after {
   grid-template-columns: 40px 2fr 1fr 1fr;
   gap: 12px;
   align-items: center;
-  padding: 10px 12px;
+  padding: 10px 14px;
   border-bottom: 1px solid transparent;
   border-image: linear-gradient(90deg, var(--border-subtle), transparent) 1;
-  font-size: 13px;
+  font-size: 14px;
   border-radius: var(--radius-sm);
   transition: background var(--transition), transform var(--transition-fast), border-color var(--transition);
   overflow: hidden;
@@ -976,15 +976,15 @@ body::after {
   background: var(--bg-card-active);
   animation: highlightFade 2s ease forwards;
 }
-.qso-logid { color: var(--text-muted); font-family: var(--font-mono); font-size: 11px; }
+.qso-logid { color: var(--text-muted); font-family: var(--font-mono); font-size: 13px; }
 .qso-callsign {
   font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.02em;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   color: var(--text-primary);
 }
 .qso-item:hover .qso-callsign { color: var(--accent-light); }
-.qso-grid { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.qso-time { font-size: 12px; color: var(--text-muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qso-grid { font-family: var(--font-mono); font-size: 13px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qso-time { font-size: 13px; color: var(--text-muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ============================================================
    Settings Panel — 设置弹窗
@@ -1182,7 +1182,7 @@ body::after {
 }
 .sstv-header h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary); }
 .sstv-header-right { display: flex; align-items: center; gap: 16px; }
-.sstv-status { font-size: 12px; color: var(--text-muted); }
+.sstv-status { font-size: 13px; color: var(--text-muted); }
 .sstv-status.active { color: var(--success); text-shadow: 0 0 6px var(--success-glow); }
 .sstv-close-btn {
   background: none; border: none;
@@ -1263,7 +1263,7 @@ body::after {
   padding: 14px;
   border-bottom: 1px solid var(--border-subtle);
 }
-.sstv-mode-selector h4 { margin: 0 0 10px 0; font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+.sstv-mode-selector h4 { margin: 0 0 10px 0; font-size: 13px; color: var(--text-secondary); font-weight: 600; }
 .sstv-mode-selector select {
   width: 100%;
   padding: 7px 10px;
@@ -1272,7 +1272,7 @@ body::after {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 13px;
   font-family: var(--font-base);
   outline: none;
   transition: border-color var(--transition);
@@ -1285,7 +1285,7 @@ body::after {
   color: var(--bg-deepest);
   border: none;
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   font-family: var(--font-base);
@@ -1293,7 +1293,7 @@ body::after {
 }
 .sstv-force-btn:hover { opacity: 0.88; box-shadow: 0 2px 8px var(--accent-glow); }
 .sstv-hint {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-muted);
   margin: 8px 0 0 0;
   line-height: 1.5;
@@ -1305,9 +1305,9 @@ body::after {
   display: flex;
   flex-direction: column;
 }
-.sstv-history h4 { margin: 0 0 10px 0; font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+.sstv-history h4 { margin: 0 0 10px 0; font-size: 13px; color: var(--text-secondary); font-weight: 600; }
 .sstv-history-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-.sstv-history-empty { color: var(--text-muted); font-size: 12px; text-align: center; padding: 24px 0; }
+.sstv-history-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 24px 0; }
 .sstv-history-item {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
@@ -1328,7 +1328,7 @@ body::after {
 }
 .sstv-history-item-meta {
   padding: 5px 10px;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-muted);
   display: flex;
   justify-content: space-between;

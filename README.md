@@ -320,6 +320,23 @@ fmo-secondary/
 
 **修改文件**：style.css
 
+### 2026-06-19 (v0.3.27)
+
+参照设计参考站点（UI UX Pro Max / awesome-design-md / Dribbble / React Bits），以左下象限为基准统一全局字号层级
+
+**优化 — 全局字号统一放大**
+- 服务器列表：名称 13→16px，uid 11→14px，count 12→14px，latency 11→13px，check 10→15px，padding 同步增大
+- 服务器搜索框：13→14px
+- QSO 列表：条目 13→14px，logid/grid/time 11-12→13px，padding 10px 12px→10px 14px
+- 状态栏：status-text / server-label / time / ip 等 12→13px，server 名称 13→14px
+- 面板：panel-title 12→13px，info-card-label 12→13px，info-card-value 15→16px
+- Speaking Bar：speaking-text 16→18px，strong 17→19px，tag/meta/count/elapsed 11-12→13px，distance 13→14px，padding 16→18px
+- 最近发言：callsign 1.05→1.1rem，main/count 0.9→0.95rem，self-tag 0.65→0.7em，recent-item padding 7px 12px→8px 14px
+- SSTV 弹窗：status/mode-h4/select/force-btn/hint/history-h4/history-empty 10-12→12-13px
+- 空态文字：server-list-empty 13→14px
+
+**修改文件**：style.css
+
 ### 2026-06-19 (v0.3.26)
 
 暗色主题墨绿色调切换 + 历史日志折叠 + 设计参考链接
