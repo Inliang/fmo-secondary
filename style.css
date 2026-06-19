@@ -705,6 +705,9 @@ body::after {
   border-color: var(--border-accent);
   box-shadow: 0 0 12px var(--accent-glow);
 }
+.server-item.slide-in {
+  animation: qsoSlideIn 0.3s ease-out;
+}
 .server-item-uid {
   font-family: var(--font-mono);
   font-size: 14px;
@@ -977,37 +980,41 @@ body::after {
   grid-template-columns: 40px 2fr 1fr 1fr;
   gap: 12px;
   align-items: center;
-  padding: 10px 14px;
-  border-bottom: 1px solid transparent;
-  border-image: linear-gradient(90deg, var(--border-subtle), transparent) 1;
-  font-size: 14px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  transition: background var(--transition), transform var(--transition-fast), border-color var(--transition);
-  overflow: hidden;
+  cursor: pointer;
+  transition: all var(--transition);
+  margin-bottom: 4px;
+  font-size: 16px;
+  background: transparent;
 }
 .qso-item.slide-in {
   animation: qsoSlideIn 0.3s ease-out;
 }
 .qso-item:hover {
-  background: linear-gradient(90deg, var(--bg-card-hover) 0%, rgba(0, 180, 216, 0.04) 100%);
+  background: linear-gradient(135deg, var(--bg-card-hover) 0%, rgba(0, 180, 216, 0.06) 100%);
   border-color: var(--border-default);
-  border-image: none;
-  transform: translateX(3px);
+  border-left: 3px solid var(--accent);
+  box-shadow: 2px 0 12px var(--accent-glow);
 }
-.qso-item:last-child { border-bottom: none; }
 .qso-item.new-highlight {
   background: var(--bg-card-active);
-  animation: highlightFade 2s ease forwards;
+  border-color: var(--border-accent);
+  box-shadow: 0 0 12px var(--accent-glow);
 }
-.qso-logid { color: var(--text-muted); font-family: var(--font-mono); font-size: 13px; }
+.qso-logid { font-family: var(--font-mono); font-size: 14px; color: var(--text-muted); min-width: 36px; flex-shrink: 0; text-align: right; margin-right: 10px; }
 .qso-callsign {
-  font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.02em;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: 600;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
-.qso-item:hover .qso-callsign { color: var(--accent-light); }
-.qso-grid { font-family: var(--font-mono); font-size: 13px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.qso-time { font-size: 13px; color: var(--text-muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qso-grid { font-family: var(--font-mono); font-size: 14px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qso-time { font-size: 13px; color: var(--text-muted); margin-left: 6px; font-family: var(--font-mono); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ============================================================
    Settings Panel — 设置弹窗
