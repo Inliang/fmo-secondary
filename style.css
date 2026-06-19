@@ -688,16 +688,19 @@ body::after {
   padding: 12px 14px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: background var(--transition-spring), border-color var(--transition-spring), box-shadow var(--transition-spring), transform var(--transition-spring);
   border: 1px solid transparent;
+  border-left: 3px solid transparent;
   margin-bottom: 4px;
   font-size: 16px;
   background: transparent;
+  will-change: transform;
+  transform: translateZ(0);
 }
 .server-item:hover {
   background: linear-gradient(135deg, var(--bg-card-hover) 0%, rgba(0, 180, 216, 0.06) 100%);
   border-color: var(--border-default);
-  border-left: 3px solid var(--accent);
+  border-left-color: var(--accent);
   box-shadow: 2px 0 12px var(--accent-glow);
 }
 .server-item.active {
@@ -706,7 +709,7 @@ body::after {
   box-shadow: 0 0 12px var(--accent-glow);
 }
 .server-item.slide-in {
-  animation: qsoSlideIn 0.3s ease-out;
+  animation: qsoSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 .server-item-uid {
   font-family: var(--font-mono);
@@ -982,20 +985,23 @@ body::after {
   align-items: center;
   padding: 12px 14px;
   border: 1px solid transparent;
+  border-left: 3px solid transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: background var(--transition-spring), border-color var(--transition-spring), box-shadow var(--transition-spring), transform var(--transition-spring);
   margin-bottom: 4px;
   font-size: 16px;
   background: transparent;
+  will-change: transform;
+  transform: translateZ(0);
 }
 .qso-item.slide-in {
-  animation: qsoSlideIn 0.3s ease-out;
+  animation: qsoSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 .qso-item:hover {
   background: linear-gradient(135deg, var(--bg-card-hover) 0%, rgba(0, 180, 216, 0.06) 100%);
   border-color: var(--border-default);
-  border-left: 3px solid var(--accent);
+  border-left-color: var(--accent);
   box-shadow: 2px 0 12px var(--accent-glow);
 }
 .qso-item.new-highlight {
