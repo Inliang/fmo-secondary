@@ -17,7 +17,7 @@ FMO 副屏伴侣 — 单 HTML 零依赖、四象限面板、三主题 Web 控制
 - **目标场景**：FMO 设备的副屏 / 第二显示器，用于实时监控 QSO 状态
 - **技术特点**：单 HTML 文件、零外部依赖、直接双击可用
 - **协议参考**：FW 接口文档参见 [bg5esn.com/docs](https://bg5esn.com/categories/docs/)
-- **设计参考**：[UI UX Pro Max](https://ui-ux-pro-max-skill.nextlevelbuilder.io/) — 设计智能数据库；[awesome-design-md](https://github.com/VoltAgent/awesome-design-md) — 品牌设计系统 DESIGN.md 集合
+- **设计参考**：[UI UX Pro Max](https://ui-ux-pro-max-skill.nextlevelbuilder.io/) — 设计智能数据库；[awesome-design-md](https://github.com/VoltAgent/awesome-design-md) — 品牌设计系统 DESIGN.md 集合；[Dribbble](https://dribbble.com/) — UI 灵感社区；[React Bits](https://reactbits.dev/) — Web 动效组件库
 
 ---
 
