@@ -135,6 +135,41 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-21 (v0.4.1)
+
+设计品质大幅提升 — 深度重做全局视觉
+
+**Speaking Bar**
+- 移除扁平 border，改用 box-shadow + 渐变背景深度
+- 呼号 36px bold + text-shadow，活跃时 accent 色光晕
+- 标签改为 pill 风格 (border-radius: 20px)
+- 脉冲动画 3s cubic-bezier
+- idle 态显示半透明占位文字
+
+**Info Row**
+- 移除 border，改用 shadow-card
+- status-dot 加大到 10px
+- 分隔线改渐变 accent 色
+- 所有标签改为 pill 风格
+
+**列表**
+- 抛弃 border-bottom，改为每行 rgba(255,255,255,0.015) 背景 + margin-bottom 2px
+- hover 时 translateX(2px) + accent 色左边框
+- 网格胶囊 hover 发光
+
+**全局**
+- body 背景加入径向渐变
+- 圆角统一 8px/12px
+- 新增 shadow-card/shadow-elevated 变量
+- overlay 加入 backdrop-filter: blur(8px)
+- 滚动条改为 3px accent 色细条
+- 全部缓动用 cubic-bezier(0.16,1,0.3,1)
+
+**修改文件**：style.css
+
+<details>
+<summary>历史版本</summary>
+
 ### 2026-06-20 (v0.4.0)
 
 推翻四象限布局，FMO-Dashboard 风格纵向信息流
