@@ -1581,14 +1581,17 @@ const App = {
       lines.push(`<QSO_DATE:8>${date}`);
       lines.push(`<TIME_ON:6>${time}`);
 
-      // BAND：根据频率推断
-      if (freqRaw) {
-        const f = parseFloat(freqRaw);
+      // BAND：根据频率推断，freq 缺失时默认 2m（FMO 为 VHF/UHF 设备）
+      const f = parseFloat(freqRaw);
+      let band;
+      if (freqRaw && !isNaN(f) && f > 0) {
         const mhz = f > 1000 ? f / 1e6 : f; // Hz → MHz
-        const band = this._freqToBand(mhz);
-        lines.push(`<BAND:${band.length}>${band}`);
+        band = this._freqToBand(mhz);
         lines.push(`<FREQ:${freqRaw.length}>${freqRaw}`);
+      } else {
+        band = '2m';
       }
+      lines.push(`<BAND:${band.length}>${band}`);
 
       if (grid) {
         lines.push(`<GRIDSQUARE:${grid.length}>${grid}`);
