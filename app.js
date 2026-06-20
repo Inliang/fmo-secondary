@@ -832,13 +832,25 @@ const App = {
       const timeStr = ts
         ? `${ts.getFullYear()}/${String(ts.getMonth()+1).padStart(2,'0')}/${String(ts.getDate()).padStart(2,'0')} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}`
         : '--';
+      const callsign = item.toCallsign ?? item.callsign ?? '--';
+      const grid = item.grid ?? item.locator ?? '';
       return `<div class="qso-item">
         <span class="qso-logid">#${item.logId ?? '--'}</span>
-        <span class="qso-callsign">${item.toCallsign ?? item.callsign ?? '--'}</span>
-        <span class="qso-grid">${item.grid ?? item.locator ?? '--'}</span>
+        <span class="qso-callsign">${callsign}</span>
+        ${grid ? '<a class="qso-grid" href="javascript:void(0)" title="复制呼号并打开地图 — ' + callsign + '" data-callsign="' + callsign + '">' + grid + '</a>' : ''}
         <span class="qso-time">${timeStr}</span>
       </div>`;
     }).join('');
+    container.querySelectorAll('.qso-grid').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        const callsign = el.dataset.callsign;
+        navigator.clipboard.writeText(callsign).then(() => {
+          console.log('Copied callsign:', callsign);
+          window.open('https://map.fmo.net.cn/', '_blank');
+        }).catch(() => {});
+      });
+    });
   },
 
   addQsoItem(qso) {

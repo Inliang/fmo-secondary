@@ -135,6 +135,20 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-20 (v0.3.38)
+
+QSO 面板梅登海德网格标签
+
+**新增**
+- `.qso-grid` 样式：完全复制 `.recent-grid` 的等宽字体、accent 色胶囊、hover 发光、active 缩放、focus-visible 轮廓
+- `.qso-item.new-highlight .qso-grid`：新通联高亮时网格标签加强发光
+- QSO 条目点击网格标签：复制呼号到剪贴板 + 打开 map.fmo.net.cn
+
+**修改**
+- QSO 列表渲染：`.qso-grid` 从 `<span>` 改为 `<a>`，网格为空时隐藏标签
+
+**修改文件**：style.css, app.js
+
 ### 2026-06-20 (v0.3.37)
 
 梅登海德网格点击改为复制呼号并打开地图

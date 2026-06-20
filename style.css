@@ -1103,7 +1103,39 @@ body::after {
   flex: 1;
   min-width: 0;
 }
-.qso-grid { font-family: var(--font-mono); font-size: 14px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qso-grid {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent-light);
+  text-decoration: none;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  transition: all var(--transition);
+  z-index: 1;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qso-grid:hover {
+  color: var(--accent);
+  border-color: var(--border-accent);
+  background: var(--bg-card-active);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+.qso-grid:active {
+  transform: scale(0.95);
+}
+.qso-grid:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 0;
+}
+.qso-item.new-highlight .qso-grid {
+  color: var(--accent);
+  border-color: var(--border-accent);
+  box-shadow: 0 0 6px var(--accent-glow);
+}
 .qso-time { font-size: 13px; color: var(--text-muted); font-family: var(--font-mono); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ============================================================
