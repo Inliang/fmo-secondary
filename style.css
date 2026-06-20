@@ -32,6 +32,8 @@
   /* --- 语义色 --- */
   --success: #00e676;
   --success-glow: rgba(0, 230, 118, 0.25);
+  --speaking-indicator: #00e676;
+  --speaking-indicator-glow: rgba(0, 230, 118, 0.25);
   --warn: #ffb703;
   --warn-glow: rgba(255, 183, 3, 0.2);
   --danger: #ef476f;
@@ -415,7 +417,7 @@ body::after {
 .panel:nth-child(4) { animation-delay: 0.30s; }
 .panel:hover {
   border-color: var(--border-accent);
-  box-shadow: var(--shadow-md), 0 0 20px var(--accent-glow), inset 0 0 0 1px rgba(0, 180, 216, 0.12);
+  box-shadow: var(--shadow-md), 0 0 20px var(--accent-glow), inset 0 0 0 1px rgba(0, 214, 143, 0.10);
 }
 
 .panel-title {
@@ -473,6 +475,13 @@ body::after {
   border-color: var(--border-accent);
   background: var(--bg-card-active);
 }
+.export-btn:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 0;
+}
+.export-btn:active {
+  transform: scale(0.95);
+}
 .panel-content {
   flex: 1;
   display: flex;
@@ -521,7 +530,7 @@ body::after {
 }
 .panel-info .info-card:hover {
   border-color: var(--border-accent);
-  box-shadow: 0 0 14px rgba(0, 180, 216, 0.08);
+  box-shadow: 0 0 14px rgba(0, 214, 143, 0.10);
 }
 .panel-info .info-card-row {
   display: flex;
@@ -624,9 +633,10 @@ body::after {
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 .server-search::placeholder { color: var(--text-muted); opacity: 0.7; }
-.server-search:focus {
+.server-search:focus,
+.server-search:focus-visible {
   border-color: var(--border-accent);
-  box-shadow: 0 0 0 2px rgba(0, 180, 216, 0.08), 0 0 16px rgba(0, 180, 216, 0.12);
+  box-shadow: 0 0 0 2px rgba(0, 214, 143, 0.10), 0 0 16px rgba(0, 214, 143, 0.10);
 }
 .server-search-clear {
   position: absolute;
@@ -702,7 +712,7 @@ body::after {
   transform: translateZ(0);
 }
 .server-item:hover {
-  background: linear-gradient(135deg, var(--bg-card-hover) 0%, rgba(0, 180, 216, 0.06) 100%);
+  background: linear-gradient(135deg, var(--bg-card-hover) 0%, rgba(0, 214, 143, 0.05) 100%);
   border-color: var(--border-default);
   border-left-color: var(--accent);
   box-shadow: 2px 0 12px var(--accent-glow);
@@ -711,6 +721,13 @@ body::after {
   background: var(--bg-card-active);
   border-color: var(--border-accent);
   box-shadow: 0 0 12px var(--accent-glow);
+}
+.server-item:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: -2px;
+}
+.server-item:active {
+  transform: scale(0.985);
 }
 .server-item.slide-in {
   animation: qsoSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
@@ -722,7 +739,6 @@ body::after {
   min-width: 36px;
   flex-shrink: 0;
   text-align: right;
-  margin-right: 10px;
 }
 .server-item-name {
   font-weight: 600;
@@ -737,13 +753,18 @@ body::after {
 .server-item-latency {
   font-size: 13px;
   color: var(--text-muted);
-  margin-left: 6px;
   font-family: var(--font-mono);
 }
-.server-item-check { color: var(--accent); font-weight: 700; margin-left: 10px; }
+.server-item-check { color: var(--accent); font-weight: 700; }
 .server-item > span:last-child { flex-shrink: 0; white-space: nowrap; }
 .server-list-empty {
-  color: var(--text-muted);
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 32px 0;
+  font-size: 14px;
+}
+.qso-list-empty {
+  color: var(--text-secondary);
   text-align: center;
   padding: 32px 0;
   font-size: 14px;
@@ -775,8 +796,8 @@ body::after {
 /* speaking 状态 — 强调色光晕 + 呼吸感 */
 .speaking-bar:has(.speaking-indicator.speaking) {
   border-color: var(--border-accent);
-  box-shadow: 0 0 24px var(--accent-glow), inset 0 0 40px rgba(0, 180, 216, 0.04);
-  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(0, 180, 216, 0.04) 100%);
+  box-shadow: 0 0 24px var(--accent-glow), inset 0 0 40px rgba(0, 214, 143, 0.04);
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(0, 214, 143, 0.04) 100%);
   transform: scale(1.003);
 }
 
@@ -789,8 +810,8 @@ body::after {
   transition: all var(--transition-spring);
 }
 .speaking-indicator.speaking {
-  background: var(--success);
-  box-shadow: 0 0 10px var(--success-glow);
+  background: var(--speaking-indicator);
+  box-shadow: 0 0 10px var(--speaking-indicator-glow);
   animation: speak-pulse 1.5s infinite, ripple-speaking 2s infinite;
 }
 .speaking-indicator.idle {
@@ -905,6 +926,13 @@ body::after {
   border-color: var(--border-subtle);
   transform: translateY(-1px);
 }
+.recent-item:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: -2px;
+}
+.recent-item:active {
+  transform: scale(0.98);
+}
 .recent-item.is-speaking {
   background: var(--bg-card-active);
   border-color: var(--border-accent);
@@ -945,16 +973,16 @@ body::after {
   gap: 6px;
 }
 .recent-callsign-line strong {
-  font-size: 1.1rem;
+  font-size: 16px;
   color: var(--text-primary);
   font-weight: 700;
 }
 .recent-main > span {
-  font-size: 0.95rem;
+  font-size: 14px;
   color: var(--text-secondary);
 }
 .recent-count {
-  font-size: 0.95rem;
+  font-size: 14px;
   color: var(--text-muted);
   z-index: 1;
   flex-shrink: 0;
@@ -964,7 +992,7 @@ body::after {
 .recent-item.is-speaking .recent-main > span { color: var(--success); }
 .recent-item.is-speaking .recent-count { color: var(--success); }
 .self-tag {
-  font-size: 0.7em;
+  font-size: 11px;
   font-weight: 600;
   color: var(--accent-light);
   margin-left: 4px;
@@ -1017,7 +1045,7 @@ body::after {
   animation: qsoSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 .qso-item:hover {
-  background: linear-gradient(135deg, var(--bg-card-hover) 0%, rgba(0, 180, 216, 0.06) 100%);
+  background: linear-gradient(135deg, var(--bg-card-hover) 0%, rgba(0, 214, 143, 0.05) 100%);
   border-color: var(--border-default);
   border-left-color: var(--accent);
   box-shadow: 2px 0 12px var(--accent-glow);
@@ -1027,7 +1055,14 @@ body::after {
   border-color: var(--border-accent);
   box-shadow: 0 0 12px var(--accent-glow);
 }
-.qso-logid { font-family: var(--font-mono); font-size: 14px; color: var(--text-muted); min-width: 36px; flex-shrink: 0; text-align: right; margin-right: 10px; }
+.qso-item:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: -2px;
+}
+.qso-item:active {
+  transform: scale(0.985);
+}
+.qso-logid { font-family: var(--font-mono); font-size: 14px; color: var(--text-muted); min-width: 36px; flex-shrink: 0; text-align: right; }
 .qso-callsign {
   font-weight: 600;
   color: var(--text-primary);
@@ -1038,7 +1073,7 @@ body::after {
   min-width: 0;
 }
 .qso-grid { font-family: var(--font-mono); font-size: 14px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.qso-time { font-size: 13px; color: var(--text-muted); margin-left: 6px; font-family: var(--font-mono); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qso-time { font-size: 13px; color: var(--text-muted); font-family: var(--font-mono); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ============================================================
    Settings Panel — 设置弹窗
@@ -1097,7 +1132,7 @@ body::after {
 .settings-field input:focus,
 .settings-field select:focus {
   border-color: var(--border-accent);
-  box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 214, 143, 0.08);
 }
 .settings-actions { display: flex; gap: 10px; margin-top: 22px; justify-content: flex-end; }
 .btn {
@@ -1113,6 +1148,7 @@ body::after {
   font-family: var(--font-base);
 }
 .btn:hover { border-color: var(--border-emphasis); background: var(--bg-card-hover); }
+.btn:focus-visible { outline: 2px solid var(--accent-ring); outline-offset: 0; }
 .btn-primary {
   background: var(--accent);
   color: var(--bg-deepest);
@@ -1292,7 +1328,7 @@ body::after {
 .signal-segment.sync { flex: 1.5; }
 .signal-segment.lead.active { background: rgba(6, 214, 160, 0.45); }
 .signal-segment.sync.active { background: rgba(255, 183, 3, 0.45); }
-.signal-segment.img.active { background: rgba(0, 180, 216, 0.45); }
+.signal-segment.img.active { background: rgba(0, 214, 143, 0.45); }
 .sstv-mode-badge {
   font-size: 13px;
   font-weight: 700;
@@ -1432,7 +1468,7 @@ body::after {
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0, 180, 216, 0.35); }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 214, 143, 0.3); }
 
 /* ============================================================
    Responsive
@@ -1461,9 +1497,24 @@ body::after {
   .info-card-value { font-size: 13px; }
   .info-card-label { font-size: 10px; }
 
-  .recent-callsign-line strong { font-size: 0.85rem; }
-  .recent-main > span { font-size: 0.8rem; }
-  .recent-count { font-size: 0.8rem; }
-  .recent-speakers:empty::after { font-size: 0.8rem; }
+  .recent-callsign-line strong { font-size: 14px; }
+  .recent-main > span { font-size: 13px; }
+  .recent-count { font-size: 13px; }
+  .recent-speakers:empty::after { font-size: 13px; }
   .recent-index-bg { font-size: 36px; }
+  .qso-item { font-size: 14px; padding: 10px; }
+  .server-item { font-size: 14px; padding: 10px; }
+  .panel-title { font-size: 11px; }
+  .export-btn { font-size: 10px; padding: 3px 8px; }
+}
+
+/* ============================================================
+   Reduced Motion
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

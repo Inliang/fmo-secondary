@@ -135,6 +135,44 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-20 (v0.3.30)
+
+深度 UI/UX 审查 — 颜色一致性修复、字号层级统一、间距对齐、交互状态补全、无障碍优化
+
+**修复 — 颜色一致性**
+- 清除全部 `rgba(0, 180, 216, ...)` 青蓝色残留，统一替换为墨绿色系 `rgba(0, 214, 143, ...)`
+- 涉及选择器：.panel:hover / .info-card:hover / .server-search:focus / .server-item:hover / .qso-item:hover / .speaking-bar speaking 态 / scrollbar-thumb:hover / .settings-field:focus / SSTV signal-segment
+
+**优化 — 字号层级统一**
+- recent-speakers 全部 rem 单位转 px：callsign strong 16px / main span 14px / count 14px / self-tag 11px
+- 响应式 768px 内对应 rem 同步转换
+
+**修复 — 间距与对齐**
+- Grid 布局内冗余 margin 清理：.server-item-uid / .server-item-check / .qso-logid / .qso-time / .server-item-latency 删除多余 margin-right/margin-left
+
+**新增 — 交互状态补全**
+- .server-item / .qso-item / .recent-item / .export-btn / .btn 增加 `:focus-visible` outline 样式（键盘导航可感知）
+- .server-item / .qso-item / .recent-item / .export-btn 增加 `:active` 按压缩放反馈
+
+**优化 — 空状态**
+- 服务器列表空状态颜色提亮至 `--text-secondary`
+- QSO 通联列表空状态从内联 style 迁移至 `.qso-list-empty` 样式类，与 server-list-empty 保持一致
+
+**新增 — 无障碍**
+- `prefers-reduced-motion: reduce` 媒体查询，关闭全部动效
+
+**优化 — 响应式**
+- 768px 断点追加 .qso-item / .server-item / .panel-title / .export-btn 字号与间距适配
+
+**重构 — 色值语义**
+- 新增 `--speaking-indicator` / `--speaking-indicator-glow` CSS 变量
+- .speaking-indicator.speaking 改用语义变量替代原 `var(--success)` 引用
+
+**修改文件**：style.css, index.html
+
+<details>
+<summary>历史版本</summary>
+
 ### 2026-06-20 (v0.3.29)
 
 QSO 日志导出标准 ADIF 格式 + QRZ.com 兼容修复
@@ -157,9 +195,6 @@ QSO 日志导出标准 ADIF 格式 + QRZ.com 兼容修复
 - Git 推送偶发 SSL 失败时重试
 
 **修改文件**：app.js, style.css, index.html
-
-<details>
-<summary>历史版本</summary>
 
 ### 2026-06-19 (v0.3.28)
 
