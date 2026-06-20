@@ -1501,40 +1501,105 @@ const App = {
     }
   },
 
+  // 解析 timestamp：兼容 Unix 秒、Unix 毫秒、ISO 字符串
+  _parseTimestamp(raw) {
+    if (raw == null || raw === '') return null;
+    // 字符串 → 直接构造 Date（ISO 格式）
+    if (typeof raw === 'string') {
+      const d = new Date(raw);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    // 数字 → 试探秒/毫秒
+    if (typeof raw === 'number') {
+      // < 1e10 大概率是 Unix 秒（2286 年以内）
+      if (raw < 10000000000) {
+        const d = new Date(raw * 1000);
+        if (!isNaN(d.getTime())) return d;
+      }
+      // 尝试毫秒
+      const d = new Date(raw);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    return null;
+  },
+
+  // 根据频率（MHz）推断业余波段
+  _freqToBand(mhz) {
+    if (typeof mhz !== 'number' || isNaN(mhz) || mhz <= 0) return '2m';
+    if (mhz >= 0.1357 && mhz <= 0.1378) return '2190m';
+    if (mhz >= 0.472 && mhz <= 0.479) return '630m';
+    if (mhz >= 0.501 && mhz <= 0.504) return '560m';
+    if (mhz >= 1.8 && mhz <= 2.0) return '160m';
+    if (mhz >= 3.5 && mhz <= 4.0) return '80m';
+    if (mhz >= 5.102 && mhz <= 5.4065) return '60m';
+    if (mhz >= 7.0 && mhz <= 7.3) return '40m';
+    if (mhz >= 10.1 && mhz <= 10.15) return '30m';
+    if (mhz >= 14.0 && mhz <= 14.35) return '20m';
+    if (mhz >= 18.068 && mhz <= 18.168) return '17m';
+    if (mhz >= 21.0 && mhz <= 21.45) return '15m';
+    if (mhz >= 24.89 && mhz <= 24.99) return '12m';
+    if (mhz >= 28.0 && mhz <= 29.7) return '10m';
+    if (mhz >= 50 && mhz <= 54) return '6m';
+    if (mhz >= 144 && mhz <= 148) return '2m';
+    if (mhz >= 219 && mhz <= 225) return '1.25m';
+    if (mhz >= 420 && mhz <= 450) return '70cm';
+    if (mhz >= 902 && mhz <= 928) return '33cm';
+    if (mhz >= 1240 && mhz <= 1300) return '23cm';
+    if (mhz >= 2300 && mhz <= 2450) return '13cm';
+    if (mhz >= 3300 && mhz <= 3500) return '9cm';
+    if (mhz >= 5650 && mhz <= 5925) return '6cm';
+    if (mhz >= 10000 && mhz <= 10500) return '3cm';
+    return '2m';
+  },
+
   exportQso() {
     if (!this.qsoList.length) {
       alert('暂无通联记录可导出');
       return;
     }
     const pad = (n, len) => String(n).padStart(len, '0');
-    const lines = ['ADIF Export from fmo-secondary', '<EOH>'];
+    const lines = [
+      '<ADIF_VER:5>3.1.4',
+      '<PROGRAMID:14>fmo-secondary',
+      '<EOH>'
+    ];
     for (const item of this.qsoList) {
       const toCallsign = (item.toCallsign ?? item.callsign ?? '').trim();
       const grid = (item.grid ?? item.locator ?? '').trim();
-      const ts = item.timestamp ? new Date(item.timestamp * 1000) : null;
-      const frequency = (item.frequency ?? item.freq ?? '').toString().trim();
+      const ts = this._parseTimestamp(item.timestamp);
+      const freqRaw = (item.frequency ?? item.freq ?? '').toString().trim();
       const mode = (item.mode ?? 'FM').toString().trim().toUpperCase() || 'FM';
       const memo = (item.memo ?? item.message ?? '').trim();
       const logId = (item.logId ?? '').toString().trim();
 
-      if (toCallsign) {
-        lines.push(`<CALL:${toCallsign.length}>${toCallsign}`);
+      if (!toCallsign || !ts) continue; // 跳过缺关键字段的记录
+
+      // QSO_DATE / TIME_ON（ADIF 强制要求，使用 UTC）
+      const date = `${ts.getUTCFullYear()}${pad(ts.getUTCMonth()+1,2)}${pad(ts.getUTCDate(),2)}`;
+      const time = `${pad(ts.getUTCHours(),2)}${pad(ts.getUTCMinutes(),2)}${pad(ts.getUTCSeconds(),2)}`;
+      lines.push(`<CALL:${toCallsign.length}>${toCallsign}`);
+      lines.push(`<QSO_DATE:8>${date}`);
+      lines.push(`<TIME_ON:6>${time}`);
+
+      // BAND：根据频率推断
+      if (freqRaw) {
+        const f = parseFloat(freqRaw);
+        const mhz = f > 1000 ? f / 1e6 : f; // Hz → MHz
+        const band = this._freqToBand(mhz);
+        lines.push(`<BAND:${band.length}>${band}`);
+        lines.push(`<FREQ:${freqRaw.length}>${freqRaw}`);
       }
-      if (ts) {
-        const date = `${ts.getUTCFullYear()}${pad(ts.getUTCMonth()+1,2)}${pad(ts.getUTCDate(),2)}`;
-        const time = `${pad(ts.getUTCHours(),2)}${pad(ts.getUTCMinutes(),2)}${pad(ts.getUTCSeconds(),2)}`;
-        lines.push(`<QSO_DATE:8>${date}`);
-        lines.push(`<TIME_ON:6>${time}`);
-      }
+
       if (grid) {
         lines.push(`<GRIDSQUARE:${grid.length}>${grid}`);
       }
       lines.push(`<MODE:${mode.length}>${mode}`);
-      if (frequency) {
-        lines.push(`<FREQ:${frequency.length}>${frequency}`);
-      }
       lines.push('<RST_SENT:2>59');
       lines.push('<RST_RCVD:2>59');
+      if (this.myCallsign) {
+        lines.push(`<OPERATOR:${this.myCallsign.length}>${this.myCallsign}`);
+        lines.push(`<STATION_CALLSIGN:${this.myCallsign.length}>${this.myCallsign}`);
+      }
       if (logId) {
         const comment = `Server:${this.currentServerName || ''} LogID:${logId}` + (memo ? ` Memo:${memo}` : '');
         lines.push(`<COMMENT:${comment.length}>${comment}`);
