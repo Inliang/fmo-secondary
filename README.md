@@ -135,6 +135,25 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-20 (v0.3.29)
+
+QSO 日志导出标准 ADIF 格式 + QRZ.com 兼容修复
+
+**功能 — QSO 导出 ADIF (.adi) 格式**
+- 导出格式从 JSON `.db` 替换为标准 ADIF v3.1.4 `.adi` 文件，兼容 qrz.com 直接导入
+- 字段映射：CALL / QSO_DATE / TIME_ON / GRIDSQUARE / MODE / BAND / FREQ / RST_SENT / RST_RCVD / OPERATOR / COMMENT
+- 新增 `_parseTimestamp()` 方法：兼容 Unix 秒、Unix 毫秒、ISO 字符串三种时间戳格式
+- 新增 `_freqToBand()` 方法：自动频率→波段映射（2200m ~ 3cm 全业余波段覆盖）
+- ADIF 头部标准化：`ADIF_VER` + `PROGRAMID` + `EOH`
+
+**优化 — 四象限样式与动画统一**
+- 右下 QSO 列表静态样式完全对齐右上服务器列表（字号 16px / grid 布局 / hover 渐变光晕）
+- 右上服务器列表获 QSO slide-in 入场动画
+- 两象限动画 GPU 加速：`will-change: transform` + `translateZ(0)` + spring 缓动曲线
+- 三象限滚动条统一为墨绿极简细条（6px），默认透明，hover 浮现
+
+**修改文件**：app.js, style.css
+
 ### 2026-06-19 (v0.3.28)
 
 四个象限面板 overflow 裁剪修复 + 服务器列表条目内容溢出截断
