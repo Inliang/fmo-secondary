@@ -135,6 +135,20 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-20 (v0.3.36)
+
+修复网格坐标链接无法跳转到 map.fmo.net.cn 对应位置
+
+**修复**
+- 新增 `gridToMapHref(grid)` 方法：将 Maidenhead Grid（如 OL63ma）转换为 MapLibre GL 标准 hash 格式 `https://map.fmo.net.cn/#4.6/<lat>/<lng>`
+- `.recent-grid` 链接改用新方法：`?grid=<grid>` 参数格式替换为 `#4.6/<lat>/<lng>` hash 定位
+- 坐标计算复用已有 `_gridToLatLon`，精度保留 4 位小数
+
+**修改文件**：app.js
+
+<details>
+<summary>历史版本</summary>
+
 ### 2026-06-20 (v0.3.35)
 
 梅登海德网格链接回退为 map.fmo.net.cn，使用 FMO 后台返回的 grid 字段
