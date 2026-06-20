@@ -152,7 +152,14 @@ QSO 日志导出标准 ADIF 格式 + QRZ.com 兼容修复
 - 两象限动画 GPU 加速：`will-change: transform` + `translateZ(0)` + spring 缓动曲线
 - 三象限滚动条统一为墨绿极简细条（6px），默认透明，hover 浮现
 
-**修改文件**：app.js, style.css
+- ADIF 字段长度修复：所有字符串字段改用 `TextEncoder` 计算 UTF-8 字节数，解决中文 COMMENT 长度错位导致 QRZ 解析失败
+- QSO 面板标题栏对齐服务器列表样式：左侧 accent 竖线 + 导出按钮文字改"ADI"
+- Git 推送偶发 SSL 失败时重试
+
+**修改文件**：app.js, style.css, index.html
+
+<details>
+<summary>历史版本</summary>
 
 ### 2026-06-19 (v0.3.28)
 
@@ -172,9 +179,6 @@ QSO 日志导出标准 ADIF 格式 + QRZ.com 兼容修复
 
 
 
-
-<details>
-<summary>历史版本</summary>
 
 ### 2026-06-19 (v0.3.27)
 
