@@ -135,6 +135,19 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-20 (v0.3.39)
+
+网格标签视觉精修：边框更精致、文字完美居中
+
+**修改**
+- `.recent-grid` / `.qso-grid` 同步精修：`display: inline-flex` + `align-items: center` + `justify-content: center` 垂直水平居中
+- 固定尺寸 `height: 24px; min-width: 64px;`，字体 `font-size: 12px; font-weight: 600; letter-spacing: 0.04em`
+- 边框升级为 `var(--border-emphasis)`，新增内部发光 `box-shadow: inset 0 0 8px rgba(0, 214, 143, 0.06)`
+- hover 外发光 `0 0 12px` + 内发光 `inset 0 0 8px rgba(0, 214, 143, 0.10)`
+- `.qso-item.new-highlight .qso-grid` box-shadow 同步升级
+
+**修改文件**：style.css
+
 ### 2026-06-20 (v0.3.38)
 
 QSO 面板梅登海德网格标签

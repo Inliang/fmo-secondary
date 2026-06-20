@@ -990,13 +990,21 @@ body::after {
   font-family: var(--font-mono);
 }
 .recent-grid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  min-width: 64px;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   color: var(--accent-light);
   text-decoration: none;
-  padding: 2px 8px;
+  padding: 0 8px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-emphasis);
+  box-shadow: inset 0 0 8px rgba(0, 214, 143, 0.06);
   transition: all var(--transition);
   z-index: 1;
   flex-shrink: 0;
@@ -1006,7 +1014,7 @@ body::after {
   color: var(--accent);
   border-color: var(--border-accent);
   background: var(--bg-card-active);
-  box-shadow: 0 0 8px var(--accent-glow);
+  box-shadow: 0 0 12px var(--accent-glow), inset 0 0 8px rgba(0, 214, 143, 0.10);
 }
 .recent-grid:active {
   transform: scale(0.95);
@@ -1104,13 +1112,21 @@ body::after {
   min-width: 0;
 }
 .qso-grid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  min-width: 64px;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   color: var(--accent-light);
   text-decoration: none;
-  padding: 2px 8px;
+  padding: 0 8px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-emphasis);
+  box-shadow: inset 0 0 8px rgba(0, 214, 143, 0.06);
   transition: all var(--transition);
   z-index: 1;
   flex-shrink: 0;
@@ -1122,7 +1138,7 @@ body::after {
   color: var(--accent);
   border-color: var(--border-accent);
   background: var(--bg-card-active);
-  box-shadow: 0 0 8px var(--accent-glow);
+  box-shadow: 0 0 12px var(--accent-glow), inset 0 0 8px rgba(0, 214, 143, 0.10);
 }
 .qso-grid:active {
   transform: scale(0.95);
@@ -1134,7 +1150,7 @@ body::after {
 .qso-item.new-highlight .qso-grid {
   color: var(--accent);
   border-color: var(--border-accent);
-  box-shadow: 0 0 6px var(--accent-glow);
+  box-shadow: 0 0 12px var(--accent-glow), inset 0 0 8px rgba(0, 214, 143, 0.10);
 }
 .qso-time { font-size: 13px; color: var(--text-muted); font-family: var(--font-mono); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
