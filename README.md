@@ -1,6 +1,6 @@
 # fmo-secondary
 
-FMO 副屏伴侣 — 单 HTML 零依赖、四象限面板、三主题 Web 控制面板。
+FMO 副屏伴侣 — 单 HTML 零依赖、纵向信息流仪表盘、三主题 Web 控制面板。
 
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
@@ -24,15 +24,15 @@ FMO 副屏伴侣 — 单 HTML 零依赖、四象限面板、三主题 Web 控制
 ## 架构概览
 
 ```
-+----------------+----------------+
-|  左上           |  右上           |
-|  设备信息       |  服务器列表      |
-|  (info-hero)   |  (station)     |
-+----------------+----------------+
-|  左下           |  右下           |
-|  Speaking Bar  |  QSO 列表       |
-|  + 最近发言     |  + 迷你频谱     |
-+----------------+----------------+
++------------------------------------+
+|  Speaking Bar (全宽, 当前发言者)    |
++------------------------------------+
+|  Device Info  |  Server Info       |
++------------------------------------+
+|  Recent Speakers (最多10条)         |
++------------------------------------+
+|  QSO 通联列表 (最多15条, 带网格)    |
++------------------------------------+
 ```
 
 ### 三路 WebSocket
@@ -135,6 +135,22 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-20 (v0.4.0)
+
+推翻四象限布局，FMO-Dashboard 风格纵向信息流
+
+**新增**
+- Speaking Bar 全宽通联条：大号呼号 + 网格/QTH/方位/距离/通联次数，活跃时绿色微光脉冲动画（@keyframes speakingPulse）
+- accent 竖线分隔的二行信息条：左设备信息、右服务器信息，各 50% 宽度
+- 最近发言列表 / QSO 通联列表：accent 竖线指示 + 梅登海德网格胶囊 + 时间 + 通联次数，最多 10/15 条
+
+**修改**
+- 彻底移除四象限 grid 布局，改为纵向 flex 流
+- 重新设计 DOM 结构：Speaking Bar → 信息条 → 最近发言 → QSO 通联从上到下排列
+- 适配新 DOM 选择器，保留 WebSocket 数据绑定和网格标签点击行为
+
+**修改文件**：style.css, index.html, app.js
+
 ### 2026-06-20 (v0.3.39)
 
 网格标签视觉精修：边框更精致、文字完美居中
@@ -147,6 +163,9 @@ fmo-secondary/
 - `.qso-item.new-highlight .qso-grid` box-shadow 同步升级
 
 **修改文件**：style.css
+
+<details>
+<summary>历史版本</summary>
 
 ### 2026-06-20 (v0.3.38)
 
@@ -172,9 +191,6 @@ QSO 面板梅登海德网格标签
 - 新增 `console.log` 输出复制的呼号，方便调试
 
 **修改文件**：app.js
-
-<details>
-<summary>历史版本</summary>
 
 ### 2026-06-20 (v0.3.36)
 
