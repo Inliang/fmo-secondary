@@ -1,189 +1,131 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FMO 副屏伴侣</title>
+  <title>FMO Secondary Dashboard</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app-shell">
 
-    <!-- ===== 状态条 ===== -->
-    <div class="status-bar">
-      <div class="status-bar-left">
-        <span class="status-dot" id="status-dot"></span>
-        <span class="status-text" id="status-text">未连接</span>
-        <span class="status-separator">|</span>
-        <span class="status-server-label">服务器</span>
-        <span class="status-server" id="status-server">--</span>
+  <!-- ===== 顶部通联条 (Speaking Bar) ===== -->
+  <div id="speaking-bar" class="speaking-bar idle">
+    <div class="speaking-bar-inner">
+      <span id="sb-callsign" class="sb-callsign">--</span>
+      <div class="sb-tags">
+        <span id="sb-grid" class="sb-grid-tag"></span>
+        <span id="sb-direction" class="sb-dir"></span>
+        <span id="sb-distance" class="sb-dist"></span>
+        <span id="sb-qth" class="sb-qth"></span>
       </div>
-      <div class="status-bar-center">
-        <span class="status-callsign" id="status-callsign">--</span>
-        <span class="status-grid" id="status-grid">--</span>
+      <div class="sb-meta">
+        <span id="sb-server" class="sb-server-name"></span>
+        <span id="sb-contact-count" class="sb-contact-count"></span>
+        <span id="sb-elapsed" class="sb-elapsed"></span>
       </div>
-      <div class="status-bar-right">
-        <span class="status-ip" id="status-ip">--</span>
-        <span class="status-time" id="status-time">--</span>
-        <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="80" title="音量">
-        <button class="mute-btn" id="mute-btn" title="静音切换">&#x1F50A;</button>
-        <div class="feature-dropdown" id="feature-dropdown">
-          <button class="feature-btn" id="feature-btn" title="功能">功能 &#x25BE;</button>
-          <div class="feature-menu" id="feature-menu">
-            <button class="feature-menu-item" id="menu-sstv">SSTV 解码</button>
-          </div>
-        </div>
-        <button class="theme-toggle" id="theme-toggle">暗色</button>
-        <button class="settings-btn" id="settings-btn" title="设置">&#x2699;</button>
-      </div>
+      <div id="sb-placeholder" class="sb-placeholder">等待通联...</div>
     </div>
-
-    <!-- ===== 四象限面板 ===== -->
-    <div class="dashboard">
-
-      <!-- 左上：设备信息 -->
-      <div class="panel">
-        <div class="panel-title">设备信息</div>
-        <div class="panel-content panel-info">
-          <div class="info-hero" id="info-callsign">--</div>
-          <div class="info-card">
-            <div class="info-card-row info-card-grid">
-              <span class="info-card-label">网格</span>
-              <span class="info-card-value" id="info-grid">--</span>
-            </div>
-            <div class="info-card-divider"></div>
-            <div class="info-card-row">
-              <span class="info-card-label">设备</span>
-              <span class="info-card-value" id="info-device">--</span>
-            </div>
-            <div class="info-card-row">
-              <span class="info-card-label">天线</span>
-              <span class="info-card-value" id="info-antenna">--</span>
-            </div>
-            <div class="info-card-row">
-              <span class="info-card-label">通联</span>
-              <span class="info-card-value" id="info-qso-count">--</span>
-            </div>
-            <div class="info-card-row">
-              <span class="info-card-label">坐标</span>
-              <span class="info-card-value" id="info-coord">--</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 右上：服务器列表 -->
-      <div class="panel">
-        <div class="panel-title">服务器列表</div>
-        <div class="panel-content">
-          <div class="server-search-wrapper">
-            <input type="text" class="server-search" id="server-search" placeholder="搜索服务器...">
-            <button class="server-search-clear" id="server-search-clear" title="清除搜索">&times;</button>
-          </div>
-          <div class="server-list" id="server-list-container">
-            <div class="server-list-empty">加载中...</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 左下：Speaking Bar -->
-      <div class="panel">
-        <div class="panel-content">
-          <div class="speaking-bar" id="speaking-bar">
-            <span class="speaking-indicator idle"></span>
-            <span class="speaking-text">当前无人发言</span>
-            <div class="vu-meter"><div class="vu-meter-fill"></div></div>
-          </div>
-          <div class="recent-speakers" id="recent-speakers"></div>
-        </div>
-      </div>
-
-      <!-- 右下：最近通联列表 -->
-      <div class="panel">
-        <div class="panel-title-row">
-          <span class="panel-title">最近通联</span>
-          <button class="export-btn" id="export-qso-btn" title="导出日志">导出 ADI</button>
-        </div>
-        <div class="panel-content">
-          <div class="qso-list" id="qso-container">
-            <div class="qso-list-empty">暂无通联记录</div>
-          </div>
-        </div>
-      </div>
-
+    <div id="sb-audio-icon" class="sb-audio-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+      </svg>
     </div>
   </div>
 
-  <!-- ===== 设置面板 ===== -->
-  <div class="settings-overlay" id="settings-overlay">
-    <div class="settings-dialog">
-      <h2>连接设置</h2>
-      <div class="settings-field">
-        <label>IP 地址</label>
-        <input type="text" id="fmo-ip" placeholder="192.168.1.100">
+  <!-- ===== 二行信息条 (Device + Server 并排) ===== -->
+  <div class="info-row">
+    <div class="info-panel info-device">
+      <div class="info-panel-header">
+        <span>DEVICE</span>
+        <span id="status-dot" class="status-dot"></span>
+        <span id="status-text" class="status-text">未连接</span>
       </div>
-      <div class="settings-field">
+      <div class="info-tags" id="device-tags">
+        <span class="info-tag"><span class="info-tag-label">IP</span><span id="dev-ip">--</span></span>
+        <span class="info-tag"><span class="info-tag-label">VER</span><span id="dev-version">--</span></span>
+        <span class="info-tag"><span class="info-tag-label">MAC</span><span id="dev-mac">--</span></span>
+        <span class="info-tag"><span class="info-tag-label">HW</span><span id="dev-hw">--</span></span>
+      </div>
+    </div>
+    <div class="info-divider"></div>
+    <div class="info-panel info-server">
+      <div class="info-panel-header">
+        <span>SERVER</span>
+        <span id="server-ping" class="server-ping">--</span>
+      </div>
+      <div class="info-tags">
+        <span id="server-name-display" class="info-tag server-name-tag">--</span>
+        <span id="server-addr" class="info-tag">--</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 最近发言列表 ===== -->
+  <section class="list-section">
+    <div class="list-section-header">
+      <span>RECENT SPEAKERS</span>
+      <span class="list-section-count" id="recent-count">0</span>
+    </div>
+    <div id="recent-speakers" class="item-list">
+      <div class="list-empty">暂无最近发言</div>
+    </div>
+  </section>
+
+  <!-- ===== QSO 通联列表 ===== -->
+  <section class="list-section">
+    <div class="list-section-header">
+      <span>QSO LOG</span>
+      <span class="list-section-count" id="qso-count">0</span>
+    </div>
+    <div id="qso-container" class="item-list">
+      <div class="list-empty">暂无通联记录</div>
+    </div>
+  </section>
+
+  <!-- 服务器列表（隐藏的下拉面板） -->
+  <div id="server-list-overlay" class="server-list-overlay">
+    <div class="server-list-dropdown">
+      <div class="server-list-title">切换服务器</div>
+      <input id="server-search" class="server-search" type="text" placeholder="搜索服务器...">
+      <div id="server-list-container" class="server-list-scroll"></div>
+    </div>
+  </div>
+
+  <!-- 设置面板 -->
+  <div id="settings-overlay" class="overlay">
+    <div class="overlay-box">
+      <h2>设置</h2>
+      <div class="settings-row">
+        <label>IP / 主机</label>
+        <input id="fmo-ip" type="text" placeholder="192.168.x.x">
+      </div>
+      <div class="settings-row">
         <label>端口</label>
-        <input type="text" id="fmo-port" value="80" placeholder="80">
+        <input id="fmo-port" type="text" value="80">
       </div>
-      <div class="settings-field">
+      <div class="settings-row">
         <label>协议</label>
         <select id="fmo-protocol">
           <option value="ws">ws</option>
           <option value="wss">wss</option>
         </select>
       </div>
-      <div class="settings-actions">
-        <button class="btn" id="settings-cancel">取消</button>
-        <button class="btn btn-primary" id="settings-save">连接</button>
+      <div class="overlay-btns">
+        <button id="settings-save" class="btn-accent">保存并连接</button>
+        <button id="settings-close" class="btn-muted">取消</button>
       </div>
     </div>
   </div>
 
-  <!-- ===== SSTV 解码面板 ===== -->
-  <div class="sstv-overlay" id="sstv-overlay">
-    <div class="sstv-panel">
-      <div class="sstv-header">
-        <h2>SSTV 解码</h2>
-        <div class="sstv-header-right">
-          <span class="sstv-status" id="sstv-status">等待信号...</span>
-          <button class="sstv-close-btn" id="sstv-close">&times;</button>
-        </div>
-      </div>
-      <div class="sstv-body">
-        <div class="sstv-main">
-          <canvas class="sstv-canvas" id="sstv-canvas" width="640" height="480"></canvas>
-          <div class="sstv-signal-bar" id="sstv-signal-bar">
-            <div class="signal-segment lead" id="sig-lead" title="1900 Hz 前导"></div>
-            <div class="signal-segment sync" id="sig-sync" title="1200 Hz 同步"></div>
-            <div class="signal-segment img" id="sig-img" title="图像数据"></div>
-          </div>
-          <div class="sstv-mode-badge" id="sstv-mode-badge"></div>
-        </div>
-        <div class="sstv-sidebar">
-          <div class="sstv-mode-selector">
-            <h4>强制模式</h4>
-            <select id="sstv-force-mode">
-              <option value="">自动检测 (VIS)</option>
-              <option value="robot36">Robot 36</option>
-              <option value="robot72">Robot 72</option>
-              <option value="martin1">Martin M1</option>
-              <option value="martin2">Martin M2</option>
-              <option value="pd120">PD 120</option>
-              <option value="scottie1">Scottie S1</option>
-              <option value="scottie2">Scottie S2</option>
-            </select>
-            <button class="sstv-force-btn" id="sstv-force-start">强制解码</button>
-            <p class="sstv-hint">当自动 VIS 检测失败时，可从最近 5s 音频强制按所选模式解码</p>
-          </div>
-          <div class="sstv-history" id="sstv-history-panel">
-            <h4>历史记录 (<span id="sstv-history-count">0</span>)</h4>
-            <div class="sstv-history-list" id="sstv-history-list">
-              <div class="sstv-history-empty">暂无历史</div>
-            </div>
-          </div>
-        </div>
-      </div>
+  <!-- 功能菜单 -->
+  <div class="feature-dock">
+    <button id="feature-btn" class="feature-btn" title="更多功能">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+    </button>
+    <div id="feature-menu" class="feature-menu">
+      <div id="menu-export" class="feature-menu-item">导出 ADIF</div>
+      <div id="menu-settings" class="feature-menu-item">设置</div>
     </div>
   </div>
 

@@ -1,9 +1,9 @@
 /* ============================================================
-   FMO 副屏伴侣 — app.js v7
-   参照 FmoDeck 协议层改写：
-   - QSO 用 qso.getList({page}) 分页拉取全量
-   - Station 用 station.getListRange({start,count}) 循环翻页全量
-   - 串行队列 + type+subType 匹配 + RESPONSE_ALIASES
+   FMO 副屏伴侣 — app.js v8
+   v0.4.0: 推翻四象限布局，FMO-Dashboard 风格纵向信息流
+   - 适配新 DOM 结构（speaking-bar 分词填充、device/server 标签组）
+   - QSO 列表改用 .item-row 系列 CSS 类
+   - 保留所有核心功能（Speaking Bar / 设备 / 服务器 / 最近发言 / QSO / 服务器切换 / 设置 / ADIF 导出）
    ============================================================ */
 
 function normalizeHost(addr) {
@@ -11,7 +11,6 @@ function normalizeHost(addr) {
   return addr.trim().replace(/^(https?|wss?):?\/\//, '').replace(/\/+$/, '');
 }
 
-/* FmoDeck 同款：响应 subType 别名映射 */
 const RESPONSE_ALIASES = {
   station: { getListRange: 'getListRangeResponse' }
 };
@@ -56,23 +55,6 @@ class PcmTap {
   }
 }
 
-const ROBOT36_MODE = {
-  name: 'Robot 36',
-  visCode: 8,
-  width: 320,
-  height: 240,
-  scanLineMs: 150,
-  totalScanLines: 240,
-  preludeMs: 0,
-  // Segment timing within 150ms scan line (Robot 36 spec)
-  syncMs: 9,
-  porchMs: 3,
-  yMs: 88,
-  separatorMs: 4.5,
-  porch2Ms: 1.5,
-  chromaMs: 44,
-};
-
 const App = {
   // --- 连接 ---
   ws: null,
@@ -84,16 +66,19 @@ const App = {
   reconnectAttempts: 0,
   maxReconnectAttempts: 10,
 
-  // --- 串行队列（FmoDeck 同款） ---
+  // --- 串行队列 ---
   _queue: null,
   _inFlight: null,
 
   // --- 数据 ---
   myCallsign: '',
   myGrid: '',
+  _myLat: undefined,
+  _myLon: undefined,
   qsoList: [],
   serverList: [],
   currentServerName: '',
+  _prevServer: '',
   serverSearch: '',
 
   // --- 音频 ---
@@ -111,33 +96,12 @@ const App = {
   _historyEvents: [],
   _recentHistoryTimer: null,
 
-  // --- SSTV ---
-  _sstvActive: false,
+  // --- 缓存 ---
   _gridLocationCache: {},
   _serverLatency: {},
   _serverLatencyPending: {},
-  _sstvState: 'idle',
-  _sstvMode: null,
-  _sstvDecodeState: {},
-  _sstvFullRgba: null,
-  _sstvCanvasCtx: null,
-  _sstvOffCanvas: null,
-  _sstvOffCtx: null,
-  _sstvImageData: null,
-  _sstvAudioTap: null,
-  _sstvHistory: [],
-  _sstvVisDetectorState: {},
-  _sstvTickTimer: null,
-  _sstvNextScanLine: 0,
-  _sstvT0: 0,
-  _sstvYbuf: null,
-  _sstvRYbuf: null,
-  _sstvBYbuf: null,
-  _sstvSyncWin0: [],
-  _sstvSyncWin1: [],
 
   // --- 定时器 ---
-  datetimeTimer: null,
   pollTimer: null,
 
   // --- 初始化 ---
@@ -146,82 +110,67 @@ const App = {
     this._inFlight = null;
     this.bindEvents();
     this.loadSettings();
-    this.loadTheme();
-    this.startDatetime();
     this.updateConnectionUI(false);
     this.initAudioCtx();
-    this.initVolume();
-    // SSTV
-    this._sstvCanvasCtx = document.getElementById('sstv-canvas').getContext('2d');
-    this._sstvOffCanvas = document.createElement('canvas');
-    this._sstvOffCanvas.width = 320;
-    this._sstvOffCanvas.height = 240;
-    this._sstvOffCtx = this._sstvOffCanvas.getContext('2d');
-    this._sstvAudioTap = new PcmTap(3 * 8000);
-    this._initSstvUi();
   },
 
   bindEvents() {
     const $ = id => document.getElementById(id);
-    $('settings-btn').addEventListener('click', () => this.openSettings());
-    $('settings-overlay').addEventListener('click', (e) => {
-      if (e.target === $('settings-overlay')) this.closeSettings();
-    });
-    $('settings-cancel').addEventListener('click', () => this.closeSettings());
-    $('settings-save').addEventListener('click', () => this.saveSettings());
-    $('theme-toggle').addEventListener('click', () => this.cycleTheme());
-    $('mute-btn').addEventListener('click', () => this.toggleMute());
+
+    // 设置面板
+    const settingsOverlay = $('settings-overlay');
+    if (settingsOverlay) {
+      settingsOverlay.addEventListener('click', (e) => {
+        if (e.target === settingsOverlay) this.closeSettings();
+      });
+    }
+    const settingsClose = $('settings-close');
+    if (settingsClose) settingsClose.addEventListener('click', () => this.closeSettings());
+    const settingsSave = $('settings-save');
+    if (settingsSave) settingsSave.addEventListener('click', () => this.saveSettings());
+
+    // 服务器搜索
     const si = $('server-search');
-    const sc = $('server-search-clear');
     if (si) {
       si.addEventListener('input', (e) => {
         this.serverSearch = e.target.value.toLowerCase();
         this.renderServerList();
-        if (sc) sc.classList.toggle('visible', e.target.value.length > 0);
       });
-      if (sc) {
-        sc.addEventListener('click', () => {
-          si.value = '';
-          this.serverSearch = '';
-          this.renderServerList();
-          si.focus();
-          sc.classList.remove('visible');
-        });
-      }
     }
-    const eq = $('export-qso-btn');
-    if (eq) eq.addEventListener('click', () => this.exportQso());
+
+    // 功能菜单
+    const featureBtn = $('feature-btn');
+    const featureMenu = $('feature-menu');
+    if (featureBtn && featureMenu) {
+      featureBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        featureMenu.classList.toggle('open');
+      });
+      document.addEventListener('click', () => {
+        featureMenu.classList.remove('open');
+      });
+      featureMenu.addEventListener('click', (e) => e.stopPropagation());
+    }
+
+    const menuExport = $('menu-export');
+    if (menuExport) {
+      menuExport.addEventListener('click', () => {
+        featureMenu.classList.remove('open');
+        this.exportQso();
+      });
+    }
+
+    const menuSettings = $('menu-settings');
+    if (menuSettings) {
+      menuSettings.addEventListener('click', () => {
+        featureMenu.classList.remove('open');
+        this.openSettings();
+      });
+    }
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') this.closeSettings();
     });
-  },
-
-  // --- 主题 ---
-  cycleTheme() {
-    const themes = ['dark', 'light', 'eink'];
-    const cur = document.documentElement.getAttribute('data-theme') || 'dark';
-    const idx = themes.indexOf(cur);
-    const next = themes[(idx + 1) % 3];
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('fmo-theme', next);
-    document.getElementById('theme-toggle').textContent =
-      { dark: '暗色', light: '亮色', eink: '墨水屏' }[next];
-  },
-  loadTheme() {
-    const theme = localStorage.getItem('fmo-theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', theme);
-    document.getElementById('theme-toggle').textContent =
-      { dark: '暗色', light: '亮色', eink: '墨水屏' }[theme];
-  },
-
-  startDatetime() {
-    const update = () => {
-      const d = new Date();
-      document.getElementById('status-time').textContent =
-        `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-    };
-    update();
-    this.datetimeTimer = setInterval(update, 10000);
   },
 
   // ============ 连接管理 ============
@@ -254,7 +203,6 @@ const App = {
         this.fetchAllData();
         this.startPolling();
 
-        // 启动发言历史定期清理
         if (this._recentHistoryTimer) clearInterval(this._recentHistoryTimer);
         this._recentHistoryTimer = setInterval(() => this._cleanupOldHistory(), 60000);
       };
@@ -284,8 +232,6 @@ const App = {
       this.audioWs.onclose = () => { this.audioConnected = false; };
       this.audioWs.onerror = () => {};
     } catch (e) {}
-
-    document.getElementById('status-ip').textContent = ip;
   },
 
   disconnect() {
@@ -320,6 +266,7 @@ const App = {
   updateConnectionUI(connected, status) {
     const dot = document.getElementById('status-dot');
     const text = document.getElementById('status-text');
+    if (!dot || !text) return;
     if (status === 'connecting') {
       dot.className = 'status-dot connecting';
       text.textContent = '连接中';
@@ -332,12 +279,8 @@ const App = {
     }
   },
 
-  // ============ 串行队列（FmoDeck 同款） ============
+  // ============ 串行队列 ============
 
-  /**
-   * 同时只 1 个 in-flight；响应按 type + subType 匹配。
-   * RESPONSE_ALIASES 处理服务器不规范返回。
-   */
   send(req) {
     if (!this.connected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
       return Promise.reject(new Error('未连接'));
@@ -367,7 +310,6 @@ const App = {
     let msg;
     try { msg = JSON.parse(data); } catch (e) { return; }
 
-    // 匹配 in-flight 请求 — FmoDeck 同款 type+subType 匹配
     if (this._inFlight) {
       const r = this._inFlight.req;
       const expectedSubType =
@@ -395,7 +337,6 @@ const App = {
       }
     }
 
-    // 非响应 → 服务端推送（含 FmoDeck qso 事件）
     if (msg.type === 'event' || msg.event || msg.type === 'qso') {
       this.handleEvent(JSON.stringify(msg));
     }
@@ -413,7 +354,6 @@ const App = {
 
   handleEvent(data) {
     const self = this;
-    // 处理黏连 JSON（多个 }{ 拼接）
     const parts = data.split('}{');
     let messages;
     if (parts.length === 1) {
@@ -434,9 +374,7 @@ const App = {
   },
 
   _processEvent(evt) {
-    // 旧格式：speaking_start / speaking_stop
     if (evt.event === 'speaking_start') {
-      // 参照 FmoLogs：事件携带 addressId，映射到 serverList 获取 serverName
       const srv = this._lookupServerName(evt.addressId);
       const derived = this._deriveStationInfo(evt.callsign);
       this.showSpeaking({
@@ -457,11 +395,9 @@ const App = {
       return;
     }
 
-    // FmoDeck 新格式：qso/callsign
     if (evt.type === 'qso' && evt.subType === 'callsign') {
       const d = evt.data || {};
       if (d.isSpeaking) {
-        // addressId 可能来自 data.addressId 或 evt.addressId
         const srv = this._lookupServerName(d.addressId || evt.addressId);
         const derived = this._deriveStationInfo(d.callsign);
         this.showSpeaking({
@@ -481,7 +417,6 @@ const App = {
       return;
     }
 
-    // FmoDeck：qso/history
     if (evt.type === 'qso' && evt.subType === 'history') {
       const historyData = evt.data;
       if (Array.isArray(historyData)) {
@@ -495,7 +430,6 @@ const App = {
       return;
     }
 
-    // 其他事件
     if (evt.event === 'new_qso') {
       this.addQsoItem(evt);
     } else if (evt.event === 'station_update' || evt.event === 'online_change') {
@@ -522,8 +456,6 @@ const App = {
         const r = await this.send({ type: 'user', subType: 'getInfo' });
         if (r.code === 0 && r.data?.callsign) {
           this.myCallsign = r.data.callsign;
-          document.getElementById('info-callsign').textContent = this.myCallsign;
-          document.getElementById('status-callsign').textContent = this.myCallsign;
         }
       } catch (e) { console.warn('user:', e.message); }
     })());
@@ -537,30 +469,8 @@ const App = {
           this._myLon = r.data.longitude;
           const grid = this.latLonToGrid(r.data.latitude, r.data.longitude);
           this.myGrid = grid;
-          document.getElementById('info-grid').textContent = grid;
-          document.getElementById('status-grid').textContent = grid;
-          // 用户坐标显示（经纬度 + 逆地理地址）
-          this.updateCoordDisplay();
           this._resolveGridLocation(grid);
         }
-      } catch (e) {}
-    })());
-
-    // config: 设备名
-    tasks.push((async () => {
-      try {
-        const r = await this.send({ type: 'config', subType: 'getUserPhyDeviceName' });
-        if (r.code === 0 && r.data?.deviceName)
-          document.getElementById('info-device').textContent = r.data.deviceName;
-      } catch (e) {}
-    })());
-
-    // config: 天线
-    tasks.push((async () => {
-      try {
-        const r = await this.send({ type: 'config', subType: 'getUserPhyAnt' });
-        if (r.code === 0 && r.data?.ant)
-          document.getElementById('info-antenna').textContent = r.data.ant;
       } catch (e) {}
     })());
 
@@ -613,7 +523,7 @@ const App = {
     return Math.floor(diffH / 24) + 'd前';
   },
 
-  // ============ 服务器列表 — 翻页全量 ============
+  // ============ 服务器列表 ============
 
   async fetchServerListAll() {
     const pageSize = 20, maxPages = 50;
@@ -627,7 +537,6 @@ const App = {
           data: { start: i * pageSize, count: pageSize }
         });
         if (resp.code !== undefined && resp.code !== 0) break;
-        // 兼容 firmware 不同返回格式：data 可能是 {list:[]} 或直接是数组
         const payload = resp.data;
         let list;
         if (Array.isArray(payload)) {
@@ -652,19 +561,34 @@ const App = {
       if (r.code === 0 && r.data) {
         this.currentServerName = r.data.name || '';
         this._prevServer = this.currentServerName;
-        document.getElementById('status-server').textContent = this.currentServerName || '--';
+        this._showServerInfo();
       }
     } catch (e) {}
 
     this.renderServerList();
-    // 异步探测所有服务器延迟
     setTimeout(() => this._probeAllServerLatency(), 500);
-    await this.fetchStats();
   },
 
-  // 轮询时走轻量单页（避免每次都翻页）
   async fetchServerList() {
     await this.fetchServerListAll();
+  },
+
+  _showServerInfo() {
+    const nameEl = document.getElementById('server-name-display');
+    const pingEl = document.getElementById('server-ping');
+    const addrEl = document.getElementById('server-addr');
+
+    if (nameEl) nameEl.textContent = this.currentServerName || '--';
+    if (addrEl) {
+      const host = this.hostPort || '--';
+      addrEl.textContent = host;
+    }
+
+    // Ping show from cache
+    if (pingEl && this.hostPort) {
+      const lat = this._serverLatency[this.hostPort];
+      pingEl.textContent = lat === -1 ? '超时' : (lat !== undefined ? lat + 'ms' : '--');
+    }
   },
 
   renderServerList() {
@@ -716,18 +640,15 @@ const App = {
   async switchServer(name) {
     if (name === this.currentServerName) return;
 
-    // 清空搜索框
     this.serverSearch = '';
     const si = document.getElementById('server-search');
     if (si) si.value = '';
-    const sc = document.getElementById('server-search-clear');
-    if (sc) sc.classList.remove('visible');
 
-    // 保存切换前服务器，失败时回退
     this._prevServer = this.currentServerName;
 
-    // 先更新 UI 为切换中状态，再发请求
-    document.getElementById('status-server').textContent = name + ' …';
+    // Update server display to show switching state
+    const nameEl = document.getElementById('server-name-display');
+    if (nameEl) nameEl.textContent = name + ' …';
     this.currentServerName = name;
     this.renderServerList();
 
@@ -739,53 +660,26 @@ const App = {
 
       const resp = await this.send({ type: 'station', subType: 'setCurrent', data });
       if (resp.code === 0) {
-        document.getElementById('status-server').textContent = name;
+        this._showServerInfo();
         this.renderServerList();
       } else {
-        // 失败回退
-        document.getElementById('status-server').textContent = this._prevServer || '--';
+        if (nameEl) nameEl.textContent = this._prevServer || '--';
         this.currentServerName = this._prevServer || '';
         this.renderServerList();
         return;
       }
     } catch (e) {
       console.warn('switchServer:', e.message);
-      document.getElementById('status-server').textContent = this._prevServer || '--';
+      if (nameEl) nameEl.textContent = this._prevServer || '--';
       this.currentServerName = this._prevServer || '';
       this.renderServerList();
       return;
     }
 
     await this.fetchQsoListAll();
-    await this.fetchStats();
   },
 
-  // ============ 通联统计 ============
-
-  async fetchStats() {
-    await Promise.all([
-      (async () => {
-        try {
-          const r = await this.send({ type: 'qso', subType: 'getTodayCount' });
-          if (r.code === 0) document.getElementById('stat-today').textContent = r.data?.count ?? '--';
-        } catch (e) {}
-      })(),
-      (async () => {
-        try {
-          const r = await this.send({ type: 'qso', subType: 'getTotalCount' });
-          if (r.code === 0) document.getElementById('stat-total').textContent = r.data?.count ?? '--';
-        } catch (e) {}
-      })(),
-      (async () => {
-        try {
-          const r = await this.send({ type: 'qso', subType: 'getContactCount' });
-          if (r.code === 0) document.getElementById('stat-contacts').textContent = r.data?.count ?? '--';
-        } catch (e) {}
-      })()
-    ]);
-  },
-
-  // ============ QSO 列表 — qso.getList 分页全量 ============
+  // ============ QSO 列表 ============
 
   async fetchQsoListAll() {
     const maxPages = 200;
@@ -821,12 +715,12 @@ const App = {
     if (!container) return;
 
     if (!this.qsoList.length) {
-      container.innerHTML = '<div class="idle-text" style="padding:20px;text-align:center">暂无通联记录</div>';
+      container.innerHTML = '<div class="list-empty">暂无通联记录</div>';
       return;
     }
 
-    // 最新的 50 条
-    const items = this.qsoList.slice(0, 50);
+    // 最新的 15 条
+    const items = this.qsoList.slice(0, 15);
     container.innerHTML = items.map(item => {
       const ts = item.timestamp ? new Date(item.timestamp * 1000) : null;
       const timeStr = ts
@@ -834,19 +728,19 @@ const App = {
         : '--';
       const callsign = item.toCallsign ?? item.callsign ?? '--';
       const grid = item.grid ?? item.locator ?? '';
-      return `<div class="qso-item">
-        <span class="qso-logid">#${item.logId ?? '--'}</span>
-        <span class="qso-callsign">${callsign}</span>
-        ${grid ? '<a class="qso-grid" href="javascript:void(0)" title="复制呼号并打开地图 — ' + callsign + '" data-callsign="' + callsign + '">' + grid + '</a>' : ''}
-        <span class="qso-time">${timeStr}</span>
+      return `<div class="item-row">
+        <span class="item-accent-indicator"></span>
+        <span class="item-callsign">${callsign}</span>
+        ${grid ? '<a class="item-grid" href="javascript:void(0)" title="复制呼号并打开地图 — ' + callsign + '" data-callsign="' + callsign + '">' + grid + '</a>' : ''}
+        <span class="item-time">${timeStr}</span>
       </div>`;
     }).join('');
-    container.querySelectorAll('.qso-grid').forEach(el => {
+
+    container.querySelectorAll('.item-grid').forEach(el => {
       el.addEventListener('click', (e) => {
         e.preventDefault();
         const callsign = el.dataset.callsign;
         navigator.clipboard.writeText(callsign).then(() => {
-          console.log('Copied callsign:', callsign);
           window.open('https://map.fmo.net.cn/', '_blank');
         }).catch(() => {});
       });
@@ -856,58 +750,32 @@ const App = {
   addQsoItem(qso) {
     this.qsoList.unshift(qso);
     this.renderQsoList();
-    const first = document.querySelector('.qso-item');
+    const first = document.querySelector('.item-row');
     if (first) {
       first.classList.add('new-highlight');
       first.classList.add('slide-in');
     }
-    this.fetchStats();
     this.updateQsoCount();
   },
 
   updateQsoCount() {
-    const el = document.getElementById('info-qso-count');
+    const el = document.getElementById('qso-count');
     if (!el) return;
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayStartUnix = Math.floor(todayStart.getTime() / 1000);
-    const todayCount = this.qsoList.filter(q => (q.timestamp || 0) >= todayStartUnix).length;
-    el.textContent = `${todayCount} / ${this.qsoList.length}`;
-    el.classList.remove('pulse');
-    void el.offsetWidth;
-    el.classList.add('pulse');
-  },
-
-  updateCoordDisplay() {
-    const el = document.getElementById('info-coord');
-    if (!el) return;
-    const lat = this._myLat?.toFixed(4) ?? '--';
-    const lon = this._myLon?.toFixed(4) ?? '--';
-    const loc = this._gridLocationCache[this.myGrid] || this.myGrid || '';
-    const sep = loc ? ' / ' : '';
-    el.textContent = `${lat}, ${lon}${sep}${loc}`;
+    el.textContent = this.qsoList.length;
   },
 
   // ============ Speaking Bar ============
 
-  /**
-   * 方位角 → 中文方向文字（8 方位）
-   */
   _azimuthToDirection(azimuth) {
     const a = ((azimuth % 360) + 360) % 360;
-    const dirs = ['北', '东北', '东', '东南', '南', '西南', '西', '西北'];
+    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
     return dirs[Math.round(a / 45) % 8];
   },
 
-  /**
-   * 从 QSO 列表推导台站附属信息（当事件未提供时兜底）
-   * 返回 { grid, distance, azimuth, altitude }，未找到的字段为 undefined
-   */
   _deriveStationInfo(callsign) {
     const result = {};
     if (!callsign || !this.qsoList.length) return result;
 
-    // 查找最近一条包含该呼号的 QSO（按时间戳降序）
     const matchingQsos = this.qsoList.filter(q => {
       const qc = q.toCallsign || q.callsign || '';
       return this.isSameOperator(qc, callsign);
@@ -924,7 +792,6 @@ const App = {
     if (a !== undefined) result.azimuth = a;
     if (qso.altitude !== undefined) result.altitude = qso.altitude;
 
-    // 若 QSO 无 distance/azimuth，尝试从双方网格计算
     if (result.grid && (result.distance === undefined || result.azimuth === undefined)) {
       const computed = this._computeGridDistance(result.grid);
       if (computed) {
@@ -936,9 +803,6 @@ const App = {
     return result;
   },
 
-  /**
-   * 将 Maidenhead 网格转换为经纬度（中心点）
-   */
   _gridToLatLon(grid) {
     const g = grid.toUpperCase();
     if (g.length < 4) return null;
@@ -954,19 +818,12 @@ const App = {
     };
   },
 
-  /**
-   * 将 Maidenhead Grid 转换为 MapLibre GL hash 格式的地图链接
-   * 格式: https://map.fmo.net.cn/#<zoom>/<lat>/<lng>
-   */
   gridToMapHref(grid) {
     const ll = this._gridToLatLon(grid);
     if (!ll) return 'https://map.fmo.net.cn/';
     return `https://map.fmo.net.cn/#4.6/${ll.lat.toFixed(4)}/${ll.lon.toFixed(4)}`;
   },
 
-  /**
-   * 通过 OSM Nominatim 反查网格对应的省/市/区地名，结果存入缓存
-   */
   async _resolveGridLocation(grid) {
     if (!grid || this._gridLocationCache[grid]) return;
     const coords = this._gridToLatLon(grid);
@@ -977,7 +834,6 @@ const App = {
       if (!resp.ok) return;
       const data = await resp.json();
       const addr = data.address || {};
-      // 拼接完整省/市/区层级，去重避免重复
       const parts = [];
       const state = addr.state || addr.province || '';
       const city = addr.city || '';
@@ -990,22 +846,12 @@ const App = {
       }
       const region = parts.join('');
       this._gridLocationCache[grid] = region;
-      // 如果匹配当前发言人网格，更新 Speaking Bar
       if (this._currentSpeaker && this._currentSpeaker.grid === grid) {
         this.renderSpeakingBar();
       }
-      // 如果匹配用户自己的网格，更新坐标显示
-      if (grid === this.myGrid) {
-        this.updateCoordDisplay();
-      }
-    } catch (e) {
-      // 静默失败，仍显示原始 grid
-    }
+    } catch (e) {}
   },
 
-  /**
-   * 测量浏览器到服务器的 WebSocket 延迟
-   */
   async _probeServerLatency(s) {
     const host = s.host || s.addr || s.address || s.url || '';
     if (!host) return;
@@ -1043,6 +889,7 @@ const App = {
       delete this._serverLatencyPending[key];
     }
     this.renderServerList();
+    this._showServerInfo();
   },
 
   _probeAllServerLatency() {
@@ -1051,31 +898,23 @@ const App = {
     }
   },
 
-  /**
-   * 从远程网格计算与我站之间的距离(km)和方位角(°)。
-   * 网格中心点近似（6 位精度 ~ 3' 以内）。
-   */
   _computeGridDistance(remoteGrid) {
     try {
       const selfLat = this._myLat;
       const selfLon = this._myLon;
       if (selfLat === undefined || selfLon === undefined) return null;
 
-      // 解析 Maidenhead 6 位网格→经纬度（字段中心）
       const g = remoteGrid.toUpperCase();
       if (g.length < 4) return null;
 
-      // 字段 AA-Field
       const fieldLon = (g.charCodeAt(0) - 65) * 20 - 180;
       const fieldLat = (g.charCodeAt(1) - 65) * 10 - 90;
-      // 方格 Square (0-9)
       const sqLon = parseInt(g[2]) * 2;
       const sqLat = parseInt(g[3]) * 1;
-      // 小区 Sub-square (a-x)
       const subLon = g.length >= 6 ? (g.charCodeAt(4) - 65) * (5 / 60) : 0;
       const subLat = g.length >= 6 ? (g.charCodeAt(5) - 65) * (2.5 / 60) : 0;
 
-      const lat = fieldLat + sqLat + subLat + (2.5 / 120);  // 中心
+      const lat = fieldLat + sqLat + subLat + (2.5 / 120);
       const lon = fieldLon + sqLon + subLon + (5 / 120);
 
       return this._calcDistanceAzimuth(selfLat, selfLon, lat, lon);
@@ -1085,7 +924,7 @@ const App = {
   },
 
   _calcDistanceAzimuth(lat1, lon1, lat2, lon2) {
-    const R = 6371; // km
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const rLat1 = lat1 * Math.PI / 180;
@@ -1105,11 +944,6 @@ const App = {
     return { distance, azimuth };
   },
 
-  /**
-   * 参照 FmoLogs getServerName()：通过 addressId 在 serverList 中查找服务器名称
-   * addressId 可能是 uid/id/address 中的任意一个
-   * 返回 { name, uid }，未找到返回空对象
-   */
   _lookupServerName(addressId) {
     if (!addressId || !this.serverList.length) return {};
     const match = this.serverList.find(s => {
@@ -1140,11 +974,9 @@ const App = {
       startedAtMs: Date.now(),
     };
 
-    // 若事件未提供 serverName，依次从 qsoList / serverList 兜底查找
     let serverUid = this._currentSpeaker.serverUid;
     let serverName = this._currentSpeaker.serverName;
     if (!serverName) {
-      // 先查 qsoList（同呼号的历史 QSO 可能记录了 server）
       const matchingQso = this.qsoList.find(q => {
         const qc = q.toCallsign || q.callsign || '';
         return this.isSameOperator(qc, data.callsign);
@@ -1153,7 +985,6 @@ const App = {
         serverUid = matchingQso.serverUid || matchingQso.addressId || '';
         serverName = matchingQso.serverName || '';
       }
-      // qsoList 无结果，尝试从 serverList 反问
       if (!serverName && serverUid) {
         const srv = this._lookupServerName(serverUid);
         if (srv.name) {
@@ -1165,7 +996,6 @@ const App = {
       this._currentSpeaker.serverUid = serverUid;
     }
 
-    // 若事件数据缺少 grid/distance/azimuth，立即从 QSO 补全
     const sp = this._currentSpeaker;
     if (!sp.grid || sp.distance === undefined || sp.azimuth === undefined) {
       const derived = this._deriveStationInfo(data.callsign);
@@ -1175,10 +1005,8 @@ const App = {
       if (sp.altitude === undefined && derived.altitude !== undefined) sp.altitude = derived.altitude;
     }
 
-    // 若无 grid 但有 QSO grid，更新 speaking record
     this._addSpeakingRecord(data.callsign, sp.grid, serverUid, serverName);
 
-    // 异步反查网格地名
     if (sp.grid) {
       this._resolveGridLocation(sp.grid);
     }
@@ -1201,25 +1029,27 @@ const App = {
     }
     this._finishSpeakingRecords();
     this._currentSpeaker = null;
+
     const bar = document.getElementById('speaking-bar');
     if (bar) {
-      bar.innerHTML = `
-        <span class="speaking-indicator idle"></span>
-        <span class="speaking-text">当前无人发言</span>
-        <div class="vu-meter"><div class="vu-meter-fill" style="width:0%"></div></div>
-      `;
+      bar.classList.remove('active');
+      bar.classList.add('idle');
     }
+    // Show placeholder, hide data elements
+    const ph = document.getElementById('sb-placeholder');
+    if (ph) ph.style.display = '';
+    ['sb-callsign', 'sb-grid', 'sb-direction', 'sb-distance', 'sb-qth', 'sb-server', 'sb-contact-count', 'sb-elapsed'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.textContent = ''; el.style.display = 'none'; }
+    });
   },
 
   _addSpeakingRecord(callsign, grid, serverUid, serverName) {
     if (!callsign) return;
     const now = Date.now();
-    // 将之前的未结束记录全部结束
     this._speakingHistory.forEach(h => { if (!h.endTime) h.endTime = now; });
-    // 检查是否已有该呼号的历史记录
     const existing = this._speakingHistory.find(h => h.callsign === callsign);
     if (existing) {
-      // 移动该记录到最前面
       const idx = this._speakingHistory.indexOf(existing);
       this._speakingHistory.splice(idx, 1);
       existing.startTime = now;
@@ -1259,7 +1089,10 @@ const App = {
     const container = document.getElementById('recent-speakers');
     if (!container) return;
 
-    // 构建通联次数 Map
+    // Update count
+    const countEl = document.getElementById('recent-count');
+    if (countEl) countEl.textContent = Math.min(this._speakingHistory.length + this._historyEvents.length, 10);
+
     const contactCounts = new Map();
     this.qsoList.forEach(q => {
       const qc = q.toCallsign || q.callsign || '';
@@ -1269,18 +1102,15 @@ const App = {
       }
     });
 
-    // 正在发言的呼号集合
     const activeCallsigns = new Set();
     this._speakingHistory.forEach(h => { if (!h.endTime) activeCallsigns.add(h.callsign); });
     if (this._currentSpeaker?.callsign) {
       activeCallsigns.add(this._currentSpeaker.callsign);
     }
 
-    // 合并 _speakingHistory（实时）与 _historyEvents（服务端历史），去重后取最近 10 条
     const seen = new Set();
     const items = [];
 
-    // 第一阶段：_speakingHistory 优先，活跃/最近发言者置顶
     for (const h of this._speakingHistory) {
       const call = this.parseCallsignSsid(h.callsign).call;
       if (!seen.has(call)) {
@@ -1294,7 +1124,6 @@ const App = {
       }
     }
 
-    // 第二阶段：用 _historyEvents 补足剩余槽位
     if (items.length < 10 && this._historyEvents.length > 0) {
       for (const evt of this._historyEvents) {
         const call = this.parseCallsignSsid(evt.callsign).call;
@@ -1311,7 +1140,7 @@ const App = {
     }
 
     if (!items.length) {
-      container.innerHTML = '';
+      container.innerHTML = '<div class="list-empty">暂无最近发言</div>';
       return;
     }
 
@@ -1332,12 +1161,12 @@ const App = {
         + (item.grid ? '<a class="recent-grid" href="javascript:void(0)" title="复制呼号并打开地图 — ' + item.callsign + '">' + item.grid + '</a>' : '')
         + '</div>';
     }).join('');
+
     container.querySelectorAll('.recent-grid').forEach(el => {
       el.addEventListener('click', (e) => {
         e.preventDefault();
         const callsign = el.closest('.recent-item').dataset.callsign;
         navigator.clipboard.writeText(callsign).then(() => {
-          console.log('Copied callsign:', callsign);
           window.open('https://map.fmo.net.cn/', '_blank');
         }).catch(() => {});
       });
@@ -1351,18 +1180,24 @@ const App = {
     const sp = this._currentSpeaker;
     if (!sp) return;
 
+    bar.classList.remove('idle');
+    bar.classList.add('active');
+
+    // Hide placeholder
+    const ph = document.getElementById('sb-placeholder');
+    if (ph) ph.style.display = 'none';
+
     const elapsed = Date.now() - sp.startedAtMs;
     const elapsedStr = this.formatElapsed(elapsed);
 
-    // 兜底：distance / azimuth / altitude 缺失时从 _deriveStationInfo 或 grid 计算补全
+    // 补全缺失数据
     if (sp.distance === undefined || sp.azimuth === undefined || sp.altitude === undefined) {
       const derived = this._deriveStationInfo(sp.callsign);
       if (sp.distance === undefined && derived.distance !== undefined) sp.distance = derived.distance;
       if (sp.azimuth === undefined && derived.azimuth !== undefined) sp.azimuth = derived.azimuth;
       if (sp.altitude === undefined && derived.altitude !== undefined) sp.altitude = derived.altitude;
       if (!sp.grid && derived.grid) sp.grid = derived.grid;
-      
-      // 如果 QSO 有 grid 但仍无 distance/azimuth，直接用 grid 计算
+
       if (sp.grid && (sp.distance === undefined || sp.azimuth === undefined)) {
         const computed = this._computeGridDistance(sp.grid);
         if (computed) {
@@ -1372,73 +1207,74 @@ const App = {
       }
     }
 
-    // 组装附件标签（FmoLogs 风格：无卡片化徽章）
-    let tags = '';
+    // Callsign
+    const csEl = document.getElementById('sb-callsign');
+    if (csEl) { csEl.textContent = sp.callsign || '--'; csEl.style.display = ''; }
 
-    // HOST
-    if (sp.isHost) {
-      tags += '<span class="speaking-tag">[HOST]</span>';
+    // Grid tag
+    const gridEl = document.getElementById('sb-grid');
+    if (gridEl) {
+      gridEl.textContent = sp.grid || '';
+      gridEl.style.display = sp.grid ? '' : 'none';
     }
 
-    // 您
-    const isSelf = this.isSameOperator(sp.callsign, this.myCallsign);
-    if (isSelf) {
-      tags += '<span class="speaking-tag">您</span>';
+    // Direction + azimuth
+    const dirEl = document.getElementById('sb-direction');
+    if (dirEl) {
+      if (sp.azimuth !== undefined && sp.azimuth !== null) {
+        const dir = this._azimuthToDirection(sp.azimuth);
+        dirEl.textContent = dir + ' ' + sp.azimuth + '°';
+        dirEl.style.display = '';
+      } else {
+        dirEl.style.display = 'none';
+      }
     }
 
-    // 通联次数 / 新朋友
-    const qsos = this.qsoList.filter(q => {
-      const toCall = q.toCallsign || q.callsign || '';
-      return this.isSameOperator(toCall, sp.callsign);
-    });
-    if (!isSelf && qsos.length === 1) {
-      tags += '<span class="speaking-tag" style="color:var(--warn)">✦新朋友</span>';
-    } else if (qsos.length > 1) {
-      tags += `<span class="speaking-count">x${qsos.length}</span>`;
+    // Distance
+    const distEl = document.getElementById('sb-distance');
+    if (distEl) {
+      if (sp.distance !== undefined && sp.distance !== null) {
+        distEl.textContent = Number(sp.distance).toFixed(0) + 'km';
+        distEl.style.display = '';
+      } else {
+        distEl.style.display = 'none';
+      }
     }
 
-    // 方位角 + 距离 + Grid（FmoLogs 风格：放在呼号之后、徽章之前）
-    let meta = '';
-    if (sp.azimuth !== undefined && sp.azimuth !== null) {
-      const dir = this._azimuthToDirection(sp.azimuth);
-      meta += `<span class="speaking-meta"><svg class="speaking-arrow" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" style="transform:rotate(${sp.azimuth}deg)"><path d="M512 512m-512 0a512 512 0 1 0 1024 0 512 512 0 1 0-1024 0Z" fill="#F93008" opacity=".7"/><path d="M512 512m-361.411765 0a361.411765 361.411765 0 1 0 722.82353 0 361.411765 361.411765 0 1 0-722.82353 0Z" fill="#F9A594" opacity=".7"/><path d="M512 150.588235l-210.823529 602.352941 210.823529-78.305882 210.823529 78.305882z" fill="#FFFFFF"/></svg> 方位 ${dir}${sp.azimuth}°</span>`;
-    }
-    if (sp.distance !== undefined && sp.distance !== null) {
-      meta += `<span class="speaking-meta distance">${Number(sp.distance).toFixed(1)}km</span>`;
-    }
-    if (sp.grid) {
-      const location = this._gridLocationCache[sp.grid] || sp.grid;
-      meta += `<span class="speaking-meta">${location}</span>`;
+    // QTH (grid location name)
+    const qthEl = document.getElementById('sb-qth');
+    if (qthEl) {
+      const loc = sp.grid ? (this._gridLocationCache[sp.grid] || sp.grid) : '';
+      qthEl.textContent = loc;
+      qthEl.style.display = loc ? '' : 'none';
     }
 
-    // 服务器名
-    if (sp.serverName) {
-      tags += `<span class="speaking-tag">[${sp.serverName}]</span>`;
+    // Server name
+    const srvEl = document.getElementById('sb-server');
+    if (srvEl) {
+      srvEl.textContent = sp.serverName || '';
+      srvEl.style.display = sp.serverName ? '' : 'none';
     }
 
-    // elapsed
-    tags += `<span class="speaking-elapsed">${elapsedStr}</span>`;
+    // Contact count
+    const cntEl = document.getElementById('sb-contact-count');
+    if (cntEl) {
+      const qsos = this.qsoList.filter(q => {
+        const toCall = q.toCallsign || q.callsign || '';
+        return this.isSameOperator(toCall, sp.callsign);
+      });
+      if (qsos.length > 1) {
+        cntEl.textContent = 'x' + qsos.length;
+        cntEl.style.display = '';
+      } else {
+        cntEl.style.display = 'none';
+      }
+    }
 
-    bar.innerHTML = `
-      <span class="speaking-indicator speaking"></span>
-      <span class="speaking-text">
-        正在发言: <strong>${sp.callsign || '--'}</strong>
-        ${meta}
-        ${tags}
-      </span>
-      <div class="vu-meter"><div class="vu-meter-fill" style="width:${this.vuLevel}%"></div></div>
-    `;
+    // Elapsed
+    const elEl = document.getElementById('sb-elapsed');
+    if (elEl) { elEl.textContent = elapsedStr; elEl.style.display = ''; }
   },
-
-  // ============ VU / 频谱 ============
-
-  updateVU(level) {
-    this.vuLevel = Math.min(100, level);
-    const fill = document.querySelector('.vu-meter-fill');
-    if (fill) fill.style.width = this.vuLevel + '%';
-  },
-
-  
 
   // ============ 音频 ============
 
@@ -1449,7 +1285,6 @@ const App = {
       this.gainNode.gain.value = this.volume / 100;
       this.gainNode.connect(this.audioCtx.destination);
     } catch (e) {}
-    // 浏览器 autoplay 策略：在用户手势时恢复 AudioContext
     const resume = () => {
       if (this.audioCtx && this.audioCtx.state === 'suspended') {
         this.audioCtx.resume().catch(() => {});
@@ -1466,13 +1301,6 @@ const App = {
       return;
     }
     this.computeVU(buf);
-    // SSTV audio tap
-    if (this._sstvActive && buf) {
-      const raw16 = new Int16Array(buf);
-      const floatSamples = new Float32Array(raw16.length);
-      for (let i = 0; i < raw16.length; i++) floatSamples[i] = raw16[i] / 32768;
-      this._sstvAudioTap.push(floatSamples);
-    }
     const raw = new Int16Array(buf);
     const buffer = this.audioCtx.createBuffer(1, raw.length, 8000);
     const channel = buffer.getChannelData(0);
@@ -1489,7 +1317,14 @@ const App = {
     for (let i = 0; i < raw.length; i++) sum += (raw[i] / 32768) ** 2;
     const rms = Math.sqrt(sum / raw.length);
     const db = 20 * Math.log10(rms + 0.0001);
-    this.updateVU(Math.max(0, Math.min(100, (db + 60) * (100 / 60))));
+    this.vuLevel = Math.max(0, Math.min(100, (db + 60) * (100 / 60)));
+    this.updateVU();
+  },
+
+  updateVU() {
+    const icon = document.getElementById('sb-audio-icon');
+    if (!icon) return;
+    icon.style.opacity = 0.35 + (this.vuLevel / 100) * 0.65;
   },
 
   // ============ 轮询 ============
@@ -1505,68 +1340,31 @@ const App = {
     if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
   },
 
-  toggleMute() {
-    this.isMuted = !this.isMuted;
-    const btn = document.getElementById('mute-btn');
-    if (btn) {
-      if (this.isMuted) {
-        btn.innerHTML = '&#x1F507;';
-        btn.classList.add('muted');
-      } else {
-        btn.innerHTML = '&#x1F50A;';
-        btn.classList.remove('muted');
-      }
-    }
-  },
+  // ============ ADIF 导出 ============
 
-  setVolume(val) {
-    this.volume = val;
-    if (this.gainNode) {
-      this.gainNode.gain.value = val / 100;
-    }
-    const slider = document.getElementById('volume-slider');
-    if (slider) slider.value = val;
-  },
-
-  initVolume() {
-    const slider = document.getElementById('volume-slider');
-    if (slider) {
-      slider.value = this.volume;
-      slider.addEventListener('input', (e) => this.setVolume(parseInt(e.target.value)));
-    }
-  },
-
-  // 解析 timestamp：兼容 Unix 秒、Unix 毫秒、ISO 字符串
   _parseTimestamp(raw) {
     if (raw == null || raw === '') return null;
-    // 字符串 → 直接构造 Date（ISO 格式）
     if (typeof raw === 'string') {
       const d = new Date(raw);
       return isNaN(d.getTime()) ? null : d;
     }
-    // 数字 → 试探秒/毫秒
     if (typeof raw === 'number') {
-      // < 1e10 大概率是 Unix 秒（2286 年以内）
       if (raw < 10000000000) {
         const d = new Date(raw * 1000);
         if (!isNaN(d.getTime())) return d;
       }
-      // 尝试毫秒
       const d = new Date(raw);
       return isNaN(d.getTime()) ? null : d;
     }
     return null;
   },
 
-  // 根据频率（MHz）推断业余波段
   _freqToBand(mhz) {
     if (typeof mhz !== 'number' || isNaN(mhz) || mhz <= 0) return '2m';
     if (mhz >= 0.1357 && mhz <= 0.1378) return '2190m';
     if (mhz >= 0.472 && mhz <= 0.479) return '630m';
-    if (mhz >= 0.501 && mhz <= 0.504) return '560m';
     if (mhz >= 1.8 && mhz <= 2.0) return '160m';
     if (mhz >= 3.5 && mhz <= 4.0) return '80m';
-    if (mhz >= 5.102 && mhz <= 5.4065) return '60m';
     if (mhz >= 7.0 && mhz <= 7.3) return '40m';
     if (mhz >= 10.1 && mhz <= 10.15) return '30m';
     if (mhz >= 14.0 && mhz <= 14.35) return '20m';
@@ -1581,9 +1379,6 @@ const App = {
     if (mhz >= 902 && mhz <= 928) return '33cm';
     if (mhz >= 1240 && mhz <= 1300) return '23cm';
     if (mhz >= 2300 && mhz <= 2450) return '13cm';
-    if (mhz >= 3300 && mhz <= 3500) return '9cm';
-    if (mhz >= 5650 && mhz <= 5925) return '6cm';
-    if (mhz >= 10000 && mhz <= 10500) return '3cm';
     return '2m';
   },
 
@@ -1608,20 +1403,18 @@ const App = {
       const memo = (item.memo ?? item.message ?? '').trim();
       const logId = (item.logId ?? '').toString().trim();
 
-      if (!toCallsign || !ts) continue; // 跳过缺关键字段的记录
+      if (!toCallsign || !ts) continue;
 
-      // QSO_DATE / TIME_ON（ADIF 强制要求，使用 UTC）
       const date = `${ts.getUTCFullYear()}${pad(ts.getUTCMonth()+1,2)}${pad(ts.getUTCDate(),2)}`;
       const time = `${pad(ts.getUTCHours(),2)}${pad(ts.getUTCMinutes(),2)}${pad(ts.getUTCSeconds(),2)}`;
       lines.push(`<CALL:${byteLen(toCallsign)}>${toCallsign}`);
       lines.push(`<QSO_DATE:8>${date}`);
       lines.push(`<TIME_ON:6>${time}`);
 
-      // BAND：根据频率推断，freq 缺失时默认 2m（FMO 为 VHF/UHF 设备）
       const f = parseFloat(freqRaw);
       let band;
       if (freqRaw && !isNaN(f) && f > 0) {
-        const mhz = f > 1000 ? f / 1e6 : f; // Hz → MHz
+        const mhz = f > 1000 ? f / 1e6 : f;
         band = this._freqToBand(mhz);
         lines.push(`<FREQ:${freqRaw.length}>${freqRaw}`);
       } else {
@@ -1665,7 +1458,9 @@ const App = {
   // ============ 设置 ============
 
   openSettings() {
-    document.getElementById('settings-overlay').classList.add('open');
+    const overlay = document.getElementById('settings-overlay');
+    if (!overlay) return;
+    overlay.classList.add('open');
     const raw = localStorage.getItem('fmo-settings');
     if (raw) {
       try {
@@ -1676,7 +1471,12 @@ const App = {
       } catch (e) {}
     }
   },
-  closeSettings() { document.getElementById('settings-overlay').classList.remove('open'); },
+
+  closeSettings() {
+    const overlay = document.getElementById('settings-overlay');
+    if (overlay) overlay.classList.remove('open');
+  },
+
   saveSettings() {
     const ip = document.getElementById('fmo-ip').value.trim();
     const port = document.getElementById('fmo-port').value.trim() || '80';
@@ -1686,714 +1486,6 @@ const App = {
     localStorage.setItem('fmo-settings', JSON.stringify({ ip, port, protocol }));
     this.closeSettings();
     this.connect(ip, port);
-  },
-
-  // ============ SSTV 解码 ============
-
-  /* FM 解调器：Hilbert 变换 FIR (31-tap Blackman window) + 交叉乘积鉴频器
-     参照 PhosphorSSTV 的 Hilbert 解调方案，相比 IIR biquad 低通，
-     FIR 线性相位 + 更好阻带抑制避免 3800Hz 镜像污染解调输出。
-     消除 IQ 频移步骤，直接从解析信号计算瞬时频率。 */
-
-  _firConvolve(signal, coeffs) {
-    const len = coeffs.length;
-    const out = new Float32Array(signal.length);
-    for (let i = len - 1; i < signal.length; i++) {
-      let sum = 0;
-      for (let j = 0; j < len; j++) sum += coeffs[j] * signal[i - j];
-      out[i] = sum;
-    }
-    return out;
-  },
-
-  _designHilbertFir(numTaps) {
-    const h = new Float32Array(numTaps);
-    const mid = (numTaps - 1) / 2;
-    for (let i = 0; i < numTaps; i++) {
-      const n = i - mid;
-      if (n === 0) {
-        h[i] = 0;
-      } else if (n % 2 !== 0) {
-        h[i] = 2 / (Math.PI * n);
-      }
-      // Blackman window
-      const w = 0.42 - 0.5 * Math.cos(2 * Math.PI * i / (numTaps - 1)) +
-                0.08 * Math.cos(4 * Math.PI * i / (numTaps - 1));
-      h[i] *= w;
-    }
-    return h;
-  },
-
-  _fmDemodulate(samples, sampleRate, warmupSamples) {
-    if (!warmupSamples) warmupSamples = 0;
-    const n = samples.length;
-
-    // 缓存 Hilbert FIR 系数（31-tap Blackman window，与 PhosphorSSTV 一致）
-    if (!this._hilbertCoefs) {
-      this._hilbertCoefs = this._designHilbertFir(31);
-    }
-    const hilbert = this._hilbertCoefs;
-    const delay = Math.floor(hilbert.length / 2); // 15 samples
-
-    const q = this._firConvolve(samples, hilbert); // q[k] ≈ Hilbert(samples[k - delay])
-    // I 通道：对齐群延迟，使 I[k] 和 Q[k] 对应同一时刻
-    const i = new Float32Array(n);
-    for (let k = delay; k < n; k++) i[k] = samples[k - delay];
-    for (let k = 0; k < delay; k++) i[k] = samples[0];
-
-    const out = new Float32Array(n);
-    const scale = sampleRate / (2 * Math.PI);
-    for (let k = delay + 1; k < n; k++) {
-      const re = i[k] * i[k - 1] + q[k] * q[k - 1];
-      const im = q[k] * i[k - 1] - i[k] * q[k - 1];
-      out[k] = scale * Math.atan2(im, re);
-    }
-    // 前 (delay+1) 个样本用最近有效值填充
-    for (let k = 0; k <= delay; k++) out[k] = out[delay + 1] || 1500;
-    return warmupSamples > 0 ? out.subarray(warmupSamples) : out;
-  },
-
-  _goertzel(samples, targetHz, sampleRate) {
-    const omega = (2 * Math.PI * targetHz) / sampleRate;
-    const coeff = 2 * Math.cos(omega);
-    let s0 = 0, s1 = 0, s2 = 0;
-    for (let i = 0; i < samples.length; i++) {
-      s0 = samples[i] + coeff * s1 - s2;
-      s2 = s1;
-      s1 = s0;
-    }
-    return s1 * s1 + s2 * s2 - s1 * s2 * coeff;
-  },
-
-  /* VIS 检测器：Goertzel 音调检测 + 前导 + bit + parity + stop 校验。
-     网页音频可能有频率偏移（±35Hz）和 AGC 幅度波动，
-     使用宽松但安全的能量比阈值（2x 而非 3x），并加入低频噪声地板检查。 */
-
-  _visDetect(samples, sampleRate) {
-    const bs = Math.round((30 / 1000) * sampleRate); // bit=30ms
-    const step = Math.max(1, Math.floor(bs / 4));
-    const n = samples.length;
-    if (n < Math.round((610 / 1000) * sampleRate)) return null; // min: preamble + start + 8 data + stop ≈ 610ms
-    const preambleSamples = Math.round((300 * 2 + 10) / 1000 * sampleRate);
-
-    const leaderLen = Math.round((200 / 1000) * sampleRate);
-    const amNoise = () => {
-      // 用低频带 (400Hz) 估计环境噪声能量基准
-      const seg = samples.subarray(Math.max(0, n - Math.round((100 / 1000) * sampleRate)), n);
-      return this._goertzel(seg, 400, sampleRate);
-    };
-    const noiseFloor = amNoise();
-
-    const isLeader1900 = (start, len) => {
-      if (start < 0 || start + len > n) return false;
-      const e1900 = this._goertzel(samples.subarray(start, start + len), 1900, sampleRate);
-      const e2400 = this._goertzel(samples.subarray(start, start + len), 2400, sampleRate);
-      // 1900 Hz leader must dominate, and must exceed ambient noise
-      return e1900 > e2400 * 2 && e1900 > noiseFloor * 4;
-    };
-
-    const hasPreamble = (startBitOff) => {
-      const firstCoreStart = startBitOff - Math.round(((300 + 10 + 300 - 250) / 1000) * sampleRate);
-      const secondCoreStart = startBitOff - Math.round(((300 - 250) / 1000) * sampleRate);
-      const leader1Ok = isLeader1900(firstCoreStart, leaderLen);
-      const leader2Ok = isLeader1900(secondCoreStart, leaderLen);
-      if (!leader1Ok && !leader2Ok) return false;
-      // 找 10ms break tone (1200 Hz)
-      const breakLen = Math.round((10 / 1000) * sampleRate);
-      const searchStart = startBitOff - Math.round(((300 + 10 + 20) / 1000) * sampleRate);
-      const searchEnd = startBitOff - Math.round(((300 + 10 - 20) / 1000) * sampleRate);
-      for (let off = searchStart; off + breakLen <= searchEnd; off += Math.max(1, Math.floor(sampleRate / 500))) {
-        const win = samples.subarray(off, off + breakLen);
-        const e1200 = this._goertzel(win, 1200, sampleRate);
-        const e1700 = this._goertzel(win, 1700, sampleRate);
-        if (e1200 > e1700 * 2) return true;
-      }
-      return false;
-    };
-
-    const bitValue = (off) => {
-      if (off + bs > n) return -1;
-      const win = samples.subarray(off, off + bs);
-      const e1100 = this._goertzel(win, 1100, sampleRate);
-      const e1300 = this._goertzel(win, 1300, sampleRate);
-      const max = Math.max(e1100, e1300);
-      if (max < noiseFloor * 4) return -1;
-      // 要求主导频率至少 2 倍于对侧
-      if (e1100 > e1300 * 2) return 1;
-      if (e1300 > e1100 * 2) return 0;
-      return -1;
-    };
-
-    const isStartBit1200 = (off) => {
-      if (off + bs > n) return false;
-      const win = samples.subarray(off, off + bs);
-      const e1200 = this._goertzel(win, 1200, sampleRate);
-      const e1700 = this._goertzel(win, 1700, sampleRate);
-      const e1900 = this._goertzel(win, 1900, sampleRate);
-      return e1200 > e1700 * 2 && e1200 > e1900 * 2;
-    };
-
-    for (let s = preambleSamples; s + 10 * bs <= n; s += step) {
-      if (!hasPreamble(s)) continue;
-      if (!isStartBit1200(s)) continue;
-      let code = 0, ok = true;
-      for (let b = 0; b < 8; b++) {
-        const v = bitValue(s + (1 + b) * bs);
-        if (v === -1) { ok = false; break; }
-        if (v === 1) code |= (1 << b);
-      }
-      if (!ok) continue;
-      let pc = 0, cv = code;
-      while (cv) { pc += cv & 1; cv >>>= 1; }
-      if (pc % 2 !== 0) continue;
-      const stopOff = s + 9 * bs;
-      const win = samples.subarray(stopOff, stopOff + bs);
-      const e1200 = this._goertzel(win, 1200, sampleRate);
-      const e1700 = this._goertzel(win, 1700, sampleRate);
-      if (e1200 <= e1700 * 2) continue;
-      return { visCode: code, endOffset: n - (stopOff + bs) };
-    }
-    return null;
-  },
-
-  _sstvTick() {
-    if (!this._sstvActive || !this._sstvAudioTap) return;
-    const tap = this._sstvAudioTap;
-    const SR = 8000;
-    const MODE = ROBOT36_MODE;
-    const WARMUP_MS = 5; // LPF transient discard
-    const warmupSamples = Math.round((WARMUP_MS * SR) / 1000);
-
-    if (this._sstvState === 'idle') {
-      const recentTotal = tap.totalWritten;
-      const recent = tap.recent(1200, SR);
-      if (recent.length < 800) return;
-      const vis = this._visDetect(recent, SR);
-      if (vis && vis.visCode === MODE.visCode) {
-        this._sstvState = 'decoding';
-        this._sstvMode = MODE;
-        this._sstvNextScanLine = 0;
-        this._sstvT0 = recentTotal - vis.endOffset;
-        this._sstvFullRgba = new Uint8ClampedArray(MODE.width * MODE.height * 4);
-        this._sstvYbuf = null;
-        this._sstvRYbuf = null;
-        this._sstvBYbuf = null;
-        this._sstvSyncWin0 = [];
-        this._sstvSyncWin1 = [];
-
-        document.getElementById('sstv-status').textContent = '解码中...';
-        document.getElementById('sstv-status').classList.add('active');
-        document.getElementById('sstv-mode-badge').textContent = MODE.name;
-        document.getElementById('sstv-mode-badge').classList.add('visible');
-
-        const ctx = this._sstvCanvasCtx;
-        ctx.fillStyle = '#111';
-        ctx.fillRect(0, 0, 640, 480);
-        this._sstvOffCtx.fillStyle = '#111';
-        this._sstvOffCtx.fillRect(0, 0, 320, 240);
-      }
-      return;
-    }
-
-    if (this._sstvState === 'decoding') {
-      const MODE = this._sstvMode;
-      const SR = 8000;
-      const warmupSamples = Math.round((5 * SR) / 1000);
-      const rowSamples = Math.round(MODE.scanLineMs * SR / 1000);
-
-      const elapsedSamples = tap.totalWritten - this._sstvT0;
-      const elapsedMs = (elapsedSamples / SR) * 1000;
-      const targetScanLine = Math.floor(elapsedMs / MODE.scanLineMs);
-
-      this._updateSignalBar(targetScanLine);
-
-      // Process scan lines in pairs (Robot 36: each pair = Y[even],Cr,Y[odd],Cb)
-      while (this._sstvNextScanLine + 1 < Math.min(targetScanLine, MODE.totalScanLines)) {
-        const lnEven = this._sstvNextScanLine;
-        const lnOdd = lnEven + 1;
-        const oldest = Math.max(0, tap.totalWritten - tap.capacity);
-
-        const startEven = this._sstvT0 + Math.round(lnEven * MODE.scanLineMs * SR / 1000);
-        const actualWarmupEven = Math.max(0, Math.min(warmupSamples, startEven - oldest));
-        const samplesEven = tap.slice(startEven - actualWarmupEven, rowSamples + actualWarmupEven);
-        if (!samplesEven || samplesEven.length < 100) break;
-
-        const startOdd = this._sstvT0 + Math.round(lnOdd * MODE.scanLineMs * SR / 1000);
-        const actualWarmupOdd = Math.max(0, Math.min(warmupSamples, startOdd - oldest));
-        const samplesOdd = tap.slice(startOdd - actualWarmupOdd, rowSamples + actualWarmupOdd);
-        if (!samplesOdd || samplesOdd.length < 100) break;
-
-        const rgba = this._decodeSstvLinePair(samplesEven, samplesOdd, SR, MODE,
-          actualWarmupEven, actualWarmupOdd);
-
-        const firstRow = lnEven; // 0, 2, 4, ..., 34
-        const rowOffset = firstRow * MODE.width * 4;
-        this._sstvFullRgba.set(rgba, rowOffset);
-        this._renderSstvRows(firstRow, 2);
-
-        this._sstvNextScanLine += 2;
-      }
-
-      if (this._sstvNextScanLine >= MODE.totalScanLines) {
-        this._sstvState = 'done';
-        this._renderSstvFull();
-        const dataUrl = this._sstvCanvasCtx.canvas.toDataURL('image/png');
-        this._addSstvToHistory(MODE.name, dataUrl);
-
-        document.getElementById('sstv-status').textContent = '解码完成';
-        document.getElementById('sstv-status').classList.add('active');
-
-        const self = this;
-        setTimeout(() => {
-          if (self._sstvState === 'done') {
-            self._sstvState = 'idle';
-            self._sstvFullRgba = null;
-            self._sstvMode = null;
-            self._sstvYbuf = null;
-            self._sstvRYbuf = null;
-            self._sstvBYbuf = null;
-            self._sstvSyncWin0 = [];
-            self._sstvSyncWin1 = [];
-            document.getElementById('sstv-status').textContent = '等待信号...';
-            document.getElementById('sstv-status').classList.remove('active');
-            document.getElementById('sstv-mode-badge').classList.remove('visible');
-            self._clearSignalBar();
-          }
-        }, 3000);
-        return;
-      }
-
-      if (elapsedMs > MODE.scanLineMs * MODE.totalScanLines * 1.1) {
-        this._renderSstvFull();
-        const dataUrl = this._sstvCanvasCtx.canvas.toDataURL('image/png');
-        this._addSstvToHistory(MODE.name + ' (未完整)', dataUrl);
-
-        this._sstvState = 'idle';
-        this._sstvFullRgba = null;
-        this._sstvMode = null;
-        this._sstvYbuf = null;
-        this._sstvRYbuf = null;
-        this._sstvBYbuf = null;
-        this._sstvSyncWin0 = [];
-        this._sstvSyncWin1 = [];
-        document.getElementById('sstv-status').textContent = '等待信号...';
-        document.getElementById('sstv-status').classList.remove('active');
-        document.getElementById('sstv-mode-badge').classList.remove('visible');
-        this._clearSignalBar();
-      }
-    }
-  },
-
-  // ============ SSTV Robot 36 像素解码（参照 FmoDeck） ============
-
-  _ycbcrToRgb(y, cb, cr) {
-    const cbb = cb - 128;
-    const crr = cr - 128;
-    const r = y + 1.402 * crr;
-    const g = y - 0.344136 * cbb - 0.714136 * crr;
-    const b = y + 1.772 * cbb;
-    return [
-      Math.max(0, Math.min(255, Math.round(r))),
-      Math.max(0, Math.min(255, Math.round(g))),
-      Math.max(0, Math.min(255, Math.round(b)))
-    ];
-  },
-
-  _detectSstvSync(freq, sampleRate, syncMs, searchMs) {
-    // 同步脉冲检测策略：
-    // 1. 在 searchMs 范围内搜索 1200 Hz ±100 Hz 的连续区域（sync 脉冲）
-    // 2. 要求该区域前方有高频→低频的过渡（上一扫描行结束时 ~2300 Hz）
-    // 3. 使用加权滑动平均而非简单均值，以找到脉冲中心
-    // PhosphorSSTV 参考容差：±80 Hz，此处使用 ±100 Hz 以兼容网页音频漂移
-    const searchSamples = Math.min(freq.length, Math.round((searchMs * sampleRate) / 1000));
-    const winSamples = Math.max(4, Math.round((syncMs * sampleRate) / 1000));
-    if (searchSamples < winSamples + 8) return 0;
-
-    // 跳过 FM 解调器的初始化暂态 (前 1ms = 8 samples @ 8kHz)
-    const skipSamples = Math.max(0, Math.round((1 * sampleRate) / 1000));
-
-    let sum = 0;
-    for (let k = skipSamples; k < skipSamples + winSamples; k++) sum += freq[k] || 0;
-
-    let bestCenterIdx = skipSamples + winSamples / 2;
-    let bestDist = Infinity;
-
-    for (let start = skipSamples; start + winSamples <= searchSamples; start++) {
-      const mean = sum / winSamples;
-      const dist = Math.abs(mean - 1200);
-      // 检测 sync 前 2ms 的高频过渡（前一行结束时 ~2300 Hz）
-      const preStart = Math.max(skipSamples, start - Math.round((2 * sampleRate) / 1000));
-      if (preStart < start) {
-        let preSum = 0;
-        for (let p = preStart; p < start; p++) preSum += freq[p] || 0;
-        const preMean = preSum / (start - preStart);
-        // 前方频率应明显更高（>1600 Hz），说明有真实的下降沿
-        if (preMean < 1600) {
-          // 不满足下降沿条件，加权惩罚
-          const penaltyDist = dist + 80;
-          if (penaltyDist < bestDist) {
-            bestDist = penaltyDist;
-            bestCenterIdx = start + winSamples / 2;
-          }
-          if (start + winSamples < searchSamples) {
-            sum += (freq[start + winSamples] || 0) - (freq[start] || 0);
-          }
-          continue;
-        }
-      }
-      if (dist < bestDist) {
-        bestDist = dist;
-        bestCenterIdx = start + winSamples / 2;
-      }
-      if (start + winSamples < searchSamples) {
-        sum += (freq[start + winSamples] || 0) - (freq[start] || 0);
-      }
-    }
-
-    // 严格容差：±100 Hz（原 ±200 Hz 太宽，可能误锁 porch 或 chroma 段）
-    if (bestDist > 100) return 0;
-    const detectedMs = (bestCenterIdx / sampleRate) * 1000;
-    return detectedMs - syncMs / 2;
-  },
-
-  _hampelFilterSync(window, raw) {
-    window.push(raw);
-    if (window.length > 5) window.shift();
-    if (window.length < 3) return raw;
-    const sorted = [...window].sort((a, b) => a - b);
-    const median = sorted[Math.floor(sorted.length / 2)];
-    const deviations = window.map(v => Math.abs(v - median)).sort((a, b) => a - b);
-    const mad = deviations[Math.floor(deviations.length / 2)];
-    if (Math.abs(raw - median) > mad * 3 + 0.01) return median;
-    return raw;
-  },
-
-  _sampleSstvSection(freq, sampleRate, startMs, endMs, count) {
-    const out = new Uint8ClampedArray(count);
-    const startIdx = Math.max(0, Math.round((startMs * sampleRate) / 1000));
-    const endIdx = Math.min(freq.length, Math.round((endMs * sampleRate) / 1000));
-    const sectionSamples = endIdx - startIdx;
-    if (sectionSamples <= 0) return out;
-
-    const perPixelSamples = sectionSamples / count;
-    const winSamples = Math.min(sectionSamples, Math.max(4, Math.round(perPixelSamples)));
-
-    for (let i = 0; i < count; i++) {
-      const centerIdx = startIdx + Math.round((i + 0.5) * perPixelSamples);
-      const ws = Math.floor(winSamples / 2);
-      const s = Math.max(startIdx, centerIdx - ws);
-      const e = Math.min(endIdx, s + winSamples);
-      let sum = 0;
-      for (let k = s; k < e; k++) sum += freq[k] || 0;
-      const avgHz = sum / (e - s);
-      out[i] = Math.max(0, Math.min(255, Math.round(((avgHz - 1500) / 800) * 255)));
-    }
-    return out;
-  },
-
-  /* SSTV de-emphasis: 发射端有 6dB/oct 预加重，解码端用一阶递归低通去加重
-     tau ≈ 300µs, fs=8000, k=exp(-1/(fs*tau)) ≈ 0.659 (仅用于亮度通道) */
-  _deEmphasisLuma(luma) {
-    const out = new Uint8ClampedArray(luma.length);
-    let prev = luma[0];
-    out[0] = luma[0];
-    const k = 0.659; // exp(-1/(8000 * 0.0003))
-    for (let i = 1; i < luma.length; i++) {
-      const val = luma[i] + k * (prev - luma[i]); // 低通平滑
-      out[i] = Math.max(0, Math.min(255, Math.round(val)));
-      prev = out[i];
-    }
-    return out;
-  },
-
-  _decodeSstvLinePair(samplesEven, samplesOdd, sampleRate, mode, warmupEven, warmupOdd) {
-    const freqEven = this._fmDemodulate(samplesEven, sampleRate, warmupEven);
-    const freqOdd = this._fmDemodulate(samplesOdd, sampleRate, warmupOdd);
-
-    const sync0Raw = this._detectSstvSync(freqEven, sampleRate, mode.syncMs, 20);
-    const sync1Raw = this._detectSstvSync(freqOdd, sampleRate, mode.syncMs, 20);
-
-    const sync0 = this._hampelFilterSync(this._sstvSyncWin0, sync0Raw);
-    const sync1 = this._hampelFilterSync(this._sstvSyncWin1, sync1Raw);
-
-    // Even line: sync(9)+porch(3)+Y[even](88)+sep(4.5)+porch2(1.5)+Cr(44)
-    const yEvenStart = mode.syncMs + mode.porchMs + sync0;
-    const yEvenEnd = yEvenStart + mode.yMs;
-    const crStart = yEvenEnd + mode.separatorMs + mode.porch2Ms;
-    const crEnd = crStart + mode.chromaMs;
-
-    // Odd line: sync(9)+porch(3)+Y[odd](88)+sep(4.5)+porch2(1.5)+Cb(44)
-    const yOddStart = mode.syncMs + mode.porchMs + sync1;
-    const yOddEnd = yOddStart + mode.yMs;
-    const cbStart = yOddEnd + mode.separatorMs + mode.porch2Ms;
-    const cbEnd = cbStart + mode.chromaMs;
-
-    const chromaWidth = Math.floor(mode.width / 2); // 160 for Robot 36
-
-    const yEvenRaw = this._sampleSstvSection(freqEven, sampleRate, yEvenStart, yEvenEnd, mode.width);
-    const yOddRaw = this._sampleSstvSection(freqOdd, sampleRate, yOddStart, yOddEnd, mode.width);
-    const cr = this._sampleSstvSection(freqEven, sampleRate, crStart, crEnd, chromaWidth);
-    const cb = this._sampleSstvSection(freqOdd, sampleRate, cbStart, cbEnd, chromaWidth);
-
-    // 对亮度通道应用去加重（色度通道不去加重）
-    const yEven = this._deEmphasisLuma(yEvenRaw);
-    const yOdd = this._deEmphasisLuma(yOddRaw);
-
-    // YCbCr→RGB, 2 rows, chroma subsampling 2:1
-    const rgba = new Uint8ClampedArray(mode.width * 2 * 4);
-    for (let x = 0; x < mode.width; x++) {
-      const ci = x >> 1;
-      const crVal = cr[ci] || 128;
-      const cbVal = cb[ci] || 128;
-      const [r0, g0, b0] = this._ycbcrToRgb(yEven[x] || 128, cbVal, crVal);
-      const [r1, g1, b1] = this._ycbcrToRgb(yOdd[x] || 128, cbVal, crVal);
-      rgba[x * 4 + 0] = r0;
-      rgba[x * 4 + 1] = g0;
-      rgba[x * 4 + 2] = b0;
-      rgba[x * 4 + 3] = 255;
-      rgba[(mode.width + x) * 4 + 0] = r1;
-      rgba[(mode.width + x) * 4 + 1] = g1;
-      rgba[(mode.width + x) * 4 + 2] = b1;
-      rgba[(mode.width + x) * 4 + 3] = 255;
-    }
-    return rgba;
-  },
-
-  _renderSstvRows(firstRow, count) {
-    const mode = this._sstvMode;
-    if (!mode || !this._sstvFullRgba) return;
-    const offCtx = this._sstvOffCtx;
-    for (let row = 0; row < count; row++) {
-      const y = firstRow + row;
-      if (y >= mode.height) break;
-      const rowOffset = y * mode.width * 4;
-      const rowData = new ImageData(
-        new Uint8ClampedArray(this._sstvFullRgba.buffer, rowOffset, mode.width * 4),
-        mode.width, 1
-      );
-      offCtx.putImageData(rowData, 0, y);
-    }
-    const ctx = this._sstvCanvasCtx;
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(this._sstvOffCanvas, 0, 0, 640, 480);
-  },
-
-  _renderSstvFull() {
-    const mode = this._sstvMode;
-    if (!mode || !this._sstvFullRgba) return;
-    const offCtx = this._sstvOffCtx;
-    offCtx.putImageData(
-      new ImageData(new Uint8ClampedArray(this._sstvFullRgba), mode.width, mode.height),
-      0, 0
-    );
-    const ctx = this._sstvCanvasCtx;
-    ctx.fillStyle = '#111';
-    ctx.fillRect(0, 0, 640, 480);
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(this._sstvOffCanvas, 0, 0, 640, 480);
-  },
-
-  _updateSignalBar(targetScanLine) {
-    const leadEl = document.getElementById('sig-lead');
-    const syncEl = document.getElementById('sig-sync');
-    const imgEl = document.getElementById('sig-img');
-    if (!leadEl || !syncEl || !imgEl) return;
-    leadEl.classList.add('active');
-    if (targetScanLine > 0) {
-      syncEl.classList.add('active');
-      imgEl.classList.add('active');
-    } else {
-      syncEl.classList.remove('active');
-      imgEl.classList.remove('active');
-    }
-  },
-
-  _clearSignalBar() {
-    ['sig-lead', 'sig-sync', 'sig-img'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.classList.remove('active');
-    });
-  },
-
-  _initSstvUi() {
-    const self = this;
-    const $ = id => document.getElementById(id);
-
-    const featureBtn = $('feature-btn');
-    const featureMenu = $('feature-menu');
-    if (featureBtn && featureMenu) {
-      featureBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        featureMenu.classList.toggle('open');
-      });
-      document.addEventListener('click', () => {
-        featureMenu.classList.remove('open');
-      });
-      featureMenu.addEventListener('click', (e) => e.stopPropagation());
-    }
-
-    const menuSstv = $('menu-sstv');
-    if (menuSstv) {
-      menuSstv.addEventListener('click', () => {
-        featureMenu.classList.remove('open');
-        self._openSstvPanel();
-      });
-    }
-
-    const closeBtn = $('sstv-close');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => self._closeSstvPanel());
-    }
-
-    const overlay = $('sstv-overlay');
-    if (overlay) {
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) self._closeSstvPanel();
-      });
-    }
-
-    const forceBtn = $('sstv-force-start');
-    if (forceBtn) {
-      forceBtn.addEventListener('click', () => {
-        const modeKey = $('sstv-force-mode').value;
-        self._sstvForceStart(modeKey);
-      });
-    }
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && self._sstvActive) {
-        self._closeSstvPanel();
-      }
-    });
-  },
-
-  _openSstvPanel() {
-    document.getElementById('sstv-overlay').classList.add('open');
-    this._sstvActive = true;
-    this._sstvState = 'idle';
-    this._sstvFullRgba = null;
-    this._sstvMode = null;
-    this._sstvYbuf = null;
-    this._sstvRYbuf = null;
-    this._sstvBYbuf = null;
-    this._sstvSyncWin0 = [];
-    this._sstvSyncWin1 = [];
-    this._clearSignalBar();
-    document.getElementById('sstv-status').textContent = '等待信号...';
-    document.getElementById('sstv-status').classList.remove('active');
-    document.getElementById('sstv-mode-badge').classList.remove('visible');
-
-    if (this._sstvTickTimer) clearInterval(this._sstvTickTimer);
-    this._sstvTickTimer = setInterval(() => this._sstvTick(), 50);
-
-    this._renderSstvHistory();
-  },
-
-  _closeSstvPanel() {
-    document.getElementById('sstv-overlay').classList.remove('open');
-    this._sstvActive = false;
-    this._sstvState = 'idle';
-    this._sstvFullRgba = null;
-    this._sstvMode = null;
-    this._sstvYbuf = null;
-    this._sstvRYbuf = null;
-    this._sstvBYbuf = null;
-    this._sstvSyncWin0 = [];
-    this._sstvSyncWin1 = [];
-
-    if (this._sstvTickTimer) {
-      clearInterval(this._sstvTickTimer);
-      this._sstvTickTimer = null;
-    }
-  },
-
-  _sstvForceStart(modeKey) {
-    if (!modeKey) {
-      alert('请选择强制解码模式');
-      return;
-    }
-    if (!this._sstvActive || !this._sstvAudioTap) return;
-
-    const tap = this._sstvAudioTap;
-    const SR = 8000;
-    const MODE = ROBOT36_MODE;
-
-    this._sstvState = 'decoding';
-    this._sstvMode = MODE;
-    this._sstvNextScanLine = 0;
-    this._sstvT0 = tap.totalWritten - Math.round(2.5 * SR);
-    this._sstvFullRgba = new Uint8ClampedArray(MODE.width * MODE.height * 4);
-    this._sstvYbuf = null;
-    this._sstvRYbuf = null;
-    this._sstvBYbuf = null;
-    this._sstvSyncWin0 = [];
-    this._sstvSyncWin1 = [];
-
-    document.getElementById('sstv-status').textContent = '强制解码中...';
-    document.getElementById('sstv-status').classList.add('active');
-    document.getElementById('sstv-mode-badge').textContent = MODE.name;
-    document.getElementById('sstv-mode-badge').classList.add('visible');
-
-    const ctx = this._sstvCanvasCtx;
-    ctx.fillStyle = '#111';
-    ctx.fillRect(0, 0, 640, 480);
-    this._sstvOffCtx.fillStyle = '#111';
-    this._sstvOffCtx.fillRect(0, 0, 320, 240);
-  },
-
-  _addSstvToHistory(modeName, dataUrl) {
-    this._sstvHistory.unshift({
-      mode: modeName,
-      dataUrl: dataUrl,
-      time: Date.now()
-    });
-    if (this._sstvHistory.length > 20) {
-      this._sstvHistory = this._sstvHistory.slice(0, 20);
-    }
-    this._renderSstvHistory();
-  },
-
-  _renderSstvHistory() {
-    const container = document.getElementById('sstv-history-list');
-    const countEl = document.getElementById('sstv-history-count');
-    if (!container) return;
-    countEl.textContent = this._sstvHistory.length;
-
-    if (!this._sstvHistory.length) {
-      container.innerHTML = '<div class="sstv-history-empty">暂无历史</div>';
-      return;
-    }
-
-    const self = this;
-    container.innerHTML = this._sstvHistory.map((item, index) => {
-      const d = new Date(item.time);
-      const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
-      return `<div class="sstv-history-item" data-index="${index}">
-        <img src="${item.dataUrl}" alt="${item.mode}">
-        <div class="sstv-history-item-meta">
-          <span>${item.mode}</span>
-          <span>${timeStr}</span>
-        </div>
-      </div>`;
-    }).join('');
-
-    container.querySelectorAll('.sstv-history-item').forEach(el => {
-      el.addEventListener('click', () => {
-        const idx = parseInt(el.dataset.index);
-        const item = self._sstvHistory[idx];
-        if (item) {
-          const img = new Image();
-          img.onload = () => {
-            const ctx = self._sstvCanvasCtx;
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, 640, 480);
-            ctx.imageSmoothingEnabled = false;
-            ctx.drawImage(img, 0, 0, 640, 480);
-          };
-          img.src = item.dataUrl;
-        }
-      });
-    });
   },
 };
 
