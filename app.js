@@ -1558,6 +1558,7 @@ const App = {
       return;
     }
     const pad = (n, len) => String(n).padStart(len, '0');
+    const byteLen = (s) => new TextEncoder().encode(s).length;
     const lines = [
       '<ADIF_VER:5>3.1.4',
       '<PROGRAMID:14>fmo-secondary',
@@ -1577,7 +1578,7 @@ const App = {
       // QSO_DATE / TIME_ON（ADIF 强制要求，使用 UTC）
       const date = `${ts.getUTCFullYear()}${pad(ts.getUTCMonth()+1,2)}${pad(ts.getUTCDate(),2)}`;
       const time = `${pad(ts.getUTCHours(),2)}${pad(ts.getUTCMinutes(),2)}${pad(ts.getUTCSeconds(),2)}`;
-      lines.push(`<CALL:${toCallsign.length}>${toCallsign}`);
+      lines.push(`<CALL:${byteLen(toCallsign)}>${toCallsign}`);
       lines.push(`<QSO_DATE:8>${date}`);
       lines.push(`<TIME_ON:6>${time}`);
 
@@ -1594,26 +1595,26 @@ const App = {
       lines.push(`<BAND:${band.length}>${band}`);
 
       if (grid) {
-        lines.push(`<GRIDSQUARE:${grid.length}>${grid}`);
+        lines.push(`<GRIDSQUARE:${byteLen(grid)}>${grid}`);
       }
-      lines.push(`<MODE:${mode.length}>${mode}`);
+      lines.push(`<MODE:${byteLen(mode)}>${mode}`);
       lines.push('<RST_SENT:2>59');
       lines.push('<RST_RCVD:2>59');
       if (this.myCallsign) {
-        lines.push(`<OPERATOR:${this.myCallsign.length}>${this.myCallsign}`);
-        lines.push(`<STATION_CALLSIGN:${this.myCallsign.length}>${this.myCallsign}`);
+        lines.push(`<OPERATOR:${byteLen(this.myCallsign)}>${this.myCallsign}`);
+        lines.push(`<STATION_CALLSIGN:${byteLen(this.myCallsign)}>${this.myCallsign}`);
       }
       if (logId) {
         const comment = `Server:${this.currentServerName || ''} LogID:${logId}` + (memo ? ` Memo:${memo}` : '');
-        lines.push(`<COMMENT:${comment.length}>${comment}`);
+        lines.push(`<COMMENT:${byteLen(comment)}>${comment}`);
       } else if (this.currentServerName || memo) {
         const comment = [this.currentServerName ? `Server:${this.currentServerName}` : '', memo ? `Memo:${memo}` : ''].filter(Boolean).join(' ');
-        lines.push(`<COMMENT:${comment.length}>${comment}`);
+        lines.push(`<COMMENT:${byteLen(comment)}>${comment}`);
       }
       lines.push('<EOR>');
     }
     const adi = lines.join('\n');
-    const blob = new Blob([adi], { type: 'text/plain' });
+    const blob = new Blob([adi], { type: 'text/plain;charset=UTF-8' });
     const url = URL.createObjectURL(blob);
     const now = new Date();
     const filename = `fmo_qso_${now.getFullYear()}${pad(now.getMonth()+1,2)}${pad(now.getDate(),2)}_${pad(now.getHours(),2)}${pad(now.getMinutes(),2)}${pad(now.getSeconds(),2)}.adi`;
