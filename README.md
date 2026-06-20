@@ -135,6 +135,20 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-20 (v0.3.37)
+
+梅登海德网格点击改为复制呼号并打开地图
+
+**修改**
+- `.recent-grid`：不再直接跳转（map.fmo.net.cn 不支持 URL 参数/hash 定位），改为点击时 `navigator.clipboard.writeText` 复制呼号到剪贴板，再 `window.open` 打开 map.fmo.net.cn
+- `href` 改为 `javascript:void(0)`，点击行为交由 JS 事件处理
+- 新增 `console.log` 输出复制的呼号，方便调试
+
+**修改文件**：app.js
+
+<details>
+<summary>历史版本</summary>
+
 ### 2026-06-20 (v0.3.36)
 
 修复网格坐标链接无法跳转到 map.fmo.net.cn 对应位置
@@ -145,9 +159,6 @@ fmo-secondary/
 - 坐标计算复用已有 `_gridToLatLon`，精度保留 4 位小数
 
 **修改文件**：app.js
-
-<details>
-<summary>历史版本</summary>
 
 ### 2026-06-20 (v0.3.35)
 

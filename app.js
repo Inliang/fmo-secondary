@@ -1317,9 +1317,19 @@ const App = {
         + '<span>' + timeStr + '</span>'
         + '</div>'
         + '<span class="recent-count">x' + count + '</span>'
-        + (item.grid ? '<a class="recent-grid" href="' + this.gridToMapHref(item.grid) + '" target="_blank" title="在地图上查看 ' + item.grid + '">' + item.grid + '</a>' : '')
+        + (item.grid ? '<a class="recent-grid" href="javascript:void(0)" title="复制呼号并打开地图 — ' + item.callsign + '">' + item.grid + '</a>' : '')
         + '</div>';
     }).join('');
+    container.querySelectorAll('.recent-grid').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        const callsign = el.closest('.recent-item').dataset.callsign;
+        navigator.clipboard.writeText(callsign).then(() => {
+          console.log('Copied callsign:', callsign);
+          window.open('https://map.fmo.net.cn/', '_blank');
+        }).catch(() => {});
+      });
+    });
   },
 
   renderSpeakingBar() {
