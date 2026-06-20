@@ -501,15 +501,14 @@ const App = {
   },
 
   formatElapsed(ms) {
-    const s = Math.floor(ms / 1000);
-    if (s < 60) return s + 's';
-    const m = Math.floor(s / 60);
-    const remS = s % 60;
-    if (s < 3600) return m + 'm' + remS + 's';
-    const h = Math.floor(s / 3600);
-    const remM = Math.floor((s % 3600) / 60);
-    const remSs = s % 60;
-    return h + 'h' + remM + 'm' + remSs + 's';
+    const totalS = Math.floor(ms / 1000);
+    const h = Math.floor(totalS / 3600);
+    const m = Math.floor((totalS % 3600) / 60);
+    const s = totalS % 60;
+    if (h > 0) {
+      return String(h) + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
   },
 
   formatTimeAgo(unixSeconds, nowMs) {
