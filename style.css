@@ -438,11 +438,12 @@ body::after {
   content: '';
   position: absolute;
   left: 0;
-  top: 2px;
-  bottom: 8px;
-  width: 2px;
+  top: 1px;
+  bottom: 6px;
+  width: 3px;
   background: var(--accent);
-  border-radius: 1px;
+  border-radius: 2px;
+  box-shadow: 0 0 6px var(--accent-glow);
 }
 .panel-title-row {
   display: flex;

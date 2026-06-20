@@ -135,6 +135,18 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-20 (v0.3.31)
+
+面板标题 accent 竖线加粗发光
+
+**优化**
+- `.panel-title::before`：竖线宽度 2px→3px，增加 `box-shadow: 0 0 6px var(--accent-glow)` 发光效果，圆角 1px→2px，上下边距微调更贴边
+
+**修改文件**：style.css
+
+<details>
+<summary>历史版本</summary>
+
 ### 2026-06-20 (v0.3.30)
 
 深度 UI/UX 审查 — 颜色一致性修复、字号层级统一、间距对齐、交互状态补全、无障碍优化
