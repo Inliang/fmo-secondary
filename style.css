@@ -455,10 +455,7 @@ body::after {
   margin-bottom: 0;
   border-bottom: none;
   padding-bottom: 0;
-  padding-left: 0;
-}
-.panel-title-row .panel-title::before {
-  display: none;
+  padding-left: 12px;
 }
 .export-btn {
   background: none;
