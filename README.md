@@ -135,6 +135,16 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-20 (v0.3.35)
+
+梅登海德网格链接回退为 map.fmo.net.cn，使用 FMO 后台返回的 grid 字段
+
+**修改**
+- `.recent-grid` 链接改回 `https://map.fmo.net.cn/?grid=<grid>`，参数使用 FMO 后台 speaking/station 数据中的原始梅登海德网格值
+- title 恢复为「在地图上查看 <grid>」
+
+**修改文件**：app.js
+
 ### 2026-06-20 (v0.3.34)
 
 梅登海德网格链接改用呼号跳转 aprs.fi
