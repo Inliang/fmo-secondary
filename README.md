@@ -135,6 +135,15 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-20 (v0.3.34)
+
+梅登海德网格链接改用呼号跳转 aprs.fi
+
+**修改**
+- `.recent-grid`：显示文本保持为梅登海德网格坐标（如 OL63ma），但 `href` 改为 `https://aprs.fi/#!call=<callsign>`，title 更新为「在 aprs.fi 上查看 <callsign>」
+
+**修改文件**：app.js
+
 ### 2026-06-20 (v0.3.33)
 
 梅登海德网格链接目标切换为 aprs.fi
