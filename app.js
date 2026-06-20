@@ -1265,7 +1265,8 @@ const App = {
         seen.add(call);
         items.push({
           callsign: h.callsign,
-          utcTime: Math.floor((h.endTime || h.startTime) / 1000)
+          utcTime: Math.floor((h.endTime || h.startTime) / 1000),
+          grid: h.grid || ''
         });
         if (items.length >= 10) break;
       }
@@ -1279,7 +1280,8 @@ const App = {
           seen.add(call);
           items.push({
             callsign: evt.callsign,
-            utcTime: evt.utcTime
+            utcTime: evt.utcTime,
+            grid: evt.grid || ''
           });
           if (items.length >= 10) break;
         }
@@ -1305,6 +1307,7 @@ const App = {
         + '<span>' + timeStr + '</span>'
         + '</div>'
         + '<span class="recent-count">x' + count + '</span>'
+        + (item.grid ? '<a class="recent-grid" href="https://map.fmo.net.cn/?grid=' + item.grid + '" target="_blank" title="在地图上查看 ' + item.grid + '">' + item.grid + '</a>' : '')
         + '</div>';
     }).join('');
   },

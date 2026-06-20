@@ -135,6 +135,21 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-20 (v0.3.32)
+
+最近发言面板加入梅登海德网格，点击跳转 APRS 地图
+
+**新增**
+- `.recent-grid`：recent-item 新增梅登海德网格标签，显示呼号对应的 Grid Locator（如 OL63ma）
+- 网格链接：点击 `.recent-grid` 跳转 `https://map.fmo.net.cn/?grid=...` 查看 APRS 位置
+- 网格数据来源：优先从 `_speakingHistory` 的 `grid` 字段提取，`_historyEvents` 兼容 `grid` 字段
+
+**样式**
+- `.recent-grid`：等宽字体 13px、accent 色系边框胶囊、hover 发光 + 背景高亮、active 缩放反馈
+- `.recent-item.is-speaking .recent-grid`：正在发言状态下网格变绿色系（`var(--success)` + `var(--success-glow)` 边框）
+
+**修改文件**：style.css、app.js
+
 ### 2026-06-20 (v0.3.31)
 
 面板标题 accent 竖线加粗发光

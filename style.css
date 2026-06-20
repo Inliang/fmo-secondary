@@ -989,9 +989,39 @@ body::after {
   flex-shrink: 0;
   font-family: var(--font-mono);
 }
+.recent-grid {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent-light);
+  text-decoration: none;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  transition: all var(--transition);
+  z-index: 1;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.recent-grid:hover {
+  color: var(--accent);
+  border-color: var(--border-accent);
+  background: var(--bg-card-active);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+.recent-grid:active {
+  transform: scale(0.95);
+}
+.recent-grid:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 0;
+}
 .recent-item.is-speaking .recent-callsign-line strong { color: var(--success); }
 .recent-item.is-speaking .recent-main > span { color: var(--success); }
 .recent-item.is-speaking .recent-count { color: var(--success); }
+.recent-item.is-speaking .recent-grid {
+  color: var(--success);
+  border-color: var(--success-glow);
+}
 .self-tag {
   font-size: 11px;
   font-weight: 600;
