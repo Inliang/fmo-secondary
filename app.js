@@ -943,6 +943,16 @@ const App = {
   },
 
   /**
+   * 将 Maidenhead Grid 转换为 MapLibre GL hash 格式的地图链接
+   * 格式: https://map.fmo.net.cn/#<zoom>/<lat>/<lng>
+   */
+  gridToMapHref(grid) {
+    const ll = this._gridToLatLon(grid);
+    if (!ll) return 'https://map.fmo.net.cn/';
+    return `https://map.fmo.net.cn/#4.6/${ll.lat.toFixed(4)}/${ll.lon.toFixed(4)}`;
+  },
+
+  /**
    * 通过 OSM Nominatim 反查网格对应的省/市/区地名，结果存入缓存
    */
   async _resolveGridLocation(grid) {
@@ -1307,7 +1317,7 @@ const App = {
         + '<span>' + timeStr + '</span>'
         + '</div>'
         + '<span class="recent-count">x' + count + '</span>'
-        + (item.grid ? '<a class="recent-grid" href="https://map.fmo.net.cn/?grid=' + item.grid + '" target="_blank" title="在地图上查看 ' + item.grid + '">' + item.grid + '</a>' : '')
+        + (item.grid ? '<a class="recent-grid" href="' + this.gridToMapHref(item.grid) + '" target="_blank" title="在地图上查看 ' + item.grid + '">' + item.grid + '</a>' : '')
         + '</div>';
     }).join('');
   },
