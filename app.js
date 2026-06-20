@@ -1506,25 +1506,49 @@ const App = {
       alert('暂无通联记录可导出');
       return;
     }
-    const data = this.qsoList.map(item => {
-      const logId = item.logId ?? '';
-      const toCallsign = item.toCallsign ?? item.callsign ?? '';
-      const grid = item.grid ?? item.locator ?? '';
+    const pad = (n, len) => String(n).padStart(len, '0');
+    const lines = ['ADIF Export from fmo-secondary', '<EOH>'];
+    for (const item of this.qsoList) {
+      const toCallsign = (item.toCallsign ?? item.callsign ?? '').trim();
+      const grid = (item.grid ?? item.locator ?? '').trim();
       const ts = item.timestamp ? new Date(item.timestamp * 1000) : null;
-      const timeStr = ts
-        ? `${ts.getFullYear()}-${String(ts.getMonth()+1).padStart(2,'0')}-${String(ts.getDate()).padStart(2,'0')} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}:${String(ts.getSeconds()).padStart(2,'0')}`
-        : '';
-      const frequency = item.frequency ?? item.freq ?? '';
-      const mode = item.mode ?? '';
-      const repeater = item.repeater ?? item.relay ?? '';
-      const memo = item.memo ?? item.message ?? '';
-      return { logId, toCallsign, grid, timestamp: item.timestamp, timeStr, frequency, mode, repeater, memo };
-    });
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/octet-stream' });
+      const frequency = (item.frequency ?? item.freq ?? '').toString().trim();
+      const mode = (item.mode ?? 'FM').toString().trim().toUpperCase() || 'FM';
+      const memo = (item.memo ?? item.message ?? '').trim();
+      const logId = (item.logId ?? '').toString().trim();
+
+      if (toCallsign) {
+        lines.push(`<CALL:${toCallsign.length}>${toCallsign}`);
+      }
+      if (ts) {
+        const date = `${ts.getUTCFullYear()}${pad(ts.getUTCMonth()+1,2)}${pad(ts.getUTCDate(),2)}`;
+        const time = `${pad(ts.getUTCHours(),2)}${pad(ts.getUTCMinutes(),2)}${pad(ts.getUTCSeconds(),2)}`;
+        lines.push(`<QSO_DATE:8>${date}`);
+        lines.push(`<TIME_ON:6>${time}`);
+      }
+      if (grid) {
+        lines.push(`<GRIDSQUARE:${grid.length}>${grid}`);
+      }
+      lines.push(`<MODE:${mode.length}>${mode}`);
+      if (frequency) {
+        lines.push(`<FREQ:${frequency.length}>${frequency}`);
+      }
+      lines.push('<RST_SENT:2>59');
+      lines.push('<RST_RCVD:2>59');
+      if (logId) {
+        const comment = `Server:${this.currentServerName || ''} LogID:${logId}` + (memo ? ` Memo:${memo}` : '');
+        lines.push(`<COMMENT:${comment.length}>${comment}`);
+      } else if (this.currentServerName || memo) {
+        const comment = [this.currentServerName ? `Server:${this.currentServerName}` : '', memo ? `Memo:${memo}` : ''].filter(Boolean).join(' ');
+        lines.push(`<COMMENT:${comment.length}>${comment}`);
+      }
+      lines.push('<EOR>');
+    }
+    const adi = lines.join('\n');
+    const blob = new Blob([adi], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const now = new Date();
-    const filename = `fmo-qso-export-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}.db`;
+    const filename = `fmo_qso_${now.getFullYear()}${pad(now.getMonth()+1,2)}${pad(now.getDate(),2)}_${pad(now.getHours(),2)}${pad(now.getMinutes(),2)}${pad(now.getSeconds(),2)}.adi`;
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
