@@ -1307,7 +1307,7 @@ const App = {
         + '<span>' + timeStr + '</span>'
         + '</div>'
         + '<span class="recent-count">x' + count + '</span>'
-        + (item.grid ? '<a class="recent-grid" href="https://map.fmo.net.cn/?grid=' + item.grid + '" target="_blank" title="在地图上查看 ' + item.grid + '">' + item.grid + '</a>' : '')
+        + (item.grid ? '<a class="recent-grid" href="https://aprs.fi/#!call=' + item.grid + '" target="_blank" title="在地图上查看 ' + item.grid + '">' + item.grid + '</a>' : '')
         + '</div>';
     }).join('');
   },

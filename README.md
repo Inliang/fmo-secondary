@@ -135,6 +135,15 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-20 (v0.3.33)
+
+梅登海德网格链接目标切换为 aprs.fi
+
+**修改**
+- `.recent-grid` 链接目标从 `https://map.fmo.net.cn/?grid=<locator>` 改为 `https://aprs.fi/#!call=<locator>`
+
+**修改文件**：app.js
+
 ### 2026-06-20 (v0.3.32)
 
 最近发言面板加入梅登海德网格，点击跳转 APRS 地图
