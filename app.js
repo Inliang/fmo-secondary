@@ -315,19 +315,10 @@ const App = {
       const expectedSubType =
         RESPONSE_ALIASES[r.type]?.[r.subType] ?? `${r.subType}Response`;
 
-      let matched = false;
       if (
         msg.type === r.type &&
         (msg.subType === expectedSubType || msg.subType === r.subType)
       ) {
-        matched = true;
-      }
-
-      if (!matched && msg.type === r.type && !msg.event) {
-        matched = true;
-      }
-
-      if (matched) {
         clearTimeout(this._inFlight.timer);
         const resolve = this._inFlight.resolve;
         this._inFlight = null;
