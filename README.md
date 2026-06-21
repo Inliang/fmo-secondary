@@ -135,6 +135,18 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-21 (v0.4.8)
+
+**UI 调整：底部面板去毛玻璃化 + 最近发言/通联记录左右分栏**
+
+- live-panel 和 qso-panel 移除毛玻璃效果（backdrop-filter），改为纯色 `var(--bg-card)` 背景
+- 边框从 `var(--glass-border)` 改为 `var(--glass-border-strong)`，圆角统一 `var(--radius-sm)`
+- index.html 新增 `.bottom-split` 包裹 div，实现桌面端横向 50/50 分栏（max-height: 280px），移动端纵向堆叠（max-height: 140px）
+
+**修改文件**：index.html, style.css (+44/-27 lines)
+
+---
+
 ### 2026-06-21 (v0.4.7)
 
 **Bugfix：修复频率、服务器列表、QSO 日志三项数据获取全部为空的严重问题**
