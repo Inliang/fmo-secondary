@@ -135,6 +135,35 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-21 (v0.4.2)
+
+FMO-Dashboard 风格重构 — 深色战术指挥中心，无边框 box-shadow 体系，Hero 大字呼号 + 罗盘 + 细节卡片
+
+**布局**
+- 双栏布局：左 Hero Active Contact 卡片 + 右 300px 侧边栏（上一个通联 / 收藏中继）
+- 顶部 40px 紧凑状态条（品牌 + 连接态 + 统计 pill）
+- section-label 区块标题标签
+- 信息层级：主呼号 → 标签行 → 控制区 → 细节卡片 → 方位面板
+
+**配色**
+- 最深底 `#080c0f`，卡片 `#0d1216` → hover `#111820`
+- 纯墨绿强调体系：`#00d68f`（主）/ `#3de6a5`（hover）/ `#00e676`（辅助）
+- 文字：`#e8ecef`（主）/ `#8899a6`（次）/ `#5c6975`（三级）
+
+**视觉**
+- 全局无 border，全部改用 box-shadow 边界
+- 过渡 cubic-bezier(0.4, 0, 0.2, 1) 和 cubic-bezier(0.22, 1, 0.36, 1)
+- H1 呼号 clamp(40px, 7vw, 56px) + letter-spacing: -0.02em + font-weight: 800
+- SVG 罗盘 72px，箭头 fill="#00d68f" + drop-shadow
+- 细节卡片 padding 12px 16px，背景 `#0a0f14`
+- 滚动条 5px `#1c2730`
+- 活动态 inset box-shadow breath 动画 4s
+
+**修改文件**：index.html, style.css
+
+<details>
+<summary>历史版本</summary>
+
 ### 2026-06-21 (v0.4.1)
 
 设计品质大幅提升 — 深度重做全局视觉
@@ -166,9 +195,6 @@ fmo-secondary/
 - 全部缓动用 cubic-bezier(0.16,1,0.3,1)
 
 **修改文件**：style.css
-
-<details>
-<summary>历史版本</summary>
 
 ### 2026-06-20 (v0.4.0)
 
