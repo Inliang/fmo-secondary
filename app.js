@@ -1,6 +1,6 @@
 /* ============================================================
    FMO 副屏伴侣 — app.js v8
-   v0.4.11: RESPONSE_ALIASES 回退 getListRangeResponse + 恢复 type 回退匹配
+   v0.4.12: 修复 RESPONSE_ALIASES (getListResponse) + 响应匹配兼容 V2 协议 event 字段
    v0.4.0: 推翻四象限布局，FMO-Dashboard 风格纵向信息流
    - 适配新 DOM 结构（speaking-bar 分词填充、device/server 标签组）
    - QSO 列表改用 .item-row 系列 CSS 类
@@ -13,7 +13,7 @@ function normalizeHost(addr) {
 }
 
 const RESPONSE_ALIASES = {
-  station: { getListRange: 'getListRangeResponse' }
+  station: { getListRange: 'getListResponse' }
 };
 
 class PcmTap {
@@ -311,7 +311,9 @@ const App = {
     let msg;
     try { msg = JSON.parse(data); } catch (e) { return; }
 
-    if (!msg.event && this._inFlight) {
+    // 响应匹配：V2 协议响应可能带 event:"ok"，故用 subType/code 辅助判别
+    const isResponseLike = !msg.event || msg.subType !== undefined || msg.code !== undefined;
+    if (isResponseLike && this._inFlight) {
       const r = this._inFlight.req;
       const expectedSubType =
         RESPONSE_ALIASES[r.type]?.[r.subType] ?? `${r.subType}Response`;
@@ -324,7 +326,7 @@ const App = {
         matched = true;
       }
 
-      if (!matched && msg.type === r.type && !msg.event) {
+      if (!matched && msg.type === r.type) {
         matched = true;
       }
 
@@ -587,8 +589,6 @@ const App = {
           subType: 'getListRange',
           data: { start: i * pageSize, count: pageSize }
         });
-        // 跳过事件消息（非请求-响应）
-        if (resp.event) continue;
         // code 明确为错误码时中止（部分固件不返回 code，仅 data 有值时继续）
         if (resp.code !== undefined && resp.code !== 0) break;
         const payload = resp.data;
