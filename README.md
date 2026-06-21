@@ -142,6 +142,16 @@ fmo-secondary/
 
 ---
 
+### 2026-06-21 (v0.4.10)
+
+**Bugfix：移除 handleWsMessage 贪婪回退匹配，修复服务器列表获取失败**
+
+- `handleWsMessage` 中删除 `!matched && msg.type === r.type && !msg.event` 回退匹配
+- 该回退在串行队列模式下过于贪婪：当 station/getListRange 在飞行中时，任何 type=station 的非事件消息都会被错误消费为响应，导致真实 getListResponse 被丢弃
+- 对齐 fmo-show / FMO-Dashboard / FmoDeck 三个参考项目的严格 type+subType 匹配策略
+
+---
+
 ### 2026-06-21 (v0.4.8)
 
 **底部面板去毛玻璃化 + 最近发言/通联记录左右分栏**
