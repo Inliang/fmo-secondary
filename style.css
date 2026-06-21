@@ -968,17 +968,28 @@ body {
    ============================================================ */
 .live-panel,
 .qso-panel {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card), inset 0 1px 0 0 var(--glass-edge);
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
   max-height: 220px;
   overflow: hidden;
+}
+
+.bottom-split {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+  min-height: 0;
+}
+.bottom-split .live-panel,
+.bottom-split .qso-panel {
+  flex: 1;
+  min-width: 0;
+  max-height: 280px;
 }
 
 .panel-header {
@@ -1539,8 +1550,12 @@ body {
     padding: 6px 8px;
   }
 
-  .live-panel,
-  .qso-panel {
+  .bottom-split {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .bottom-split .live-panel,
+  .bottom-split .qso-panel {
     max-height: 140px;
   }
 }
