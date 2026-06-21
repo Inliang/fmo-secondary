@@ -157,6 +157,23 @@ fmo-secondary/
 
 ---
 
+### 2026-06-21 (v0.4.5)
+
+通联计数徽章上移 + 蓝框信息补全 — 信息密度与视觉层级优化
+
+**改动一：红框 — 通联计数徽章上移至呼号旁**
+- `sb-contact-count` 从 `.contact-tags` 标签区移动到 `.callsign-wrap` 内，紧邻呼号右侧
+- 新增 `.count-badge` 样式：红底色玻璃徽章（`rgba(217,74,58,0.15)` 背景 + `backdrop-filter: blur(8px)`），`font-size: 18px; font-weight: 700; border-radius: var(--radius-pill)`，带 `box-shadow` 红辉光（`0 0 12px/24px` 双层）
+- JS 层 `renderSpeakingBar()` / `hideSpeaking()` 通过 `getElementById` 操作，无需修改
+
+**改动二：蓝框 — 信息补全**
+1. **上个通联卡片**：`prev-card-content` 内添加 `.prev-info-grid` 三列结构化占位（Bearing 方位 / Distance 距离 / Callsign 呼号），CSS 新增 `.prev-info-item` / `.prev-info-label` / `.prev-info-value` 半透明玻璃卡片内排列
+2. **收藏服务器列表**：`server-list-sidebar` 的 "加载中..." 改为 `.side-loading` 玻璃感加载组件（`.loading-spinner` 旋转动画 + `.skeleton-row` 闪烁骨架屏，3 行渐变宽度 100% / 85% / 65% + 交错动画延迟）
+
+**修改文件**：index.html, style.css
+
+---
+
 <details>
 <summary>历史版本</summary>
 
