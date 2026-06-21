@@ -1,5 +1,5 @@
 /* ============================================================
-   FMO Secondary Dashboard â€” Tactical Command Center
+   FMO Secondary Dashboard â€?Tactical Command Center
    No-border design, box-shadow separators, cubic-bezier transitions
    ============================================================ */
 
@@ -63,11 +63,7 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-body {
-  display: flex;
-  flex-direction: column;
-  padding: 8px 12px 0 12px;
-  gap: 6px;
+body { display: flex; flex-direction: column; padding: 14px 20px 0 16px; gap: 10px;
 }
 
 /* ---------- Scrollbar ---------- */
@@ -95,8 +91,8 @@ body {
 .status-bar {
   display: flex;
   align-items: center;
-  height: 40px;
-  padding: 0 14px;
+  height: 44px;
+  padding: 0 16px;
   gap: 16px;
   background: var(--bg-card);
   border-radius: var(--radius-md);
@@ -121,7 +117,7 @@ body {
 
 .brand-label {
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--text-primary);
@@ -158,13 +154,13 @@ body {
 }
 
 .status-text {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .status-desc {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-muted);
   font-family: var(--font-mono);
   white-space: nowrap;
@@ -183,7 +179,7 @@ body {
   align-items: center;
   gap: 4px;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 13px;
   color: var(--text-secondary);
   background: var(--bg-input);
   padding: 3px 10px;
@@ -194,7 +190,7 @@ body {
 }
 .stat-pill .stat-icon {
   color: var(--accent);
-  font-size: 8px;
+  font-size: 11px;
 }
 .stat-pill small {
   color: var(--text-muted);
@@ -245,7 +241,7 @@ body {
   align-items: center;
   gap: 4px;
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 12px;
   padding: 2px 8px;
   background: rgba(255, 255, 255, 0.02);
   border-radius: var(--radius-pill);
@@ -255,7 +251,7 @@ body {
   font-feature-settings: "tnum";
 }
 .device-tag .dt-label {
-  font-size: 7px;
+  font-size: 10px;
   color: var(--text-muted);
   letter-spacing: 0.08em;
   font-weight: 600;
@@ -274,7 +270,7 @@ body {
    ============================================================ */
 .dashboard-grid {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -287,7 +283,8 @@ body {
   display: flex;
   flex-direction: column;
   background:
-    radial-gradient(ellipse at 30% 0%, rgba(0, 214, 143, 0.04) 0%, transparent 70%),
+    radial-gradient(ellipse at 20% 0%, rgba(0, 214, 143, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(0, 214, 143, 0.02) 0%, transparent 50%),
     var(--bg-card);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
@@ -318,8 +315,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px 4px 16px;
-  font-size: 9px;
+  padding: 20px 24px 6px 20px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.14em;
   color: var(--text-muted);
@@ -333,7 +330,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--accent);
   letter-spacing: 0.1em;
@@ -352,7 +349,7 @@ body {
 .ac-hero {
   position: relative;
   z-index: 2;
-  padding: 10px 20px 14px 20px;
+  padding: 18px 24px 20px 24px;
 }
 
 .callsign-wrap {
@@ -365,7 +362,7 @@ body {
 
 .ac-callsign {
   font-family: var(--font-mono);
-  font-size: clamp(40px, 7vw, 56px);
+  font-size: clamp(56px, 9vw, 84px);
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -379,7 +376,7 @@ body {
 
 .grid-pill {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 700;
   background: var(--accent-bg);
   color: var(--accent-hover);
@@ -391,7 +388,7 @@ body {
 }
 
 .new-badge {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
   background: #d94a3a;
   color: #fff;
@@ -412,7 +409,7 @@ body {
 }
 
 .tag {
-  font-size: 10px;
+  font-size: 13px;
   padding: 3px 10px;
   background: rgba(255, 255, 255, 0.02);
   border-radius: var(--radius-sm);
@@ -434,7 +431,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 10px;
+  font-size: 13px;
   color: var(--text-muted);
   font-family: var(--font-mono);
 }
@@ -453,7 +450,7 @@ body {
   background: var(--accent-bg);
   color: var(--accent-hover);
   border-radius: var(--radius-pill);
-  font-size: 10px;
+  font-size: 13px;
   font-family: var(--font-mono);
   cursor: pointer;
   transition: all 0.2s var(--ease-out);
@@ -471,7 +468,7 @@ body {
   display: flex;
   align-items: center;
   gap: 18px;
-  padding: 16px 20px;
+  padding: 20px 24px;
   margin: 0 16px;
   background: var(--bg-input);
   border-radius: var(--radius-md);
@@ -491,13 +488,32 @@ body {
   flex-shrink: 0;
 }
 
+/* Radar ripple on active card */
+.active-contact-card.active .compass::before,
+.active-contact-card.active .compass::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 214, 143, 0.2);
+  animation: radar-ripple 3s var(--ease-in-out) infinite;
+  pointer-events: none;
+}
+.active-contact-card.active .compass::after {
+  animation-delay: 1.5s;
+}
+@keyframes radar-ripple {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
 .north-label {
   position: absolute;
   top: 6px;
   left: 50%;
   transform: translateX(-50%);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
   color: #fff;
   z-index: 1;
@@ -518,13 +534,13 @@ body {
   gap: 4px;
 }
 .bearing-meta strong {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
   font-family: var(--font-mono);
 }
 .bearing-meta span {
-  font-size: 12px;
+  font-size: 15px;
   color: var(--text-muted);
   font-family: var(--font-mono);
   font-feature-settings: "tnum";
@@ -537,7 +553,7 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 14px 20px;
   margin: 0 8px;
 }
 
@@ -560,20 +576,20 @@ body {
   box-shadow: 0 0 0 1px rgba(0, 214, 143, 0.12);
 }
 .detail-label {
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.1em;
   color: var(--text-muted);
   text-transform: uppercase;
 }
 .detail-card strong {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: 0.02em;
 }
 .detail-card small {
-  font-size: 10px;
+  font-size: 13px;
   color: var(--text-muted);
 }
 .relay-card strong {
@@ -587,7 +603,7 @@ body {
   top: 50%;
   transform: translate(-50%, -50%);
   font-family: var(--font-mono);
-  font-size: 16px;
+  font-size: 20px;
   color: rgba(255, 255, 255, 0.06);
   letter-spacing: 0.08em;
   z-index: 2;
@@ -608,7 +624,7 @@ body {
   right: 18px;
   z-index: 2;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 16px;
   color: var(--accent);
   font-feature-settings: "tnum";
   display: none;
@@ -630,11 +646,11 @@ body {
    4. SIDEBAR (Right 300px)
    ============================================================ */
 .dashboard-side {
-  width: 300px;
+  width: 340px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   overflow: hidden;
 }
 
@@ -662,12 +678,12 @@ body {
   cursor: pointer;
   text-align: left;
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.12em;
   color: var(--text-muted);
   text-transform: uppercase;
-  padding: 10px 14px 4px 14px;
+  padding: 12px 16px 6px 16px;
   transition: background 0.2s var(--ease-out);
 }
 .server-card-header:hover {
@@ -675,7 +691,7 @@ body {
 }
 
 .server-list-trigger {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--accent);
   padding: 2px 8px;
   background: var(--accent-bg);
@@ -691,14 +707,14 @@ body {
 .side-empty {
   padding: 20px 16px;
   text-align: center;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-muted);
   font-family: var(--font-sans);
 }
 
 /* Previous contact content */
 .prev-contact-info {
-  padding: 6px 14px 12px 14px;
+  padding: 8px 14px 14px 14px;
 }
 .prev-callsign-row {
   display: flex;
@@ -708,12 +724,12 @@ body {
 }
 .prev-callsign-row strong {
   font-family: var(--font-mono);
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
 }
 .prev-callsign-row .grid-pill {
-  font-size: 10px;
+  font-size: 13px;
   padding: 2px 8px;
   display: inline-flex;
 }
@@ -722,7 +738,7 @@ body {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  font-size: 10px;
+  font-size: 13px;
   color: var(--text-muted);
   font-family: var(--font-mono);
 }
@@ -743,11 +759,11 @@ body {
   height: 20px;
 }
 .prev-mini-bearing .compass .north-label {
-  font-size: 8px;
+  font-size: 11px;
   top: 2px;
 }
 .prev-mini-bearing > span {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-secondary);
   font-family: var(--font-mono);
 }
@@ -767,7 +783,7 @@ body {
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  font-size: 11px;
+  font-size: 14px;
   font-family: var(--font-mono);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -792,7 +808,7 @@ body {
   white-space: nowrap;
 }
 .server-item-side .station-pin {
-  font-size: 8px;
+  font-size: 11px;
   color: var(--accent);
   opacity: 0.7;
 }
@@ -808,7 +824,7 @@ body {
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
-  max-height: 180px;
+  max-height: 220px;
   overflow: hidden;
 }
 
@@ -816,9 +832,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 14px;
+  padding: 10px 16px;
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.12em;
   color: var(--text-muted);
@@ -827,7 +843,7 @@ body {
 }
 
 .panel-count {
-  font-size: 10px;
+  font-size: 13px;
   color: var(--accent);
   background: var(--accent-bg);
   padding: 2px 8px;
@@ -845,7 +861,7 @@ body {
 .list-empty {
   padding: 24px 16px;
   text-align: center;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-muted);
   font-family: var(--font-sans);
 }
@@ -854,10 +870,10 @@ body {
 .item-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 5px 14px;
+  gap: 12px;
+  padding: 7px 16px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 14px;
   transition: background 0.2s var(--ease-out);
   box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.015);
 }
@@ -885,7 +901,7 @@ body {
 }
 
 .item-grid {
-  font-size: 10px;
+  font-size: 13px;
   padding: 2px 6px;
   background: var(--accent-bg);
   color: var(--accent-hover);
@@ -900,7 +916,7 @@ body {
 
 .item-time {
   margin-left: auto;
-  font-size: 10px;
+  font-size: 13px;
   color: var(--text-muted);
   font-feature-settings: "tnum";
   white-space: nowrap;
@@ -910,8 +926,8 @@ body {
 .recent-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 5px 14px;
+  gap: 12px;
+  padding: 7px 16px;
   transition: background 0.2s var(--ease-out);
   box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.015);
   font-family: var(--font-mono);
@@ -927,7 +943,7 @@ body {
 }
 
 .recent-index-bg {
-  font-size: 10px;
+  font-size: 13px;
   color: var(--text-muted);
   width: 18px;
   text-align: center;
@@ -949,13 +965,13 @@ body {
   gap: 6px;
 }
 .recent-callsign-line strong {
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .recent-count {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--accent);
   background: var(--accent-bg);
   padding: 1px 6px;
@@ -965,7 +981,7 @@ body {
 }
 
 .recent-grid {
-  font-size: 10px;
+  font-size: 13px;
   padding: 2px 6px;
   background: var(--accent-bg);
   color: var(--accent-hover);
@@ -979,7 +995,7 @@ body {
 }
 
 .self-tag {
-  font-size: 8px;
+  font-size: 11px;
   color: var(--accent);
   background: var(--accent-bg-strong);
   padding: 1px 5px;
@@ -1020,7 +1036,7 @@ body {
 }
 
 .server-list-title {
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -1032,7 +1048,7 @@ body {
   border-radius: var(--radius-sm);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 15px;
   font-family: var(--font-mono);
   transition: box-shadow 0.2s var(--ease-out);
 }
@@ -1054,7 +1070,7 @@ body {
 
 .server-item {
   padding: 9px 14px;
-  font-size: 12px;
+  font-size: 15px;
   font-family: var(--font-mono);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -1074,7 +1090,7 @@ body {
   box-shadow: 0 0 0 1px rgba(0, 214, 143, 0.1);
 }
 .server-item-uid {
-  font-size: 10px;
+  font-size: 13px;
   color: var(--text-muted);
   min-width: 36px;
 }
@@ -1082,14 +1098,14 @@ body {
   flex: 1;
 }
 .server-item-count {
-  font-size: 10px;
+  font-size: 13px;
   color: var(--text-muted);
   background: rgba(255, 255, 255, 0.03);
   padding: 2px 8px;
   border-radius: var(--radius-pill);
 }
 .server-item-latency {
-  font-size: 10px;
+  font-size: 13px;
   color: var(--accent);
   background: var(--accent-bg);
   padding: 2px 8px;
@@ -1136,7 +1152,7 @@ body {
   gap: 16px;
 }
 .overlay-box h2 {
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -1148,7 +1164,7 @@ body {
 }
 .settings-row label {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 12px;
   color: var(--text-muted);
   letter-spacing: 0.1em;
   font-weight: 600;
@@ -1161,7 +1177,7 @@ body {
   border-radius: var(--radius-sm);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 15px;
   font-family: var(--font-mono);
   transition: box-shadow 0.2s var(--ease-out);
 }
@@ -1191,7 +1207,7 @@ body {
   background: var(--accent-dim);
   color: #fff;
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   font-family: var(--font-sans);
@@ -1207,7 +1223,7 @@ body {
   background: var(--bg-surface);
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: 15px;
   font-family: var(--font-sans);
   cursor: pointer;
   transition: all 0.2s var(--ease-out);
@@ -1265,7 +1281,7 @@ body {
 
 .feature-menu-item {
   padding: 9px 14px;
-  font-size: 12px;
+  font-size: 15px;
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -1321,7 +1337,7 @@ body {
     gap: 2px;
   }
   .device-tag {
-    font-size: 8px;
+    font-size: 11px;
     padding: 1px 5px;
   }
   .device-tag-server {
@@ -1337,7 +1353,7 @@ body {
     min-height: 0;
   }
   .ac-callsign {
-    font-size: 28px;
+    font-size: 36px;
   }
 
   .dashboard-side {
