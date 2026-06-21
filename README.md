@@ -135,6 +135,31 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-21 (v0.4.7)
+
+**Bugfix：修复频率、服务器列表、QSO 日志三项数据获取全部为空的严重问题**
+
+**Bug 1 — 服务器列表始终显示"加载中..."**
+- 根因：`RESPONSE_ALIASES` 错误映射 `getListRangeResponse`（应为 `getListResponse`），导致 `handleWsMessage` 第一匹配规则失败，又因 `station` 事件消息（`!msg.event` 回退条件）污染响应队列，真实 `getListRange` 响应被丢弃，`serverList` 保持 `[]`
+- 修复：`RESPONSE_ALIASES` 修正为 `{ station: { getListRange: 'getListResponse' } }`，与 [协议文档](https://bg5esn.com/categories/docs/) 和 [fmo-show](https://github.com/EthanYan6/fmo-show) 源码一致
+
+**Bug 2 — QSO 通联日志获取不到数据**
+- 根因：协议使用 `getListRange` + `{ start, count }`，代码错误使用 `getList` + `{ page, count }`
+- 修复：`fetchQsoListAll()` 改为 `subType: 'getListRange'`，参数改为 `{ start, count }`
+
+**Bug 3 — 频率行始终显示 "--"**
+- 根因：`app.js` 中完全不存在任何频率获取或写入 `freq-line-text` 的代码
+- 修复：
+  - 新增 `fetchRadioInfo()` 方法：依次尝试 `radio.getRxFrequency` → `radio.getStatus` 端点（兼容不同固件版本）
+  - `fetchAllData` 并行调用 `fetchRadioInfo`
+  - 轮询 `startPolling` 30s 定时刷新频率
+  - `_processEvent` 的 `speaking_start` 事件处理中提取 `frequency`/`rx_freq` 字段同步更新
+  - 频率值自动转换为 MHz 格式，并附加波段（HF/VHF/UHF）和模式信息
+
+**修改文件**：app.js (+72/-10 lines)
+
+---
+
 ### 2026-06-21 (v0.4.6)
 
 bearing-panel 右上角重定位 — 罗盘方位组件从卡片中部移到右上角
