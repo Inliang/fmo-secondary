@@ -1,5 +1,6 @@
 /* ============================================================
    FMO 副屏伴侣 — app.js v8
+   v0.4.10: 移除 WebSocket 响应贪婪回退匹配，对齐 fmo-show 严格 type+subType 匹配
    v0.4.0: 推翻四象限布局，FMO-Dashboard 风格纵向信息流
    - 适配新 DOM 结构（speaking-bar 分词填充、device/server 标签组）
    - QSO 列表改用 .item-row 系列 CSS 类
