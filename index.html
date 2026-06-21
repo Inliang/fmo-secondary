@@ -62,32 +62,33 @@
       </div>
 
       <div class="ac-hero">
-        <div class="callsign-wrap">
-          <h1 id="sb-callsign" class="ac-callsign">--</h1>
-          <span id="sb-contact-count" class="count-badge"></span>
-          <span id="sb-grid" class="grid-pill"></span>
-          <span class="new-badge" id="ac-new-badge">新</span>
+        <div class="hero-main">
+          <div class="callsign-wrap">
+            <h1 id="sb-callsign" class="ac-callsign">--</h1>
+            <span id="sb-contact-count" class="count-badge"></span>
+            <span id="sb-grid" class="grid-pill"></span>
+            <span class="new-badge" id="ac-new-badge">新</span>
+          </div>
+          <div class="contact-tags">
+            <span class="tag tag-contacted">已通联</span>
+            <span class="tag" id="sb-qth"></span>
+          </div>
+          <div class="ac-controls">
+            <span class="ip-display" id="ac-ip-display">--</span>
+            <button class="refresh-btn" id="ac-refresh-btn">刷新现场</button>
+          </div>
         </div>
-        <div class="contact-tags">
-          <span class="tag tag-contacted">已通联</span>
-          <span class="tag" id="sb-qth"></span>
-        </div>
-        <div class="ac-controls">
-          <span class="ip-display" id="ac-ip-display">--</span>
-          <button class="refresh-btn" id="ac-refresh-btn">刷新现场</button>
-        </div>
-      </div>
-
-      <div class="bearing-panel">
-        <div class="compass">
-          <span class="north-label">N</span>
-          <svg class="compass-arrow" id="compass-arrow" viewBox="0 0 24 32" aria-hidden="true">
-            <path d="M12 2 21 29 12 23 3 29Z"/>
-          </svg>
-        </div>
-        <div class="bearing-meta">
-          <strong id="sb-direction">方位未知</strong>
-          <span id="sb-distance"></span>
+        <div class="bearing-panel">
+          <div class="compass">
+            <span class="north-label">N</span>
+            <svg class="compass-arrow" id="compass-arrow" viewBox="0 0 24 32" aria-hidden="true">
+              <path d="M12 2 21 29 12 23 3 29Z"/>
+            </svg>
+          </div>
+          <div class="bearing-meta">
+            <strong id="sb-direction">方位未知</strong>
+            <span id="sb-distance"></span>
+          </div>
         </div>
       </div>
 
