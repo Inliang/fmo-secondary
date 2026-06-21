@@ -173,6 +173,17 @@ fmo-secondary/
 
 ---
 
+### 2026-06-21 (v0.4.13)
+
+**右侧边栏 UI 统一为毛玻璃卡片风格**
+
+- `.prev-info-item` 升级为玻璃卡片，匹配主面板 `.detail-card` 视觉语言
+- `.server-card-header` padding 对齐 `.section-label` 节奏
+- `.side-loading` 加载状态对齐主面板占位风格
+- `.server-list-trigger` 增加 mono 字体和字重，匹配交互元素
+
+---
+
 ### 2026-06-21 (v0.4.8)
 
 **底部面板去毛玻璃化 + 最近发言/通联记录左右分栏**
