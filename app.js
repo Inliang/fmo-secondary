@@ -586,18 +586,17 @@ const App = {
           subType: 'getListRange',
           data: { start: i * pageSize, count: pageSize }
         });
-        if (resp.event || resp.code === undefined) {
-          continue;
-        }
+        // 跳过事件消息（非请求-响应）
+        if (resp.event) continue;
+        // code 明确为错误码时中止（部分固件不返回 code，仅 data 有值时继续）
         if (resp.code !== undefined && resp.code !== 0) break;
         const payload = resp.data;
         let list;
         if (Array.isArray(payload)) {
           list = payload;
-        } else if (payload && Array.isArray(payload.list)) {
-          list = payload.list;
-        } else if (payload && Array.isArray(payload.data)) {
-          list = payload.data;
+        } else if (payload && typeof payload === 'object') {
+          list = payload.list || payload.data || payload.stations || payload.items || [];
+          if (!Array.isArray(list)) list = [];
         } else {
           list = [];
         }
