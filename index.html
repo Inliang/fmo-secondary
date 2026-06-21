@@ -64,12 +64,12 @@
       <div class="ac-hero">
         <div class="callsign-wrap">
           <h1 id="sb-callsign" class="ac-callsign">--</h1>
+          <span id="sb-contact-count" class="count-badge"></span>
           <span id="sb-grid" class="grid-pill"></span>
           <span class="new-badge" id="ac-new-badge">新</span>
         </div>
         <div class="contact-tags">
           <span class="tag tag-contacted">已通联</span>
-          <span class="tag" id="sb-contact-count"></span>
           <span class="tag" id="sb-qth"></span>
         </div>
         <div class="ac-controls">
@@ -121,7 +121,22 @@
           <span>上个通联</span>
           <span id="prev-time-ago">暂无</span>
         </div>
-        <div id="prev-card-content" class="prev-empty">暂无上个通联</div>
+        <div id="prev-card-content" class="prev-empty">
+          <div class="prev-info-grid">
+            <div class="prev-info-item">
+              <span class="prev-info-label">Bearing</span>
+              <span class="prev-info-value">--&deg;</span>
+            </div>
+            <div class="prev-info-item">
+              <span class="prev-info-label">Distance</span>
+              <span class="prev-info-value">--km</span>
+            </div>
+            <div class="prev-info-item">
+              <span class="prev-info-label">Callsign</span>
+              <span class="prev-info-value">--</span>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="server-card" id="server-card-sidebar">
@@ -130,7 +145,15 @@
           <span class="server-list-trigger">列表</span>
         </button>
         <div class="server-list-sidebar" id="server-list-sidebar">
-          <div class="side-empty">加载中...</div>
+          <div class="side-loading">
+            <div class="loading-spinner"></div>
+            <span>正在获取服务器列表...</span>
+            <div class="skeleton-list">
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+            </div>
+          </div>
         </div>
       </section>
 
