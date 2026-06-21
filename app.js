@@ -310,7 +310,7 @@ const App = {
     let msg;
     try { msg = JSON.parse(data); } catch (e) { return; }
 
-    if (this._inFlight) {
+    if (!msg.event && this._inFlight) {
       const r = this._inFlight.req;
       const expectedSubType =
         RESPONSE_ALIASES[r.type]?.[r.subType] ?? `${r.subType}Response`;
@@ -323,7 +323,7 @@ const App = {
         matched = true;
       }
 
-      if (!matched && msg.type === r.type) {
+      if (!matched && msg.type === r.type && !msg.event) {
         matched = true;
       }
 
@@ -535,6 +535,9 @@ const App = {
           subType: 'getListRange',
           data: { start: i * pageSize, count: pageSize }
         });
+        if (resp.event || resp.code === undefined) {
+          continue;
+        }
         if (resp.code !== undefined && resp.code !== 0) break;
         const payload = resp.data;
         let list;
