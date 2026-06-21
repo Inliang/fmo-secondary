@@ -135,6 +135,31 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-21 (v0.4.4)
+
+玻璃毛感（Glass Morphism）高级质感 — 全仪表盘 UI 毛玻璃效果
+
+**Glass Morphism 变量体系**
+- 新增 8 个 CSS 全局变量：`--glass-bg` (rgba 半透明背景)、`--glass-bg-hover`、`--glass-bg-light`、`--glass-border` (玻璃边缘)、`--glass-border-strong`、`--glass-edge` (顶部高光线)、`--glass-blur` (blur(16px) saturate(180%))、`--glass-blur-light` (blur(10px) saturate(160%))
+
+**玻璃质感覆盖范围**
+- 全部 9 个主卡片/面板容器启用 `backdrop-filter` + `-webkit-backdrop-filter`：`.active-contact-card`、`.previous-card`、`.server-card`、`.live-panel`、`.qso-panel`、`.status-bar`、`.bearing-panel`、`.detail-card`、`.device-strip`
+- 半透明 `rgba(13,18,22,0.55)` 背景替代原实色 `#0d1216`，配合模糊制造层次深度
+- 所有容器新增 `1px solid rgba(255,255,255,0.05)` 玻璃边缘光感 + `inset 0 1px 0` 顶部微光
+- `body` 增加双径向渐变背景，为 backdrop-filter 提供可模糊的底层纹理
+
+**设计体系保持**
+- 墨绿 `#00d68f` 强调色体系完整保留
+- 所有 DOM ID / CSS 类名不变，仅增强视觉效果
+- 字体大小、布局结构、overflow 等规则不受影响
+
+**修改文件**：style.css (52+/16- lines)
+
+---
+
+<details>
+<summary>历史版本</summary>
+
 ### 2026-06-21 (v0.4.3)
 
 字号体系全面放大 + 视觉打磨 — 参照 UI UX Pro Max / awesome-design-md (VoltAgent, Shopify, Sanity) / React Bits
@@ -823,4 +848,5 @@ QSO 日志导出标准 ADIF 格式 + QRZ.com 兼容修复
 
 
 
+</details>
 </details>
