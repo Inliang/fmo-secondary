@@ -12,7 +12,7 @@ function normalizeHost(addr) {
 }
 
 const RESPONSE_ALIASES = {
-  station: { getListRange: 'getListRangeResponse' }
+  station: { getListRange: 'getListResponse' }
 };
 
 class PcmTap {
@@ -387,6 +387,15 @@ const App = {
         serverName: srv.name || evt.serverName || '',
         serverUid: srv.uid || evt.serverUid || '',
       });
+      // 同步频率显示
+      const freqHz = evt.frequency ?? evt.rx_freq ?? evt.freq;
+      const mode = evt.mode || '';
+      if (freqHz != null && freqHz > 0) {
+        const mhz = freqHz > 10000 ? freqHz / 1e6 : freqHz / 1000;
+        const band = this._freqToBand(mhz);
+        const el = document.getElementById('freq-line-text');
+        if (el) el.textContent = `${(freqHz > 10000 ? freqHz / 1e6 : freqHz / 1000).toFixed(4)} MHz · ${band}${mode ? ' · ' + mode : ''}`;
+      }
       return;
     }
     if (evt.event === 'speaking_stop') {
@@ -443,7 +452,8 @@ const App = {
     await Promise.all([
       this.fetchDeviceInfo(),
       this.fetchServerListAll(),
-      this.fetchQsoListAll()
+      this.fetchQsoListAll(),
+      this.fetchRadioInfo()
     ]);
   },
 
@@ -475,6 +485,47 @@ const App = {
     })());
 
     await Promise.all(tasks);
+  },
+
+  async fetchRadioInfo() {
+    // 频率获取：尝试 radio.getRxFrequency / radio.getTxFrequency
+    // 如果设备不支持这些端点，静默失败，保持 --
+    const setFreq = (elId, freqHz, bandText, modeText) => {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      if (freqHz != null && freqHz > 0) {
+        const mhz = freqHz > 10000 ? (freqHz / 1e6).toFixed(4) : (freqHz / 1000).toFixed(4);
+        el.textContent = `${mhz} MHz${bandText ? ' · ' + bandText : ''}${modeText ? ' · ' + modeText : ''}`;
+      }
+    };
+
+    try {
+      const r = await this.send({ type: 'radio', subType: 'getRxFrequency' });
+      if (r.code === 0 && r.data) {
+        const freq = r.data.frequency ?? r.data.rx_freq ?? r.data.freq;
+        if (freq != null && freq > 0) {
+          const mhz = freq > 10000 ? freq / 1e6 : freq / 1000;
+          const band = this._freqToBand(mhz);
+          setFreq('freq-line-text', freq, band, r.data.mode || '');
+          return;
+        }
+      }
+    } catch (e) {}
+
+    // 回退：尝试 radio.getStatus（部分固件版本）
+    try {
+      const r = await this.send({ type: 'radio', subType: 'getStatus' });
+      if (r.code === 0 && r.data) {
+        const rx = r.data.rx_freq ?? r.data.rxFrequency ?? r.data.frequency;
+        const tx = r.data.tx_freq ?? r.data.txFrequency;
+        if (rx != null && rx > 0) {
+          const mhz = rx > 10000 ? rx / 1e6 : rx / 1000;
+          const band = this._freqToBand(mhz);
+          setFreq('freq-line-text', rx, band, r.data.mode || '');
+          return;
+        }
+      }
+    } catch (e) {}
   },
 
   latLonToGrid(lat, lon) {
@@ -684,26 +735,34 @@ const App = {
   // ============ QSO 列表 ============
 
   async fetchQsoListAll() {
+    const pageSize = 20;
     const maxPages = 200;
     const all = [];
-    let detectedPageSize = 20;
 
     try {
-      for (let page = 0; page < maxPages; page++) {
+      for (let start = 0; start < maxPages * pageSize; start += pageSize) {
         const resp = await this.send({
           type: 'qso',
-          subType: 'getList',
-          data: { page, count: 20 }
+          subType: 'getListRange',
+          data: { start, count: pageSize }
         });
         if (resp.code !== 0) break;
         const payload = resp.data;
-        const list = payload?.list ?? [];
+        let list;
+        if (Array.isArray(payload)) {
+          list = payload;
+        } else if (payload && Array.isArray(payload.list)) {
+          list = payload.list;
+        } else if (payload && Array.isArray(payload.data)) {
+          list = payload.data;
+        } else {
+          list = [];
+        }
         if (list.length === 0) break;
 
         all.push(...list);
 
-        if (page === 0) detectedPageSize = list.length;
-        if (list.length < detectedPageSize) break;
+        if (list.length < pageSize) break;
       }
     } catch (e) { console.warn('qso list:', e.message); }
 
@@ -1334,7 +1393,10 @@ const App = {
   startPolling() {
     this.stopPolling();
     this.pollTimer = setInterval(() => {
-      if (this.connected) this.fetchServerList();
+      if (this.connected) {
+        this.fetchServerList();
+        this.fetchRadioInfo();
+      }
     }, 30000);
   },
 
