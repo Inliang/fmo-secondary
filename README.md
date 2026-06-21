@@ -135,6 +135,32 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-21 (v0.4.6)
+
+bearing-panel 右上角重定位 — 罗盘方位组件从卡片中部移到右上角
+
+**HTML 结构重组**
+- `.bearing-panel` 从 `.ac-hero` 外部移入 `.ac-hero` 内部，作为 flex 右侧伴生元素
+- 新增 `.hero-main` 包裹层容纳左侧呼号/标签/控制区
+
+**CSS 布局与尺寸**
+- `.ac-hero` 改为 `display: flex; align-items: flex-start; gap: 16px;`
+- `.hero-main { flex: 1; min-width: 0; }` 确保左侧区域自适应
+- `.bearing-panel` 紧凑化：`flex-shrink: 0; width: auto; padding: 10px 14px; margin: 0; gap: 12px;`
+- `.compass` 尺寸缩小：72px → 48px
+- `.compass-arrow` 尺寸缩小：22×32px → 16×24px
+- `.bearing-meta strong` 字号缩小：20px → 14px；`span` 字号缩小：15px → 12px
+- 毛玻璃效果保留（`backdrop-filter: blur(10px)`）
+
+**约束保持**
+- 所有 DOM ID 不变（`compass-arrow`、`sb-direction`、`sb-distance`、`north-label`）
+- `app.js` 中的 `getElementById` 调用不受影响
+- 墨绿强调色体系不变
+
+**修改文件**：index.html (+12/-12 lines)、style.css (+36/-26 lines)
+
+---
+
 ### 2026-06-21 (v0.4.4)
 
 玻璃毛感（Glass Morphism）高级质感 — 全仪表盘 UI 毛玻璃效果
