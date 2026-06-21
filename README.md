@@ -142,6 +142,16 @@ fmo-secondary/
 
 ---
 
+### 2026-06-21 (v0.4.11)
+
+**Bugfix：RESPONSE_ALIASES 回退 + 恢复 type 回退匹配**
+
+- RESPONSE_ALIASES 从 `getListResponse` 回退为 `getListRangeResponse`（部分固件实际返回格式）
+- 恢复 `!matched && msg.type === r.type && !msg.event` 回退匹配（v0.3.39 时期已存在）
+- 两层匹配：先严格 type+subType，失败后 type 回退兜底（排除事件消息污染）
+
+---
+
 ### 2026-06-21 (v0.4.10)
 
 **Bugfix：移除 handleWsMessage 贪婪回退匹配，修复服务器列表获取失败**
