@@ -135,6 +135,32 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-21 (v0.4.3)
+
+字号体系全面放大 + 视觉打磨 — 参照 UI UX Pro Max / awesome-design-md (VoltAgent, Shopify, Sanity) / React Bits
+
+**字号整体提升**
+- 全系 font-size 扩大 30-50%：7→10px, 8→11px, 9→12px, 10→13px, 11→14px, 12→15px, 13→16px, 14→17px, 15→18px, 16→20px
+- Hero 呼号 clamp(56px, 9vw, 84px) — 参考 Sanity 112px display type / Runway 影院级 Hero
+- 侧边栏呼号 18→22px，面板标题 15→18px
+
+**布局与间距优化**
+- body gap 6→10px, dashboard gap 8→12px
+- 状态条 40→44px, 侧边栏 300→340px, 面板 max-height 180→220px
+- Hero 卡片 padding 放大；所有行间距增加
+
+**视觉增强**
+- Active Contact 卡片双梯度背景增加纵深
+- 罗盘活动态雷达波纹动画 (radar-ripple @keyframes)
+- 面板 / 行 padding 统一扩大，提升可读性与触控友好度
+
+**修改文件**：style.css (98+/82- lines)
+
+---
+
+<details>
+<summary>历史版本</summary>
+
 ### 2026-06-21 (v0.4.2)
 
 FMO-Dashboard 风格重构 — 深色战术指挥中心，无边框 box-shadow 体系，Hero 大字呼号 + 罗盘 + 细节卡片
