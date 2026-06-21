@@ -142,6 +142,17 @@ fmo-secondary/
 
 ---
 
+### 2026-06-21 (v0.4.12)
+
+**Bugfix：RESPONSE_ALIASES 修正 + 响应匹配兼容 V2 协议 event 字段**
+
+- RESPONSE_ALIASES 从 `getListRangeResponse` 修正为 `getListResponse`（对齐 FmoLogs 参考实现，设备实际返回 subType 为 getListResponse）
+- handleWsMessage 外 guard 从 `!msg.event` 改为 `!msg.event || msg.subType !== undefined || msg.code !== undefined`：V2 协议响应可能带 `event: "ok"`（遵循 AT 协议规范），需通过 subType/code 辅助识別响应消息
+- 回退匹配移除冗余 `!msg.event` 条件（外 guard 已拦截纯事件）
+- fetchServerListAll 移除 `resp.event` continue 跳過邏輯（現已冗餘，且會誤跳 V2 合法響應）
+
+---
+
 ### 2026-06-21 (v0.4.11)
 
 **Bugfix：RESPONSE_ALIASES 回退 + 恢复 type 回退匹配**
