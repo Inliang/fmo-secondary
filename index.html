@@ -8,82 +8,158 @@
 </head>
 <body>
 
-  <!-- ===== 顶部通联条 (Speaking Bar) ===== -->
-  <div id="speaking-bar" class="speaking-bar idle">
-    <div class="speaking-bar-inner">
-      <span id="sb-callsign" class="sb-callsign">--</span>
-      <div class="sb-tags">
-        <span id="sb-grid" class="sb-grid-tag"></span>
-        <span id="sb-direction" class="sb-dir"></span>
-        <span id="sb-distance" class="sb-dist"></span>
-        <span id="sb-qth" class="sb-qth"></span>
-      </div>
-      <div class="sb-meta">
-        <span id="sb-server" class="sb-server-name"></span>
-        <span id="sb-contact-count" class="sb-contact-count"></span>
-        <span id="sb-elapsed" class="sb-elapsed"></span>
-      </div>
-      <div id="sb-placeholder" class="sb-placeholder">等待通联...</div>
+  <!-- ===== 1. 顶部状态条 (40px) ===== -->
+  <header class="status-bar">
+    <div class="status-bar-left">
+      <span class="brand-marker"></span>
+      <span class="brand-label">FMO</span>
     </div>
-    <div id="sb-audio-icon" class="sb-audio-icon">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
-      </svg>
+    <div class="status-bar-center">
+      <span id="status-dot" class="status-dot"></span>
+      <span id="status-text" class="status-text">未连接</span>
+      <span class="status-desc" id="command-desc">BH7JAB 正在守听</span>
     </div>
+    <div class="status-bar-right">
+      <span class="stat-pill" title="总通联 / 今日">
+        <span class="stat-icon">*</span>
+        <span id="stat-total">--</span><small>/</small><span id="stat-today">--</span>
+      </span>
+      <span class="stat-pill" title="友台数">
+        <span class="stat-icon">*</span>
+        <span id="stat-friends">--</span>
+      </span>
+      <div class="tool-btn-group">
+        <button class="tool-btn" id="cmd-server-btn" title="中继列表 / 搜索">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20"/></svg>
+        </button>
+        <button class="tool-btn" id="cmd-settings-btn" title="设置">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5v.2h-4v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1-2.8-2.8.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3v-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1 2.8-2.8.1.1a1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5V3h4v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1 2.8 2.8-.1.1a1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1h.2v4h-.2a1.7 1.7 0 0 0-1.4 1Z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== 2. 设备信息条 ===== -->
+  <div class="device-strip">
+    <span class="device-tag"><span class="dt-label">IP</span><span id="dev-ip">--</span></span>
+    <span class="device-tag"><span class="dt-label">VER</span><span id="dev-version">--</span></span>
+    <span class="device-tag"><span class="dt-label">MAC</span><span id="dev-mac">--</span></span>
+    <span class="device-tag"><span class="dt-label">HW</span><span id="dev-hw">--</span></span>
+    <span class="device-tag device-tag-server">
+      <span id="server-ping">--</span>
+      <span id="server-addr">--</span>
+    </span>
   </div>
 
-  <!-- ===== 二行信息条 (Device + Server 并排) ===== -->
-  <div class="info-row">
-    <div class="info-panel info-device">
-      <div class="info-panel-header">
-        <span>DEVICE</span>
-        <span id="status-dot" class="status-dot"></span>
-        <span id="status-text" class="status-text">未连接</span>
+  <!-- ===== 3. 主区域双栏 ===== -->
+  <div class="dashboard-grid">
+
+    <!-- 左栏: Active Contact Hero Card -->
+    <section id="speaking-bar" class="active-contact-card idle">
+      <div class="section-label">
+        <span id="ac-label-title">当前呼叫</span>
+        <span class="live-indicator" id="ac-label-live">LIVE</span>
       </div>
-      <div class="info-tags" id="device-tags">
-        <span class="info-tag"><span class="info-tag-label">IP</span><span id="dev-ip">--</span></span>
-        <span class="info-tag"><span class="info-tag-label">VER</span><span id="dev-version">--</span></span>
-        <span class="info-tag"><span class="info-tag-label">MAC</span><span id="dev-mac">--</span></span>
-        <span class="info-tag"><span class="info-tag-label">HW</span><span id="dev-hw">--</span></span>
+
+      <div class="ac-hero">
+        <div class="callsign-wrap">
+          <h1 id="sb-callsign" class="ac-callsign">--</h1>
+          <span id="sb-grid" class="grid-pill"></span>
+          <span class="new-badge" id="ac-new-badge">新</span>
+        </div>
+        <div class="contact-tags">
+          <span class="tag tag-contacted">已通联</span>
+          <span class="tag" id="sb-contact-count"></span>
+          <span class="tag" id="sb-qth"></span>
+        </div>
+        <div class="ac-controls">
+          <span class="ip-display" id="ac-ip-display">--</span>
+          <button class="refresh-btn" id="ac-refresh-btn">刷新现场</button>
+        </div>
       </div>
-    </div>
-    <div class="info-divider"></div>
-    <div class="info-panel info-server">
-      <div class="info-panel-header">
-        <span>SERVER</span>
-        <span id="server-ping" class="server-ping">--</span>
+
+      <div class="bearing-panel">
+        <div class="compass">
+          <span class="north-label">N</span>
+          <svg class="compass-arrow" id="compass-arrow" viewBox="0 0 24 32" aria-hidden="true">
+            <path d="M12 2 21 29 12 23 3 29Z"/>
+          </svg>
+        </div>
+        <div class="bearing-meta">
+          <strong id="sb-direction">方位未知</strong>
+          <span id="sb-distance"></span>
+        </div>
       </div>
-      <div class="info-tags">
-        <span id="server-name-display" class="info-tag server-name-tag">--</span>
-        <span id="server-addr" class="info-tag">--</span>
+
+      <div class="contact-details">
+        <button class="detail-card relay-card" id="relay-detail-btn" type="button">
+          <span class="detail-label">中继 / 服务器</span>
+          <strong id="server-name-display">--</strong>
+          <small id="sb-server"></small>
+        </button>
+        <button class="detail-card freq-card" id="freq-detail-btn" type="button">
+          <span class="detail-label">频率 / 模式</span>
+          <strong id="freq-line-text">--</strong>
+        </button>
       </div>
-    </div>
+
+      <div id="sb-placeholder" class="ac-placeholder">等待通联...</div>
+      <div id="sb-elapsed" class="ac-elapsed"></div>
+      <div id="sb-audio-icon" class="vu-indicator">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+        </svg>
+      </div>
+    </section>
+
+    <!-- 右栏: 侧边栏 300px -->
+    <aside class="dashboard-side">
+
+      <section class="previous-card" id="previous-card">
+        <div class="section-label">
+          <span>上个通联</span>
+          <span id="prev-time-ago">暂无</span>
+        </div>
+        <div id="prev-card-content" class="prev-empty">暂无上个通联</div>
+      </section>
+
+      <section class="server-card" id="server-card-sidebar">
+        <button class="section-label server-card-header" type="button" id="server-card-header-btn">
+          <span>收藏中继 / 服务器</span>
+          <span class="server-list-trigger">列表</span>
+        </button>
+        <div class="server-list-sidebar" id="server-list-sidebar">
+          <div class="side-empty">加载中...</div>
+        </div>
+      </section>
+
+    </aside>
   </div>
 
-  <!-- ===== 最近发言列表 ===== -->
-  <section class="list-section">
-    <div class="list-section-header">
-      <span>RECENT SPEAKERS</span>
-      <span class="list-section-count" id="recent-count">0</span>
+  <!-- ===== 4. 最近通联表格 ===== -->
+  <section class="live-panel">
+    <div class="panel-header">
+      <span>最近发言</span>
+      <span class="panel-count" id="recent-count">0</span>
     </div>
-    <div id="recent-speakers" class="item-list">
+    <div id="recent-speakers" class="live-table-wrap">
       <div class="list-empty">暂无最近发言</div>
     </div>
   </section>
 
-  <!-- ===== QSO 通联列表 ===== -->
-  <section class="list-section">
-    <div class="list-section-header">
-      <span>QSO LOG</span>
-      <span class="list-section-count" id="qso-count">0</span>
+  <!-- ===== 5. QSO 通联记录表格 ===== -->
+  <section class="qso-panel">
+    <div class="panel-header">
+      <span>通联记录</span>
+      <span class="panel-count" id="qso-count">0</span>
     </div>
-    <div id="qso-container" class="item-list">
+    <div id="qso-container" class="live-table-wrap">
       <div class="list-empty">暂无通联记录</div>
     </div>
   </section>
 
-  <!-- 服务器列表（隐藏的下拉面板） -->
+  <!-- ===== 隐藏: 服务器列表 ===== -->
   <div id="server-list-overlay" class="server-list-overlay">
     <div class="server-list-dropdown">
       <div class="server-list-title">切换服务器</div>
@@ -92,7 +168,7 @@
     </div>
   </div>
 
-  <!-- 设置面板 -->
+  <!-- ===== 隐藏: 设置面板 ===== -->
   <div id="settings-overlay" class="overlay">
     <div class="overlay-box">
       <h2>设置</h2>
@@ -118,7 +194,7 @@
     </div>
   </div>
 
-  <!-- 功能菜单 -->
+  <!-- ===== 浮动: 功能菜单 ===== -->
   <div class="feature-dock">
     <button id="feature-btn" class="feature-btn" title="更多功能">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
