@@ -743,7 +743,7 @@ body {
   letter-spacing: 0.12em;
   color: var(--text-muted);
   text-transform: uppercase;
-  padding: 12px 16px 6px 16px;
+  padding: 12px 16px 8px 16px;
   transition: background 0.2s var(--ease-out);
 }
 .server-card-header:hover {
@@ -757,6 +757,8 @@ body {
   background: var(--accent-bg);
   border-radius: var(--radius-pill);
   cursor: pointer;
+  font-family: var(--font-mono);
+  font-weight: 600;
   transition: background 0.2s var(--ease-out);
 }
 .server-list-trigger:hover {
@@ -785,9 +787,14 @@ body {
   flex-direction: column;
   gap: 2px;
   padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
+  background: var(--glass-bg-light);
+  backdrop-filter: var(--glass-blur-light);
+  -webkit-backdrop-filter: var(--glass-blur-light);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), inset 0 1px 0 0 rgba(255, 255, 255, 0.02);
+  transition: all 0.25s var(--ease-out);
+  cursor: default;
 }
 
 .prev-info-label {
@@ -803,7 +810,7 @@ body {
   font-family: var(--font-mono);
   font-size: 15px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-feature-settings: "tnum";
 }
 
@@ -876,12 +883,12 @@ body {
 .side-loading {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 10px;
   padding: 16px 8px;
   color: var(--text-muted);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .loading-spinner {
@@ -891,6 +898,7 @@ body {
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+  margin-bottom: 4px;
 }
 
 @keyframes spin {
