@@ -277,6 +277,9 @@ const App = {
     } else {
       dot.className = 'status-dot';
       text.textContent = '未连接';
+      // 断连时恢复默认 command-desc
+      const cmdDescEl = document.getElementById('command-desc');
+      if (cmdDescEl) cmdDescEl.textContent = 'BH7JAB 正在守听';
     }
   },
 
@@ -488,6 +491,12 @@ const App = {
     })());
 
     await Promise.all(tasks);
+
+    // 修复：确保 command-desc 不被设备自身信息覆盖，始终显示监听呼号
+    const cmdDescEl = document.getElementById('command-desc');
+    if (cmdDescEl) {
+      cmdDescEl.textContent = 'BH7JAB 正在守听';
+    }
   },
 
   async fetchRadioInfo() {
