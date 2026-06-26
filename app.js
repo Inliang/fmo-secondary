@@ -277,9 +277,11 @@ const App = {
     } else {
       dot.className = 'status-dot';
       text.textContent = '未连接';
-      // 断连时恢复默认 command-desc
+      // 断连时恢复自身呼号显示
       const cmdDescEl = document.getElementById('command-desc');
-      if (cmdDescEl) cmdDescEl.textContent = 'BH7JAB 正在守听';
+      if (cmdDescEl) cmdDescEl.textContent = (this.myCallsign || 'N0CALL') + ' 正在守听';
+      const devCallsignEl = document.getElementById('dev-callsign');
+      if (devCallsignEl) devCallsignEl.textContent = this.myCallsign || 'N0CALL';
     }
   },
 
@@ -492,11 +494,12 @@ const App = {
 
     await Promise.all(tasks);
 
-    // 修复：确保 command-desc 不被设备自身信息覆盖，始终显示监听呼号
+    // 自身呼号显示（FMO 规范：界面元素4 - 未认证显示 N0CALL，已认证显示真实呼号）
+    const devCallsignEl = document.getElementById('dev-callsign');
     const cmdDescEl = document.getElementById('command-desc');
-    if (cmdDescEl) {
-      cmdDescEl.textContent = 'BH7JAB 正在守听';
-    }
+    const cs = this.myCallsign || 'N0CALL';
+    if (devCallsignEl) devCallsignEl.textContent = cs;
+    if (cmdDescEl) cmdDescEl.textContent = cs + ' 正在守听';
   },
 
   async fetchRadioInfo() {

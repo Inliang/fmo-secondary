@@ -291,6 +291,14 @@ body {
   gap: 6px;
 }
 
+.device-tag-callsign {
+  color: var(--accent-hover);
+  background: var(--accent-bg-strong);
+  box-shadow: 0 0 0 1px rgba(0, 214, 143, 0.16);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
 /* ============================================================
    3. DASHBOARD GRID (main area)
    ============================================================ */
