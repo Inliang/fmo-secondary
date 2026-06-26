@@ -381,6 +381,7 @@ const App = {
 
   _processEvent(evt) {
     if (evt.event === 'speaking_start') {
+      if (this.isSameOperator(evt.callsign, this.myCallsign)) return;
       const srv = this._lookupServerName(evt.addressId);
       const derived = this._deriveStationInfo(evt.callsign);
       this.showSpeaking({
@@ -413,6 +414,7 @@ const App = {
     if (evt.type === 'qso' && evt.subType === 'callsign') {
       const d = evt.data || {};
       if (d.isSpeaking) {
+        if (this.isSameOperator(d.callsign, this.myCallsign)) return;
         const srv = this._lookupServerName(d.addressId || evt.addressId);
         const derived = this._deriveStationInfo(d.callsign);
         this.showSpeaking({
@@ -789,8 +791,11 @@ const App = {
       return;
     }
 
-    // 最新的 15 条
-    const items = this.qsoList.slice(0, 15);
+    // 最新的 15 条（过滤自身）
+    const items = this.qsoList.slice(0, 15).filter(item => {
+      const c = item.toCallsign ?? item.callsign ?? '';
+      return !this.isSameOperator(c, this.myCallsign);
+    });
     container.innerHTML = items.map(item => {
       const ts = item.timestamp ? new Date(item.timestamp * 1000) : null;
       const timeStr = ts
@@ -818,6 +823,8 @@ const App = {
   },
 
   addQsoItem(qso) {
+    const c = qso.toCallsign ?? qso.callsign ?? '';
+    if (this.isSameOperator(c, this.myCallsign)) return;
     this.qsoList.unshift(qso);
     this.renderQsoList();
     const first = document.querySelector('.item-row');
@@ -1182,6 +1189,7 @@ const App = {
     const items = [];
 
     for (const h of this._speakingHistory) {
+      if (this.isSameOperator(h.callsign, this.myCallsign)) continue;
       const call = this.parseCallsignSsid(h.callsign).call;
       if (!seen.has(call)) {
         seen.add(call);
@@ -1196,6 +1204,7 @@ const App = {
 
     if (items.length < 10 && this._historyEvents.length > 0) {
       for (const evt of this._historyEvents) {
+        if (this.isSameOperator(evt.callsign, this.myCallsign)) continue;
         const call = this.parseCallsignSsid(evt.callsign).call;
         if (!seen.has(call)) {
           seen.add(call);
@@ -1220,11 +1229,10 @@ const App = {
       const count = contactCounts.get(call) || 0;
       const timeStr = this.formatTimeAgo(item.utcTime, now);
       const isActive = activeCallsigns.has(item.callsign);
-      const isSelf = this.isSameOperator(item.callsign, this.myCallsign);
-      return '<div class="recent-item' + (isActive ? ' is-speaking' : '') + (isSelf ? ' is-self' : '') + '" data-callsign="' + item.callsign + '">'
+      return '<div class="recent-item' + (isActive ? ' is-speaking' : '') + '" data-callsign="' + item.callsign + '">'
         + '<span class="recent-index-bg">' + (index + 1) + '</span>'
         + '<div class="recent-main">'
-        + '<div class="recent-callsign-line"><strong>' + item.callsign + '</strong>' + (isSelf ? '<span class="self-tag">您</span>' : '') + '</div>'
+        + '<div class="recent-callsign-line"><strong>' + item.callsign + '</strong></div>'
         + '<span>' + timeStr + '</span>'
         + '</div>'
         + '<span class="recent-count">x' + count + '</span>'
