@@ -173,6 +173,19 @@ fmo-secondary/
 
 ---
 
+### 2026-06-21 (v0.4.15)
+
+**Tide 风格全面 UI 优化** — 30 项精细化调整，参考 Dribbble 金融仪表盘设计
+
+- 新增 warning 色系 + border 精细化变量
+- Active Contact Card / Device Strip / Detail Card / Bearing Panel 去玻璃化改纯色
+- 全局卡片圆角统一 10px/16px，边框统一 --border-subtle
+- 底部面板 header 增加分割线，行间距优化
+- Status Bar 玻璃保留但精炼，Stat Pill 样式收窄
+- 全局 typography 微调（标签字重/尺寸、数值加粗）
+
+---
+
 ### 2026-06-21 (v0.4.14)
 
 **右侧边栏去除毛玻璃效果** — `.previous-card` / `.server-card` / `.prev-info-item` 改为纯色不透明背景
