@@ -152,22 +152,6 @@
         </div>
       </div>
 
-      <div class="contact-details">
-        <button class="detail-card relay-card" id="relay-detail-btn" type="button">
-          <span class="detail-label">中继 / 服务器</span>
-          <strong id="server-name-display">--</strong>
-          <small id="sb-server"></small>
-        </button>
-        <button class="detail-card freq-card" id="freq-detail-btn" type="button">
-          <span class="detail-label">频率 / 模式</span>
-          <strong id="freq-line-text">--</strong>
-        </button>
-        <button class="detail-card qth-card" id="qth-detail-btn" type="button">
-          <span class="detail-label">QTH / 网格</span>
-          <strong id="freq-qth">--</strong>
-        </button>
-      </div>
-
       <div id="sb-placeholder" class="ac-placeholder">等待通联...</div>
       <div id="sb-audio-icon" class="vu-indicator">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -222,6 +206,23 @@
       </section>
 
     </aside>
+  </div>
+
+  <!-- ===== 3.5. 通联详情卡片 ===== -->
+  <div class="contact-details-bar">
+    <button class="detail-card relay-card" id="relay-detail-btn" type="button">
+      <span class="detail-label">中继 / 服务器</span>
+      <strong id="server-name-display">--</strong>
+      <small id="sb-server"></small>
+    </button>
+    <button class="detail-card freq-card" id="freq-detail-btn" type="button">
+      <span class="detail-label">频率 / 模式</span>
+      <strong id="freq-line-text">--</strong>
+    </button>
+    <button class="detail-card qth-card" id="qth-detail-btn" type="button">
+      <span class="detail-label">QTH / 网格</span>
+      <strong id="freq-qth">--</strong>
+    </button>
   </div>
 
   <!-- ===== 4. 最近通联表格 ===== -->
