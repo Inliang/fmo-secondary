@@ -681,17 +681,16 @@ body {
 .active-contact-card.idle .contact-details { display: none; }
 
 .ac-elapsed {
-  position: absolute;
-  top: 14px;
-  right: 18px;
-  z-index: 2;
+  display: inline-block;
   font-family: var(--font-mono);
-  font-size: 16px;
-  color: var(--accent);
+  font-size: 11px;
+  color: #8899a6;
   font-feature-settings: "tnum";
-  display: none;
+  vertical-align: super;
+  align-self: flex-start;
+  margin-left: 2px;
 }
-.active-contact-card.active .ac-elapsed { display: block; }
+.active-contact-card:not(.active) .ac-elapsed { display: none; }
 
 .vu-indicator {
   position: absolute;
