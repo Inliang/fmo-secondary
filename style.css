@@ -240,22 +240,25 @@ body {
 }
 
 .tool-btn {
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  color: var(--text-muted);
+  padding: 4px 12px;
+  background: #141c24;
+  color: #8899a6;
+  border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  font-family: var(--font-mono);
   transition: all 0.2s var(--ease-out);
-  box-shadow: 0 0 0 1px var(--border-divider);
+  box-shadow: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 .tool-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  box-shadow: 0 0 0 1px var(--border-active);
+  background: #0c1117;
+  color: #c5cdd3;
 }
 
 /* ============================================================
@@ -1230,7 +1233,7 @@ body {
   transition: box-shadow 0.2s var(--ease-out);
 }
 .server-search:focus {
-  box-shadow: 0 0 0 1px rgba(0, 214, 143, 0.35);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
   outline: none;
 }
 .server-search::placeholder {
@@ -1359,7 +1362,7 @@ body {
 }
 .settings-row input:focus,
 .settings-row select:focus {
-  box-shadow: 0 0 0 1px rgba(0, 214, 143, 0.35);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
   outline: none;
 }
 .settings-row select {
@@ -1380,18 +1383,19 @@ body {
 
 .btn-accent {
   padding: 9px 22px;
-  background: var(--accent-dim);
-  color: #fff;
+  background: #141c24;
+  color: #8899a6;
   border-radius: var(--radius-sm);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--text-md);
   cursor: pointer;
   font-family: var(--font-sans);
   transition: all 0.2s var(--ease-out);
+  border: none;
 }
 .btn-accent:hover {
-  background: var(--accent);
-  box-shadow: 0 0 20px rgba(0, 214, 143, 0.3);
+  background: #0c1117;
+  box-shadow: none;
+  color: #c5cdd3;
 }
 
 .btn-muted {
@@ -1412,62 +1416,34 @@ body {
 }
 
 /* ============================================================
-   8. FEATURE DOCK (Floating)
+   8. PANEL HEADER ACTIONS
    ============================================================ */
-.feature-dock {
-  position: fixed;
-  bottom: var(--space-6);
-  right: var(--space-6);
-  z-index: 50;
-}
-
-.feature-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--bg-hover);
-  border: 1px solid var(--border-card);
-  box-shadow: var(--shadow-card);
-  color: var(--text-secondary);
+.panel-header-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.25s var(--ease-out);
-}
-.feature-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-elevated);
+  gap: 8px;
 }
 
-.feature-menu {
-  display: none;
-  position: absolute;
-  bottom: 50px;
-  right: 0;
-  background: var(--bg-elevated);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-elevated);
-  padding: 4px;
-  min-width: 150px;
-}
-.feature-menu.open {
-  display: block;
-}
-
-.feature-menu-item {
-  padding: 9px 14px;
-  font-size: var(--text-md);
-  color: var(--text-secondary);
+.panel-export-btn {
+  padding: 3px 10px;
+  background: #141c24;
+  color: #8899a6;
+  border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.15s var(--ease-out);
-  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  transition: all 0.2s var(--ease-out);
+  box-shadow: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: none;
 }
-.feature-menu-item:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+.panel-export-btn:hover {
+  background: #0c1117;
+  color: #c5cdd3;
 }
 
 /* ============================================================

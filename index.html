@@ -3,13 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>FMO Secondary Dashboard</title>
-  <link rel="stylesheet" href="style.css?v=0426">
+  <link rel="stylesheet" href="style.css?v=0428">
   <style>
-    .refresh-btn, .server-list-trigger {
+    /* === 三层覆盖策略 Layer 1: head !important 全量按钮清零 === */
+    button, [type="button"], [type="submit"] {
+      background-image: none !important;
+    }
+    .refresh-btn, .server-list-trigger, #ac-refresh-btn,
+    .server-card-header, .panel-export-btn, .export-adif-btn {
       background: #141c24 !important;
       color: #8899a6 !important;
       border: none !important;
@@ -19,19 +24,45 @@
       -webkit-appearance: none !important;
       -moz-appearance: none !important;
       text-decoration: none !important;
+      background-image: none !important;
     }
-    .refresh-btn:hover, .server-list-trigger:hover {
+    .refresh-btn:hover, .server-list-trigger:hover, #ac-refresh-btn:hover,
+    .panel-export-btn:hover, .export-adif-btn:hover {
       background: #0c1117 !important;
+      color: #c5cdd3 !important;
       box-shadow: none !important;
+      background-image: none !important;
     }
     .server-card-header, .server-card-header:hover {
       background: #141c24 !important;
       color: #8899a6 !important;
       border: none !important;
       box-shadow: none !important;
+      background-image: none !important;
     }
     .server-card-header:hover {
       background: #0c1117 !important;
+    }
+    .tool-btn, .tool-btn:hover, #cmd-server-btn, #cmd-settings-btn,
+    .view-toggle-btn, .settings-btn {
+      background: #141c24 !important;
+      color: #8899a6 !important;
+      border: none !important;
+      box-shadow: none !important;
+      outline: none !important;
+      appearance: none !important;
+      -webkit-appearance: none !important;
+      -moz-appearance: none !important;
+      text-decoration: none !important;
+      width: auto !important;
+      height: auto !important;
+      background-image: none !important;
+    }
+    .tool-btn:hover, #cmd-server-btn:hover, #cmd-settings-btn:hover,
+    .view-toggle-btn:hover, .settings-btn:hover {
+      background: #0c1117 !important;
+      color: #c5cdd3 !important;
+      background-image: none !important;
     }
   </style>
 </head>
@@ -58,12 +89,8 @@
         <span id="stat-friends">--</span>
       </span>
       <div class="tool-btn-group">
-        <button class="tool-btn" id="cmd-server-btn" title="中继列表 / 搜索">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20"/></svg>
-        </button>
-        <button class="tool-btn" id="cmd-settings-btn" title="设置">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5v.2h-4v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1-2.8-2.8.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3v-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1 2.8-2.8.1.1a1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5V3h4v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1 2.8 2.8-.1.1a1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1h.2v4h-.2a1.7 1.7 0 0 0-1.4 1Z"/></svg>
-        </button>
+        <button class="tool-btn" id="cmd-server-btn" title="视图切换" style="background:#141c24;color:#8899a6;border:none;border-radius:6px;padding:4px 12px;font-size:13px;font-weight:500;letter-spacing:0.02em;font-family:Cascadia Code,Fira Code,Consolas,monospace;cursor:pointer;box-shadow:none;appearance:none;outline:none;text-decoration:none;">视图</button>
+        <button class="tool-btn" id="cmd-settings-btn" title="设置" style="background:#141c24;color:#8899a6;border:none;border-radius:6px;padding:4px 12px;font-size:13px;font-weight:500;letter-spacing:0.02em;font-family:Cascadia Code,Fira Code,Consolas,monospace;cursor:pointer;box-shadow:none;appearance:none;outline:none;text-decoration:none;">设置</button>
       </div>
     </div>
   </header>
@@ -207,7 +234,10 @@
     <section class="qso-panel">
       <div class="panel-header">
         <span>通联记录</span>
-        <span class="panel-count" id="qso-count">0</span>
+        <div class="panel-header-actions">
+          <button id="panel-export-btn" class="panel-export-btn" title="导出 ADIF 日志" style="background:#141c24;color:#8899a6;border:none;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:500;font-family:Cascadia Code,Fira Code,Consolas,monospace;cursor:pointer;box-shadow:none;appearance:none;outline:none;text-decoration:none;background-image:none;">导出 ADIF</button>
+          <span class="panel-count" id="qso-count">0</span>
+        </div>
       </div>
       <div id="qso-container" class="live-table-wrap">
         <div class="list-empty">暂无通联记录</div>
@@ -250,17 +280,6 @@
     </div>
   </div>
 
-  <!-- ===== 浮动: 功能菜单 ===== -->
-  <div class="feature-dock">
-    <button id="feature-btn" class="feature-btn" title="更多功能">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-    </button>
-    <div id="feature-menu" class="feature-menu">
-      <div id="menu-export" class="feature-menu-item">导出 ADIF</div>
-      <div id="menu-settings" class="feature-menu-item">设置</div>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
+  <script src="app.js?v=0428"></script>
 </body>
 </html>

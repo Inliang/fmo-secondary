@@ -139,34 +139,24 @@ const App = {
       });
     }
 
-    // 功能菜单
-    const featureBtn = $('feature-btn');
-    const featureMenu = $('feature-menu');
-    if (featureBtn && featureMenu) {
-      featureBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        featureMenu.classList.toggle('open');
-      });
-      document.addEventListener('click', () => {
-        featureMenu.classList.remove('open');
-      });
-      featureMenu.addEventListener('click', (e) => e.stopPropagation());
+    // 设置面板（通过右上角按钮触发）
+    const cmdSettingsBtn = $('cmd-settings-btn');
+    if (cmdSettingsBtn) {
+      cmdSettingsBtn.addEventListener('click', () => this.openSettings());
     }
 
-    const menuExport = $('menu-export');
-    if (menuExport) {
-      menuExport.addEventListener('click', () => {
-        featureMenu.classList.remove('open');
-        this.exportQso();
+    // 视图切换（通过右上角按钮触发）
+    const cmdServerBtn = $('cmd-server-btn');
+    if (cmdServerBtn) {
+      cmdServerBtn.addEventListener('click', () => {
+        // 视图切换功能预留
       });
     }
 
-    const menuSettings = $('menu-settings');
-    if (menuSettings) {
-      menuSettings.addEventListener('click', () => {
-        featureMenu.classList.remove('open');
-        this.openSettings();
-      });
+    // 导出 ADIF（通过通联记录面板按钮触发）
+    const panelExportBtn = $('panel-export-btn');
+    if (panelExportBtn) {
+      panelExportBtn.addEventListener('click', () => this.exportQso());
     }
 
     document.addEventListener('keydown', (e) => {
