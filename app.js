@@ -1007,9 +1007,21 @@ const App = {
 
     const last = this.qsoList[0];
     const callsign = last.toCallsign || last.callsign || '--';
-    const dist = last.distance !== undefined ? Number(last.distance).toFixed(0) + '公里' : '--';
-    const azi = last.azimuth !== undefined ? Math.round(last.azimuth) + '°' : '--';
-    const dir = last.azimuth !== undefined ? this._azimuthToDirection(last.azimuth) + ' ' : '';
+
+    // 补算：QSO API 可能不含 distance/azimuth，但从 grid 可反算
+    let distance = last.distance;
+    let azimuth = last.azimuth;
+    if ((distance === undefined || azimuth === undefined) && (last.grid || last.locator)) {
+      const computed = this._computeGridDistance(last.grid || last.locator);
+      if (computed) {
+        if (distance === undefined) distance = computed.distance;
+        if (azimuth === undefined) azimuth = computed.azimuth;
+      }
+    }
+
+    const dist = distance !== undefined ? Number(distance).toFixed(0) + '公里' : '--';
+    const azi = azimuth !== undefined ? Math.round(azimuth) + '°' : '--';
+    const dir = azimuth !== undefined ? this._azimuthToDirection(azimuth) + ' ' : '';
 
     if (timeEl && last.timestamp) {
       const diff = Date.now() - last.timestamp * 1000;
