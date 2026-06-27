@@ -90,8 +90,6 @@
 }
 
 html, body {
-  height: 100%;
-  overflow: hidden;
   font-family: var(--font-sans);
   background: var(--bg-deepest);
   color: var(--text-primary);
@@ -100,8 +98,28 @@ html, body {
 }
 
 body {
-  display: flex; flex-direction: column; padding: var(--space-4) var(--space-4) 0 var(--space-4); gap: var(--space-2);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 24px;
+  margin: 0;
+}
+
+/* ---------- App Wrapper (居中卡片) ---------- */
+.app-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 1280px;
+  width: 100%;
+  height: calc(100vh - 48px);
+  overflow: hidden;
+  flex: 0 1 auto;
   background: var(--bg-deepest);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 8px 40px rgba(0,0,0,0.5);
 }
 
 /* ---------- Scrollbar ---------- */
@@ -1517,8 +1535,13 @@ body {
    ============================================================ */
 @media (max-width: 768px) {
   body {
-    padding: var(--space-1) 6px 0 6px;
-    gap: var(--space-1);
+    padding: 8px;
+  }
+  .app-wrapper {
+    height: calc(100vh - 16px);
+    border-radius: 8px;
+    border: none;
+    box-shadow: none;
   }
 
   .status-bar {
