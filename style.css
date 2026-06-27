@@ -122,6 +122,26 @@ body {
   box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 8px 40px rgba(0,0,0,0.5);
 }
 
+/* ---------- Footer ---------- */
+.site-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 24px;
+  border-top: 1px solid var(--border-divider);
+  flex-shrink: 0;
+}
+.site-footer a {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  text-decoration: none;
+  transition: color 0.15s var(--ease-out);
+}
+.site-footer a:hover {
+  color: var(--text-secondary);
+}
+
 /* ---------- Scrollbar ---------- */
 ::-webkit-scrollbar {
   width: 5px;
