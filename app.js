@@ -1,6 +1,6 @@
 /* ============================================================
    FMO 副屏伴侣 — app.js v8
-   v0.4.14: 性能优化(超时5s/分页100/200) + V2 code兼容 + 新增天线/频点/硬件号API
+   v0.4.15: 填充所有 -- 占位参数 (设备IP/QSO统计/服务器在线数) + 新增 refreshStats
    v0.4.13: 修复 V2 协议响应匹配 — isResponseLike 加入 event==='ok' 判别
    v0.4.12: 修复 RESPONSE_ALIASES (getListResponse) + 响应匹配兼容 V2 协议 event 字段
    v0.4.0: 推翻四象限布局，FMO-Dashboard 风格纵向信息流
@@ -269,6 +269,14 @@ const App = {
     } else if (connected) {
       dot.className = 'status-dot connected';
       text.textContent = '已连接';
+      // 设备 IP 显示
+      if (this.hostPort) {
+        const ipEl = document.getElementById('dev-ip');
+        const ipDisplayEl = document.getElementById('ac-ip-display');
+        const ip = this.hostPort.split(':')[0];
+        if (ipEl) ipEl.textContent = ip;
+        if (ipDisplayEl) ipDisplayEl.textContent = this.hostPort;
+      }
     } else {
       dot.className = 'status-dot';
       text.textContent = '未连接';
@@ -619,6 +627,35 @@ const App = {
 
     await Promise.all(tasks);
 
+    // QSO 统计: 总通联 / 今日 / 友台数
+    (async () => {
+      try {
+        const r = await this.send({ type: 'qso', subType: 'getTotalCount' });
+        if ((r.code === 0 || r.code === undefined) && r.data != null) {
+          const el = document.getElementById('stat-total');
+          if (el) el.textContent = r.data.count ?? r.data.total ?? r.data.value ?? '--';
+        }
+      } catch (e) {}
+    })();
+    (async () => {
+      try {
+        const r = await this.send({ type: 'qso', subType: 'getTodayCount' });
+        if ((r.code === 0 || r.code === undefined) && r.data != null) {
+          const el = document.getElementById('stat-today');
+          if (el) el.textContent = r.data.count ?? r.data.today ?? r.data.value ?? '--';
+        }
+      } catch (e) {}
+    })();
+    (async () => {
+      try {
+        const r = await this.send({ type: 'qso', subType: 'getContactCount' });
+        if ((r.code === 0 || r.code === undefined) && r.data != null) {
+          const el = document.getElementById('stat-friends');
+          if (el) el.textContent = r.data.count ?? r.data.contacts ?? r.data.friends ?? r.data.value ?? '--';
+        }
+      } catch (e) {}
+    })();
+
     // 自身呼号显示（FMO 规范：界面元素4 - 未认证显示 N0CALL，已认证显示真实呼号）
     const devCallsignEl = document.getElementById('dev-callsign');
     const cmdDescEl = document.getElementById('command-desc');
@@ -776,11 +813,15 @@ const App = {
     const nameEl = document.getElementById('server-name-display');
     const pingEl = document.getElementById('server-ping');
     const addrEl = document.getElementById('server-addr');
+    const ipDisplayEl = document.getElementById('ac-ip-display');
 
     if (nameEl) nameEl.textContent = this.currentServerName || '--';
     if (addrEl) {
       const host = this.hostPort || '--';
       addrEl.textContent = host;
+    }
+    if (ipDisplayEl && this.hostPort) {
+      ipDisplayEl.textContent = this.hostPort;
     }
 
     // Ping show from cache
@@ -826,7 +867,7 @@ const App = {
         <span class="server-item-uid">#${uid}</span>
         <span class="server-item-name">${s.name || '--'}</span>
         <span>
-          <span class="server-item-count">${s.onlineCount ?? s.count ?? '--'} 在线</span>
+          <span class="server-item-count">${s.onlineCount ?? s.count ?? s.users ?? s.online ?? '--'} 在线</span>
           <span class="server-item-latency">${latStr}</span>
           ${active ? '<span class="server-item-check">✓</span>' : ''}
         </span>
@@ -852,7 +893,7 @@ const App = {
     sidebar.innerHTML = items.map(s => {
       const uid = s.uid || s.id || '';
       const name = s.name || '--';
-      const count = s.onlineCount ?? s.count ?? '--';
+      const count = s.onlineCount ?? s.count ?? s.users ?? s.online ?? s.onlineCount ?? '--';
       const activeClass = name === this.currentServerName ? ' active' : '';
       return `<div class="server-item-side${activeClass}" data-server-name="${name}">
         <span class="station-name">${name}</span>
@@ -1066,6 +1107,7 @@ const App = {
       first.classList.add('slide-in');
     }
     this.updateQsoCount();
+    this.refreshStats();
     this.renderPrevCard();
   },
 
@@ -1073,6 +1115,33 @@ const App = {
     const el = document.getElementById('qso-count');
     if (!el) return;
     el.textContent = this.qsoList.length;
+  },
+
+  async refreshStats() {
+    // 总通联数
+    try {
+      const r = await this.send({ type: 'qso', subType: 'getTotalCount' });
+      if ((r.code === 0 || r.code === undefined) && r.data != null) {
+        const el = document.getElementById('stat-total');
+        if (el) el.textContent = r.data.count ?? r.data.total ?? r.data.value ?? '--';
+      }
+    } catch (e) {}
+    // 今日通联
+    try {
+      const r = await this.send({ type: 'qso', subType: 'getTodayCount' });
+      if ((r.code === 0 || r.code === undefined) && r.data != null) {
+        const el = document.getElementById('stat-today');
+        if (el) el.textContent = r.data.count ?? r.data.today ?? r.data.value ?? '--';
+      }
+    } catch (e) {}
+    // 友台数
+    try {
+      const r = await this.send({ type: 'qso', subType: 'getContactCount' });
+      if ((r.code === 0 || r.code === undefined) && r.data != null) {
+        const el = document.getElementById('stat-friends');
+        if (el) el.textContent = r.data.count ?? r.data.contacts ?? r.data.friends ?? r.data.value ?? '--';
+      }
+    } catch (e) {}
   },
 
   // ============ Speaking Bar ============
