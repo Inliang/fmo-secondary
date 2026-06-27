@@ -830,19 +830,19 @@ const App = {
       return;
     }
 
-    const items = this.serverList.slice(0, 8);
+    const items = this.serverList;
     sidebar.innerHTML = items.map(s => {
       const uid = s.uid || s.id || '';
       const name = s.name || '--';
       const count = s.onlineCount ?? s.count ?? '--';
       const activeClass = name === this.currentServerName ? ' active' : '';
-      return `<div class="server-sidebar-item${activeClass}" data-server-name="${name}">
-        <span class="server-sidebar-name">${name}</span>
+      return `<div class="server-item-side${activeClass}" data-server-name="${name}">
+        <span class="station-name">${name}</span>
         <span class="server-sidebar-count">${count} 在线</span>
       </div>`;
     }).join('');
 
-    sidebar.querySelectorAll('.server-sidebar-item').forEach(el => {
+    sidebar.querySelectorAll('.server-item-side').forEach(el => {
       el.addEventListener('click', () => this.switchServer(el.dataset.serverName));
     });
   },
