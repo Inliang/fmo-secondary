@@ -1293,6 +1293,9 @@ const App = {
       }
     }
 
+    const arrowEl = document.getElementById('compass-arrow');
+    if (arrowEl) { arrowEl.style.transform = 'rotate(' + sp.azimuth + 'deg)'; }
+
     // Distance
     const distEl = document.getElementById('sb-distance');
     if (distEl) {
