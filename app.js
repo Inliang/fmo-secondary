@@ -831,7 +831,7 @@ const App = {
 
   _azimuthToDirection(azimuth) {
     const a = ((azimuth % 360) + 360) % 360;
-    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    const dirs = ['北', '东北', '东', '东南', '南', '西南', '西', '西北'];
     return dirs[Math.round(a / 45) % 8];
   },
 

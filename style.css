@@ -597,13 +597,13 @@ body {
   gap: 4px;
 }
 .bearing-meta strong {
-  font-size: var(--text-xl);
+  font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);
   font-family: var(--font-mono);
 }
 .bearing-meta span {
-  font-size: var(--text-sm);
+  font-size: 15px;
   color: var(--text-muted);
   font-family: var(--font-mono);
   font-feature-settings: "tnum";
