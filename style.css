@@ -502,20 +502,19 @@ body {
 
 .refresh-btn {
   padding: 4px 12px;
-  background: var(--accent-bg-strong);
-  color: var(--accent-hover);
+  background: var(--bg-hover);
+  color: var(--text-secondary);
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.02em;
   font-family: var(--font-mono);
   cursor: pointer;
-  transition: all 0.2s var(--ease-out);
-  box-shadow: 0 0 0 1px rgba(0, 214, 143, 0.18);
+  transition: background 0.2s var(--ease-out);
+  box-shadow: none;
 }
 .refresh-btn:hover {
-  background: rgba(0, 214, 143, 0.18);
-  box-shadow: 0 0 0 1px rgba(0, 214, 143, 0.30);
+  background: var(--bg-card);
 }
 
 /* ---- Bearing Panel ---- */
