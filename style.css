@@ -385,27 +385,31 @@ body {
 .ac-hero {
   position: relative;
   z-index: 2;
-  padding: 24px 24px 28px 24px;
-  display: block;
+  padding: 0 24px 24px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
 }
 
 .hero-main {
   width: 100%;
   min-width: 0;
-  padding-right: 140px;
+  text-align: center;
 }
 
 .callsign-wrap {
   display: flex;
   align-items: baseline;
+  justify-content: center;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   flex-wrap: wrap;
 }
 
 .ac-callsign {
   font-family: var(--font-mono);
-  font-size: clamp(64px, 8vw, 88px);
+  font-size: clamp(96px, 12vw, 140px);
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.005em;
@@ -460,6 +464,7 @@ body {
 .contact-tags {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 12px;
@@ -487,6 +492,7 @@ body {
 .ac-controls {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-3);
   font-size: var(--text-base);
   color: var(--text-muted);
@@ -526,7 +532,7 @@ body {
 /* ---- Bearing Panel ---- */
 .bearing-panel {
   position: absolute;
-  top: 24px;
+  top: 0;
   right: 24px;
   z-index: 3;
   display: flex;
