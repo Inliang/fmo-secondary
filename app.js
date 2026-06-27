@@ -503,7 +503,6 @@ const App = {
           this._myLon = r.data.longitude;
           const grid = this.latLonToGrid(r.data.latitude, r.data.longitude);
           this.myGrid = grid;
-          this._resolveGridLocation(grid);
         }
       } catch (e) {}
     })());
@@ -1319,10 +1318,6 @@ const App = {
     }
 
     this._addSpeakingRecord(data.callsign, sp.grid, serverUid, serverName);
-
-    if (sp.grid) {
-      this._resolveGridLocation(sp.grid);
-    }
 
     if (this._speakingTimer) {
       clearInterval(this._speakingTimer);
