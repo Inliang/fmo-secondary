@@ -99,6 +99,8 @@ const App = {
   _speakingHistory: [],
   _historyEvents: [],
   _recentHistoryTimer: null,
+  _currentFreq: '',
+  _currentMode: '',
 
   // --- 缓存 ---
   _gridLocationCache: {},
@@ -409,10 +411,12 @@ const App = {
       const freqHz = evt.frequency ?? evt.rx_freq ?? evt.freq;
       const mode = evt.mode || '';
       if (freqHz != null && freqHz > 0) {
-        const mhz = freqHz > 10000 ? freqHz / 1e6 : freqHz / 1000;
+        const mhz = (freqHz > 10000 ? freqHz / 1e6 : freqHz / 1000).toFixed(4);
+        this._currentFreq = mhz;
+        this._currentMode = mode;
         const band = this._freqToBand(mhz);
         const el = document.getElementById('freq-line-text');
-        if (el) el.textContent = `${(freqHz > 10000 ? freqHz / 1e6 : freqHz / 1000).toFixed(4)} MHz · ${band}${mode ? ' · ' + mode : ''}`;
+        if (el) el.textContent = `${mhz} MHz · ${band}${mode ? ' · ' + mode : ''}`;
       }
       return;
     }
@@ -595,8 +599,16 @@ const App = {
           const freqEl = document.getElementById('dev-user-freq');
           const freq = r.data.frequency ?? r.data.freq ?? r.data.rx_freq;
           if (freqEl && freq != null && freq > 0) {
-            const mhz = freq > 10000 ? (freq / 1e6).toFixed(4) : (freq / 1000).toFixed(4);
+            const mhz = (freq > 10000 ? freq / 1e6 : freq / 1000).toFixed(4);
             freqEl.textContent = mhz + ' MHz';
+            // 同步到说话面板频率显示
+            this._currentFreq = mhz;
+            this._currentMode = r.data.mode || '';
+            const lineEl = document.getElementById('freq-line-text');
+            if (lineEl) {
+              const band = this._freqToBand(parseFloat(mhz));
+              lineEl.textContent = `${mhz} MHz · ${band}${this._currentMode ? ' · ' + this._currentMode : ''}`;
+            }
           }
         }
       } catch (e) {}
@@ -614,12 +626,14 @@ const App = {
 
   async fetchRadioInfo() {
     // 频率获取：尝试 radio.getRxFrequency / radio.getTxFrequency
-    // 如果设备不支持这些端点，静默失败，保持 --
+    // 如果设备不支持这些端点，静默失败，保持 getUserPhyFreq 回退值
     const setFreq = (elId, freqHz, bandText, modeText) => {
       const el = document.getElementById(elId);
       if (!el) return;
       if (freqHz != null && freqHz > 0) {
-        const mhz = freqHz > 10000 ? (freqHz / 1e6).toFixed(4) : (freqHz / 1000).toFixed(4);
+        const mhz = (freqHz > 10000 ? freqHz / 1e6 : freqHz / 1000).toFixed(4);
+        this._currentFreq = mhz;
+        this._currentMode = modeText || '';
         el.textContent = `${mhz} MHz${bandText ? ' · ' + bandText : ''}${modeText ? ' · ' + modeText : ''}`;
       }
     };
