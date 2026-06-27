@@ -411,7 +411,7 @@ const App = {
       const freqHz = evt.frequency ?? evt.rx_freq ?? evt.freq;
       const mode = evt.mode || '';
       if (freqHz != null && freqHz > 0) {
-        const mhz = (freqHz > 10000 ? freqHz / 1e6 : freqHz / 1000).toFixed(4);
+        const mhz = (freqHz > 10000 ? freqHz / 1e6 : freqHz).toFixed(4);
         this._currentFreq = mhz;
         this._currentMode = mode;
         const band = this._freqToBand(mhz);
@@ -601,7 +601,7 @@ const App = {
           const freqEl = document.getElementById('dev-user-freq');
           const freq = r.data.frequency ?? r.data.freq ?? r.data.rx_freq;
           if (freqEl && freq != null && freq > 0) {
-            const mhz = (freq > 10000 ? freq / 1e6 : freq / 1000).toFixed(4);
+            const mhz = (freq > 10000 ? freq / 1e6 : freq).toFixed(4);
             freqEl.textContent = mhz + ' MHz';
             // 同步到说话面板频率显示
             this._currentFreq = mhz;
@@ -635,7 +635,7 @@ const App = {
       const el = document.getElementById(elId);
       if (!el) return;
       if (freqHz != null && freqHz > 0) {
-        const mhz = (freqHz > 10000 ? freqHz / 1e6 : freqHz / 1000).toFixed(4);
+        const mhz = (freqHz > 10000 ? freqHz / 1e6 : freqHz).toFixed(4);
         this._currentFreq = mhz;
         this._currentMode = modeText || '';
         el.textContent = `${mhz} MHz${bandText ? ' · ' + bandText : ''}${modeText ? ' · ' + modeText : ''}`;
@@ -662,7 +662,7 @@ const App = {
         const rx = r.data.rx_freq ?? r.data.rxFrequency ?? r.data.frequency;
         const tx = r.data.tx_freq ?? r.data.txFrequency;
         if (rx != null && rx > 0) {
-          const mhz = rx > 10000 ? rx / 1e6 : rx / 1000;
+          const mhz = rx > 10000 ? rx / 1e6 : rx;
           const band = this._freqToBand(mhz);
           setFreq('freq-line-text', rx, band, r.data.mode || '');
           return;
