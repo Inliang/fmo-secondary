@@ -76,6 +76,7 @@ const App = {
 
   // --- 数据 ---
   myCallsign: '',
+  myUid: '',
   myGrid: '',
   _myLat: undefined,
   _myLon: undefined,
@@ -490,6 +491,7 @@ const App = {
         const r = await this.send({ type: 'user', subType: 'getInfo' });
         if ((r.code === 0 || r.code === undefined) && r.data?.callsign) {
           this.myCallsign = r.data.callsign;
+          this.myUid = r.data.uid ?? r.data.id ?? '';
         }
       } catch (e) { console.warn('user:', e.message); }
     })());
@@ -650,9 +652,11 @@ const App = {
 
     // 自身呼号显示（FMO 规范：界面元素4 - 未认证显示 N0CALL，已认证显示真实呼号）
     const devCallsignEl = document.getElementById('dev-callsign');
+    const devUidEl = document.getElementById('dev-uid');
     const cmdDescEl = document.getElementById('command-desc');
     const cs = this.myCallsign || 'N0CALL';
     if (devCallsignEl) devCallsignEl.textContent = cs;
+    if (devUidEl) devUidEl.textContent = this.myUid || '--';
     if (cmdDescEl) cmdDescEl.textContent = cs + ' 正在守听';
   },
 
