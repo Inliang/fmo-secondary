@@ -728,8 +728,8 @@ body {
   background: var(--bg-hover);
   display: none;
 }
-.active-contact-card.idle .ac-placeholder { display: block; }
-.active-contact-card.idle .ac-hero { display: none; }
+.active-contact-card.idle .ac-placeholder { display: none; }
+.active-contact-card.idle .ac-hero,
 .active-contact-card.idle #contact-details-inline {
   opacity: 0.35;
   filter: grayscale(1);
