@@ -1721,7 +1721,7 @@ const App = {
       const ts = this._parseTimestamp(item.timestamp);
       const freqRaw = (item.frequency ?? item.freq ?? '').toString().trim();
       const mode = (item.mode ?? 'FM').toString().trim().toUpperCase() || 'FM';
-      const memo = (item.memo ?? item.message ?? '').trim();
+      const memo = (item.greeting ?? item.blessing ?? item.memo ?? item.message ?? '').trim();
       const logId = (item.logId ?? '').toString().trim();
 
       if (!toCallsign || !ts) continue;
