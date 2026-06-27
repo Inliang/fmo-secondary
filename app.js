@@ -1,5 +1,6 @@
 /* ============================================================
    FMO 副屏伴侣 — app.js v8
+   v0.4.13: 修复 V2 协议响应匹配 — isResponseLike 加入 event==='ok' 判别
    v0.4.12: 修复 RESPONSE_ALIASES (getListResponse) + 响应匹配兼容 V2 协议 event 字段
    v0.4.0: 推翻四象限布局，FMO-Dashboard 风格纵向信息流
    - 适配新 DOM 结构（speaking-bar 分词填充、device/server 标签组）
@@ -306,8 +307,8 @@ const App = {
     let msg;
     try { msg = JSON.parse(data); } catch (e) { return; }
 
-    // 响应匹配：V2 协议响应可能带 event:"ok"，故用 subType/code 辅助判别
-    const isResponseLike = !msg.event || msg.subType !== undefined || msg.code !== undefined;
+    // 响应匹配：V2 协议响应可能带 event:"ok"，故用 subType/code/event 辅助判别
+    const isResponseLike = msg.event === 'ok' || !msg.event || msg.subType !== undefined || msg.code !== undefined;
     if (isResponseLike && this._inFlight) {
       const r = this._inFlight.req;
       const expectedSubType =
@@ -335,7 +336,7 @@ const App = {
       }
     }
 
-    if (msg.type === 'event' || msg.event || msg.type === 'qso') {
+    if (msg.type === 'event' || msg.type === 'qso' || (msg.event && msg.event !== 'ok')) {
       this.handleEvent(JSON.stringify(msg));
     }
   },
