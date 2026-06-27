@@ -16,7 +16,7 @@ function normalizeHost(addr) {
 
 const RESPONSE_ALIASES = {
   station: { getListRange: 'getListResponse' },
-  qso: { getListRange: 'getListResponse' }
+  qso: { getList: 'getListResponse' }
 };
 
 class PcmTap {
@@ -890,11 +890,11 @@ const App = {
     const all = [];
 
     try {
-      for (let start = 0; start < maxPages * pageSize; start += pageSize) {
+      for (let page = 0; page < maxPages; page++) {
         const resp = await this.send({
           type: 'qso',
-          subType: 'getListRange',
-          data: { start, count: pageSize }
+          subType: 'getList',
+          data: { page, pageSize }
         });
         if (resp.code !== undefined && resp.code !== 0) break;
         const payload = resp.data;
