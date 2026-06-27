@@ -737,14 +737,14 @@ body {
 }
 
 .ac-elapsed {
-  display: inline-block;
+  display: block;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 13px;
   color: #8899a6;
   font-feature-settings: "tnum";
-  vertical-align: super;
-  align-self: flex-start;
-  margin-left: 2px;
+  text-align: center;
+  margin-top: 4px;
+  margin-bottom: 4px;
 }
 .active-contact-card:not(.active) .ac-elapsed { display: none; }
 
