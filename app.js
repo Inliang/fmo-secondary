@@ -13,7 +13,8 @@ function normalizeHost(addr) {
 
 /* FmoDeck 同款：响应 subType 别名映射 */
 const RESPONSE_ALIASES = {
-  station: { getListRange: 'getListRangeResponse' }
+  station: { getListRange: 'getListRangeResponse' },
+  qso: { getListRange: 'getListResponse' }
 };
 
 class PcmTap {
@@ -356,11 +357,32 @@ const App = {
     let msg;
     try { msg = JSON.parse(data); } catch (e) { return; }
 
+    // [FMO-DEBUG] a) 收到消息
+    console.log('[FMO-DEBUG] recv:',
+      'type=' + msg.type,
+      'event=' + msg.event,
+      'subType=' + msg.subType,
+      'code=' + msg.code,
+      'dataKeys=' + (msg.data != null ? JSON.stringify(Object.keys(msg.data)) : 'null'));
+
+    // [FMO-DEBUG] b) isResponseLike 判定
+    const isResponseLike = msg.event === 'ok' || !msg.event || msg.subType !== undefined || msg.code !== undefined;
+    const reasons = [];
+    if (msg.event === 'ok') reasons.push('event===ok');
+    if (!msg.event) reasons.push('!event');
+    if (msg.subType !== undefined) reasons.push('subType');
+    if (msg.code !== undefined) reasons.push('code');
+    console.log('[FMO-DEBUG] isResponseLike=' + isResponseLike + ' reasons=[' + reasons.join(',') + ']');
+
     // 匹配 in-flight 请求 — FmoDeck 同款 type+subType 匹配
     if (this._inFlight) {
       const r = this._inFlight.req;
       const expectedSubType =
         RESPONSE_ALIASES[r.type]?.[r.subType] ?? `${r.subType}Response`;
+
+      // [FMO-DEBUG] c) 进入匹配阶段
+      console.log('[FMO-DEBUG] matching: inFlight=' + r.type + '/' + r.subType +
+        ' expectedSubType=' + expectedSubType);
 
       let matched = false;
       if (
@@ -368,13 +390,24 @@ const App = {
         (msg.subType === expectedSubType || msg.subType === r.subType)
       ) {
         matched = true;
+        // [FMO-DEBUG] d) 第一匹配成功
+        console.log('[FMO-DEBUG] match: first (type+subType)');
       }
 
       if (!matched && msg.type === r.type) {
         matched = true;
+        // [FMO-DEBUG] d) 第二匹配成功
+        console.log('[FMO-DEBUG] match: second (type only fallback)');
+      }
+
+      if (!matched) {
+        // [FMO-DEBUG] d) 都失败
+        console.log('[FMO-DEBUG] match: none');
       }
 
       if (matched) {
+        // [FMO-DEBUG] e) 匹配成功
+        console.log('[FMO-DEBUG] matched: ' + r.type + '/' + r.subType + ' -> resolve');
         clearTimeout(this._inFlight.timer);
         const resolve = this._inFlight.resolve;
         this._inFlight = null;
@@ -382,6 +415,9 @@ const App = {
         this._processQueue();
         return;
       }
+    } else {
+      // [FMO-DEBUG] f) 无 in-flight 请求
+      console.log('[FMO-DEBUG] no in-flight, routing to event');
     }
 
     // 非响应 → 服务端推送（含 FmoDeck qso 事件）
