@@ -1529,6 +1529,14 @@ const App = {
       qthEl.style.display = loc ? '' : 'none';
     }
 
+    // 频率卡片内地址 (freq-addr)
+    const addrEl = document.getElementById('freq-addr');
+    if (addrEl) {
+      const loc = sp.grid ? (this._gridLocationCache[sp.grid] || sp.grid) : '';
+      addrEl.textContent = loc;
+      addrEl.style.display = loc ? '' : 'none';
+    }
+
     // Server name
     const srvEl = document.getElementById('sb-server');
     if (srvEl) {
