@@ -339,7 +339,7 @@ const App = {
   handleWsMessage(data) {
     let msg;
     try { msg = JSON.parse(data); } catch (e) { return; }
-    const dbg = (...args) => console.log('[FMO-DEBUG]', ...args);
+    const dbg = (...args) => FMODebug.log('DEBUG', ...args);
     dbg('recv', msg.type, msg.event, msg.subType, msg.code, Object.keys(msg.data||{}));
 
     // 响应匹配：V2 协议响应可能带 event:"ok"，故用 subType/code/event 辅助判别
@@ -436,7 +436,7 @@ const App = {
         serverUid: srv.uid || evt.serverUid || '',
       });
       // 同步频率显示
-      console.log('[FMO-DEBUG-FREQ] speaking_start 完整事件:', JSON.stringify(evt));
+      FMODebug.log('FREQ', 'speaking_start 完整事件:', JSON.stringify(evt));
       const freqHz = evt.frequency ?? evt.rx_freq ?? evt.freq;
       const mode = evt.mode || '';
       if (freqHz != null && freqHz > 0) {
@@ -500,14 +500,14 @@ const App = {
   // ============ 数据获取 ============
 
   async fetchAllData() {
-    console.log('[FMO-DEBUG-SERVER] fetchAllData 即将调用 fetchServerListAll');
+    FMODebug.log('SERVER', 'fetchAllData 即将调用 fetchServerListAll');
     await Promise.all([
       this.fetchDeviceInfo(),
       this.fetchServerListAll(),
       this.fetchQsoListAll(),
       this.fetchRadioInfo()
     ]);
-    console.log('[FMO-DEBUG-SERVER] fetchAllData 中 fetchServerListAll 已完成');
+    FMODebug.log('SERVER', 'fetchAllData 中 fetchServerListAll 已完成');
   },
 
   async fetchDeviceInfo() {
@@ -624,8 +624,8 @@ const App = {
     tasks.push((async () => {
       try {
         const r = await this.send({ type: 'config', subType: 'getUserPhyFreq' });
-        console.log('[FMO-DEBUG-FREQ] getUserPhyFreq 原始响应:', JSON.stringify(r));
-        console.log('[FMO-DEBUG-FREQ] freq 值:', r?.data?.freq, '类型:', typeof r?.data?.freq);
+        FMODebug.log('FREQ', 'getUserPhyFreq 原始响应:', JSON.stringify(r));
+        FMODebug.log('FREQ', 'freq 值:', r?.data?.freq, '类型:', typeof r?.data?.freq);
         if ((r.code === 0 || r.code === undefined) && r.data) {
           const freqEl = document.getElementById('dev-user-freq');
           const freq = r.data.frequency ?? r.data.freq ?? r.data.rx_freq;
@@ -641,7 +641,7 @@ const App = {
               lineEl.textContent = `${mhz} MHz · ${band}${this._currentMode ? ' · ' + this._currentMode : ''}`;
             }
           } else if (!freq || freq === 0) {
-            console.log('[FMO-DEBUG-FREQ] getUserPhyFreq 响应无 freq 字段或 freq=0, data keys:', Object.keys(r.data || {}));
+            FMODebug.log('FREQ', 'getUserPhyFreq 响应无 freq 字段或 freq=0, data keys:', Object.keys(r.data || {}));
           }
         }
       } catch (e) {}
@@ -781,7 +781,7 @@ const App = {
   async fetchServerListAll() {
     const pageSize = 20, maxPages = 50;
     const all = [];
-    console.log('[FMO-DEBUG-SERVER] fetchServerListAll 开始，pageSize=20, maxPages=50');
+    FMODebug.log('SERVER', 'fetchServerListAll 开始，pageSize=20, maxPages=50');
 
     try {
       for (let i = 0; i < maxPages; i++) {
@@ -792,7 +792,7 @@ const App = {
         });
         // code 明确为错误码时中止（部分固件不返回 code，仅 data 有值时继续）
         if (resp.code !== undefined && resp.code !== 0) break;
-        if (i === 0) console.log('[FMO-DEBUG-SERVER] 第1页原始响应:', JSON.stringify(resp));
+        if (i === 0) FMODebug.log('SERVER', '第1页原始响应:', JSON.stringify(resp));
         const payload = resp.data;
         let list;
         if (Array.isArray(payload)) {
@@ -803,14 +803,14 @@ const App = {
         } else {
           list = [];
         }
-        console.log('[FMO-DEBUG-SERVER] 第 ' + (i + 1) + ' 页返回，listLength=' + list.length + ', respKeys=' + (payload && typeof payload === 'object' ? Object.keys(payload).join(',') : 'N/A'));
+        FMODebug.log('SERVER', '第 ' + (i + 1) + ' 页返回，listLength=' + list.length + ', respKeys=' + (payload && typeof payload === 'object' ? Object.keys(payload).join(',') : 'N/A'));
         if (list.length === 0) break;
         all.push(...list);
         if (list.length < pageSize) break;
       }
-    } catch (e) { console.warn('station list:', e.message); console.log('[FMO-DEBUG-SERVER] 异常: ' + e.message); }
+    } catch (e) { console.warn('station list:', e.message); FMODebug.log('SERVER', '异常: ' + e.message); }
 
-    console.log('[FMO-DEBUG-SERVER] 循环结束，共累积 ' + all.length + ' 条');
+    FMODebug.log('SERVER', '循环结束，共累积 ' + all.length + ' 条');
 
     this.serverList = all;
 
@@ -852,7 +852,7 @@ const App = {
   },
 
   renderServerList() {
-    console.log('[FMO-DEBUG-SERVER] renderServerList 被调用，serverList 长度=' + (this.serverList ? this.serverList.length : 'undefined'));
+    FMODebug.log('SERVER', 'renderServerList 被调用，serverList 长度=' + (this.serverList ? this.serverList.length : 'undefined'));
 
     const container = document.getElementById('server-list-container');
     if (!container) return;
@@ -897,7 +897,7 @@ const App = {
     container.querySelectorAll('.server-item').forEach(el => {
       el.addEventListener('click', () => this.switchServer(el.dataset.serverName));
     });
-    console.log('[FMO-DEBUG-SERVER] renderServerList 完成，渲染了 ' + filtered.length + ' 项');
+    FMODebug.log('SERVER', 'renderServerList 完成，渲染了 ' + filtered.length + ' 项');
   },
 
   _pn(t) {
@@ -1060,7 +1060,7 @@ const App = {
         if (list.length === 0) break;
 
         if (page === 0 && list.length > 0) {
-          console.log('[FMO-DEBUG-QSO] 第一条 QSO 完整字段:', JSON.stringify(list[0]));
+          FMODebug.log('QSO', '第一条 QSO 完整字段:', JSON.stringify(list[0]));
         }
 
         all.push(...list);
