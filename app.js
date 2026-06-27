@@ -975,19 +975,16 @@ const App = {
       const callsign = item.toCallsign ?? item.callsign ?? '--';
       const grid = item.grid ?? item.locator ?? '';
 
-      // 触发异步反查（不阻塞渲染）
-      if (grid && !this._gridLocationCache[grid]) {
-        this._resolveGridLocation(grid);
-      }
+      // QTH：优先缓存命中，否则显示网格码。不主动触发 Nominatim 请求。
+      const qth = this._gridLocationCache[grid] || grid || '--';
 
-      // meta：QTH · 留言 · 中继（仅已缓存的 QTH，无缓存时不显示以免重复网格码）
+      // meta：QTH · 留言 · 中继（始终显示三列，空数据用占位符）
       const metaParts = [];
-      const qth = this._gridLocationCache[grid] || '';
-      if (qth) metaParts.push(qth);
+      metaParts.push(qth);
       const memo = (item.memo ?? item.message ?? '').trim();
-      if (memo) metaParts.push(memo);
+      metaParts.push(memo || '无留言');
       const relay = (item.serverName ?? item.stationName ?? '').trim();
-      if (relay) metaParts.push(relay);
+      metaParts.push(relay || '无中继');
 
       return `<div class="qso-row">
         <span class="qso-accent"></span>
