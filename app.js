@@ -15,7 +15,8 @@ function normalizeHost(addr) {
 }
 
 const RESPONSE_ALIASES = {
-  station: { getListRange: 'getListResponse' }
+  station: { getListRange: 'getListResponse' },
+  qso: { getListRange: 'getListResponse' }
 };
 
 class PcmTap {
@@ -307,13 +308,17 @@ const App = {
   handleWsMessage(data) {
     let msg;
     try { msg = JSON.parse(data); } catch (e) { return; }
+    const dbg = (...args) => console.log('[FMO-DEBUG]', ...args);
+    dbg('recv', msg.type, msg.event, msg.subType, msg.code, Object.keys(msg.data||{}));
 
     // 响应匹配：V2 协议响应可能带 event:"ok"，故用 subType/code/event 辅助判别
     const isResponseLike = msg.event === 'ok' || !msg.event || msg.subType !== undefined || msg.code !== undefined;
+    dbg('isResponseLike', isResponseLike, '_inFlight', !!this._inFlight);
     if (isResponseLike && this._inFlight) {
       const r = this._inFlight.req;
       const expectedSubType =
         RESPONSE_ALIASES[r.type]?.[r.subType] ?? `${r.subType}Response`;
+      dbg('matching', r.type, r.subType, 'expectedSubType', expectedSubType);
 
       let matched = false;
       if (
@@ -321,14 +326,21 @@ const App = {
         (msg.subType === expectedSubType || msg.subType === r.subType)
       ) {
         matched = true;
+        dbg('match', 'first');
       }
 
       // V2: 响应带 event:"ok" 且含 data，通过 type 匹配（排除纯心跳）
       if (!matched && msg.event === 'ok' && msg.type === r.type && msg.data !== undefined) {
         matched = true;
+        dbg('match', 'second');
+      }
+
+      if (!matched) {
+        dbg('match', 'none');
       }
 
       if (matched) {
+        dbg('matched');
         clearTimeout(this._inFlight.timer);
         const resolve = this._inFlight.resolve;
         this._inFlight = null;
@@ -336,6 +348,10 @@ const App = {
         this._processQueue();
         return;
       }
+    }
+
+    if (!this._inFlight) {
+      dbg('no in-flight');
     }
 
     if (msg.type === 'event' || msg.type === 'qso' || (msg.event && msg.event !== 'ok')) {
