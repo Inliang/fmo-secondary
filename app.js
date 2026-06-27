@@ -1533,12 +1533,11 @@ const App = {
       qthEl.style.display = loc ? '' : 'none';
     }
 
-    // 频率卡片内地址 (freq-addr)
-    const addrEl = document.getElementById('freq-addr');
-    if (addrEl) {
-      const loc = sp.grid ? (this._gridLocationCache[sp.grid] || sp.grid) : '';
-      addrEl.textContent = loc;
-      addrEl.style.display = loc ? '' : 'none';
+    // QTH 卡片 (freq-qth)
+    const qthCardEl = document.getElementById('freq-qth');
+    if (qthCardEl) {
+      const loc = this._gridLocationCache[sp?.grid] || sp?.grid || '--';
+      qthCardEl.textContent = loc;
     }
 
     // Server name
