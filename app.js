@@ -859,7 +859,7 @@ const App = {
         <span class="server-item-uid">#${uid}</span>
         <span class="server-item-name">${s.name || '--'}</span>
         <span>
-          <span class="server-item-count">${s.onlineCount ?? s.count ?? s.users ?? s.online ?? '--'} 在线</span>
+          <span class="server-item-count">U${s.onlineCount ?? s.count ?? s.users ?? s.online ?? '--'} 在线</span>
           <span class="server-item-latency">${latStr}</span>
           ${active ? '<span class="server-item-check">✓</span>' : ''}
         </span>
@@ -889,7 +889,7 @@ const App = {
       const activeClass = name === this.currentServerName ? ' active' : '';
       return `<div class="server-item-side${activeClass}" data-server-name="${name}">
         <span class="station-name">${name}</span>
-        <span class="server-sidebar-count">${count} 在线</span>
+        <span class="server-sidebar-count">U${count} 在线</span>
       </div>`;
     }).join('');
 
