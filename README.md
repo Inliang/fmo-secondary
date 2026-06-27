@@ -79,6 +79,25 @@ fmo-secondary/
 
 ## 更新日志
 
+### 2026-06-19 (v0.3.29)
+
+**UI 动画改造 — Phenomenon Studio 风格交错渐现与微交互**
+
+- 功能下拉菜单：`display:none` → `opacity` + `translateY(-8px)` 平滑过渡（cubic-bezier 缓出）
+- 菜单项：交错渐现（50ms 间隔延迟）+ hover `scale(1.02)` + 微光 box-shadow + active `scale(0.97)` 按压反馈
+- 服务器列表项：交错渐现（50ms/项）+ hover `scale(1.02)` + 微光 + active 按压反馈
+- 四象限面板：面板加载时从 `opacity:0 translateY(8px)` 交错渐入（50/120/190/260ms 延迟）
+- 全局微交互：`feature-btn` / `mute-btn` / `settings-btn` / `theme-toggle` / `.btn` / `.export-btn` hover 时 subtle glow（`box-shadow: 0 0 8px var(--accent-glow)`），active 时 `scale(0.92-0.95)` 按压反馈
+- 所有 transition 统一 200ms ease-out / 200ms cubic-bezier(0.22, 1, 0.36, 1)，保持现有 `#00D9FF` 强调色不变
+- README 版本日志美化：仅展开最新一条，其余历史版本折叠至「历史版本」块中
+
+> 动画风格参照 [Phenomenon Studio](https://phenomenonstudio.com/) — staggered reveals / subtle glow / tactile micro-interactions
+
+**修改文件**：style.css, app.js, README.md
+
+<details>
+<summary>历史版本</summary>
+
 ### 2026-06-09 (v0.3.16)
 
 **修复 — Recent Speakers 呼号字体 + 自我识别**
@@ -105,9 +124,6 @@ fmo-secondary/
 
 **修改文件**：style.css
 
-<details>
-<summary>历史日志</summary>
-
 ### 2026-06-09 (v0.3.14)
 
 **修复 — SSTV Robot 36 无法接收信号**
@@ -119,9 +135,6 @@ fmo-secondary/
 
 **修改文件**：app.js, README.md
 
-<details>
-<summary>历史日志</summary>
-
 ### 2026-06-06 (v0.3.13)
 
 **修复 — 服务器列表无法加载**
@@ -130,9 +143,6 @@ fmo-secondary/
 - 在 App 对象 SSTV 段补充 `_serverLatency: {}` / `_serverLatencyPending: {}`
 
 **修改文件**：app.js
-
-<details>
-<summary>历史日志</summary>
 
 ### 2026-06-06 (v0.3.12)
 
@@ -144,9 +154,6 @@ fmo-secondary/
 - 新增 `_serverLatency` / `_serverLatencyPending` 缓存字段防止并发重复测量
 
 **修改文件**：app.js, style.css
-
-<details>
-<summary>历史日志</summary>
 
 ### 2026-06-06 (v0.3.11)
 
@@ -188,9 +195,6 @@ fmo-secondary/
 - 彻底消除多层嵌套、双层显示、flex-wrap 换行等问题
 
 **修改文件**：index.html, style.css, app.js
-
-<details>
-<summary>历史日志</summary>
 
 ### 2026-06-06 (v0.3.7)
 

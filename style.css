@@ -150,7 +150,7 @@ html, body {
 .mute-btn {
   background: none; border: 1px solid var(--border);
   color: var(--text-secondary); font-size: 16px;
-  width: 30px; height: 30px; border-radius: 6px;
+  width: 30px; height: 30px; border-radius: 8px;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   transition: all var(--transition);
   line-height: 1;
@@ -165,7 +165,7 @@ html, body {
   width: 60px;
   height: 4px;
   background: var(--border);
-  border-radius: 2px;
+  border-radius: 8px;
   outline: none;
   cursor: pointer;
 }
@@ -180,11 +180,12 @@ html, body {
 .settings-btn {
   background: none; border: 1px solid var(--border);
   color: var(--text-secondary); font-size: 16px;
-  width: 30px; height: 30px; border-radius: 6px;
+  width: 30px; height: 30px; border-radius: 8px;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: all var(--transition);
+  transition: all 200ms ease-out, transform 200ms ease-out;
 }
 .settings-btn:hover { color: var(--accent); border-color: var(--accent); }
+.settings-btn:active { transform: scale(0.92); transition: transform 80ms ease-out; }
 
 /* --- Dashboard Grid --- */
 .dashboard {
@@ -195,6 +196,10 @@ html, body {
   flex: 1;
   min-height: 0;
 }
+.dashboard .panel:nth-child(1) { animation-delay: 50ms; }
+.dashboard .panel:nth-child(2) { animation-delay: 120ms; }
+.dashboard .panel:nth-child(3) { animation-delay: 190ms; }
+.dashboard .panel:nth-child(4) { animation-delay: 260ms; }
 
 /* --- Panel --- */
 .panel {
@@ -206,6 +211,9 @@ html, body {
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: panelReveal 350ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 .panel-title {
   font-size: 12px;
@@ -238,13 +246,17 @@ html, body {
   color: var(--text-secondary);
   font-size: 11px;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 200ms ease-out, transform 200ms ease-out;
 }
 .export-btn:hover {
   color: var(--accent);
   border-color: var(--accent);
+}
+.export-btn:active {
+  transform: scale(0.95);
+  transition: transform 80ms ease-out;
 }
 .panel-content {
   flex: 1;
@@ -275,7 +287,7 @@ html, body {
 .panel-info .info-card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 10px 14px;
   display: flex;
   flex-direction: column;
@@ -321,7 +333,7 @@ html, body {
 .stat-card {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 8px;
   padding: 16px 12px;
   text-align: center;
 }
@@ -346,7 +358,7 @@ html, body {
   padding: 7px 12px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-primary);
   font-size: 13px;
   outline: none;
@@ -368,20 +380,31 @@ html, body {
   align-items: center;
   justify-content: space-between;
   padding: 9px 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background var(--transition);
+  transition: transform 200ms ease-out, background 200ms ease-out, border-color 200ms ease-out;
   border: 1px solid transparent;
   margin-bottom: 3px;
   font-size: 14px;
+  opacity: 0;
+  transform: translateY(4px);
+  animation: staggerReveal 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 .server-item:hover {
+  transform: scale(1.02);
   background: var(--bg);
   border-color: var(--border);
+}
+.server-item:active {
+  transform: scale(0.97);
+  transition: transform 80ms ease-out;
 }
 .server-item.active {
   background: var(--accent-glow);
   border-color: var(--accent);
+}
+.server-item.active:hover {
+  transform: scale(1.02);
 }
 .server-item-uid {
   font-family: var(--font-mono);
@@ -483,14 +506,14 @@ html, body {
   width: 60px;
   height: 4px;
   background: var(--border);
-  border-radius: 2px;
+  border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
 }
 .vu-meter-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--success), var(--warn), var(--danger));
-  border-radius: 2px;
+  border-radius: 8px;
   transition: width 0.08s linear;
 }
 
@@ -508,7 +531,7 @@ html, body {
   align-items: center;
   gap: 10px;
   padding: 6px 10px;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
   transition: background 0.15s;
   position: relative;
@@ -642,7 +665,7 @@ html, body {
 .settings-dialog {
   background: var(--panel-bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 24px;
   width: 380px;
   max-width: 90vw;
@@ -656,7 +679,7 @@ html, body {
   padding: 8px 12px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: 13px;
@@ -668,22 +691,23 @@ html, body {
 .settings-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
 .btn {
   padding: 8px 16px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text-primary);
   cursor: pointer;
   font-size: 13px;
-  transition: all var(--transition);
+  transition: all 200ms ease-out, transform 200ms ease-out;
 }
 .btn:hover { border-color: var(--accent); }
+.btn:active { transform: scale(0.95); transition: transform 80ms ease-out; }
 .btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 
 /* --- Theme Toggle --- */
 .theme-toggle {
   background: none; border: 1px solid var(--border);
   color: var(--text-secondary); font-size: 12px;
-  padding: 3px 10px; border-radius: 5px;
+  padding: 3px 10px; border-radius: 8px;
   cursor: pointer; transition: all var(--transition);
 }
 .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
@@ -701,7 +725,7 @@ html, body {
 /* --- Scrollbar --- */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
 
 /* --- Responsive --- */
 @media (max-width: 1024px) {
@@ -743,29 +767,42 @@ html, body {
   background: var(--panel-bg);
   color: var(--text-primary);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 8px;
   padding: 4px 10px;
   font-size: 12px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 200ms ease-out, transform 200ms ease-out;
   font-family: var(--font-base);
 }
-.feature-btn:hover { background: var(--card-bg); }
+.feature-btn:hover {
+  background: var(--card-bg);
+}
+.feature-btn:active {
+  transform: scale(0.95);
+  transition: transform 80ms ease-out;
+}
 .feature-menu {
-  display: none;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
   position: absolute;
   top: 100%;
   right: 0;
   margin-top: 4px;
   background: var(--panel-bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  border-radius: 8px;
   z-index: 200;
   min-width: 140px;
   overflow: hidden;
+  transition: opacity 200ms cubic-bezier(0.22, 1, 0.36, 1),
+              transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-.feature-menu.open { display: block; }
+.feature-menu.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
 .feature-menu-item {
   display: block;
   width: 100%;
@@ -777,9 +814,26 @@ html, body {
   text-align: left;
   cursor: pointer;
   font-family: var(--font-base);
-  transition: background 0.12s;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: transform 200ms ease-out, background 200ms ease-out;
 }
-.feature-menu-item:hover { background: var(--card-bg); }
+.feature-menu.open .feature-menu-item {
+  animation: staggerReveal 250ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: 50ms;
+}
+.feature-menu.open .feature-menu-item:nth-child(2) { animation-delay: 110ms; }
+.feature-menu.open .feature-menu-item:nth-child(3) { animation-delay: 170ms; }
+.feature-menu.open .feature-menu-item:nth-child(4) { animation-delay: 230ms; }
+.feature-menu.open .feature-menu-item:nth-child(5) { animation-delay: 290ms; }
+.feature-menu-item:hover {
+  transform: scale(1.02);
+  background: var(--card-bg);
+}
+.feature-menu-item:active {
+  transform: scale(0.97);
+  transition: transform 80ms ease-out;
+}
 
 /* --- SSTV Overlay --- */
 .sstv-overlay {
@@ -788,7 +842,6 @@ html, body {
   inset: 0;
   z-index: 300;
   background: rgba(0,0,0,0.85);
-  backdrop-filter: blur(4px);
   align-items: center;
   justify-content: center;
 }
@@ -796,7 +849,7 @@ html, body {
 .sstv-panel {
   background: var(--panel-bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 8px;
   width: 95vw;
   max-width: 1100px;
   height: 85vh;
@@ -847,7 +900,7 @@ html, body {
   max-height: 65vh;
   object-fit: contain;
   border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 4px;
+  border-radius: 8px;
   background: #111;
 }
 .sstv-signal-bar {
@@ -856,7 +909,7 @@ html, body {
   height: 24px;
   width: 100%;
   max-width: 640px;
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
 }
 .signal-segment {
@@ -874,7 +927,7 @@ html, body {
   font-size: 14px;
   font-weight: 700;
   padding: 4px 12px;
-  border-radius: 4px;
+  border-radius: 8px;
   background: rgba(0,255,136,0.15);
   color: #00ff88;
   display: none;
@@ -899,7 +952,7 @@ html, body {
   margin-bottom: 8px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 8px;
   color: var(--text-primary);
   font-size: 12px;
   font-family: var(--font-base);
@@ -910,7 +963,7 @@ html, body {
   background: var(--accent);
   color: #000;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -929,7 +982,7 @@ html, body {
 .sstv-history-empty { color: var(--text-secondary); font-size: 12px; text-align: center; padding: 20px 0; }
 .sstv-history-item {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
   transition: border-color 0.15s;

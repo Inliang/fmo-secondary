@@ -703,13 +703,13 @@ const App = {
       return;
     }
 
-    container.innerHTML = filtered.map(s => {
+    container.innerHTML = filtered.map((s, i) => {
       const uid = s.uid ?? s._id ?? s.id ?? '--';
       const active = s.name === this.currentServerName;
       const host = s.host || s.addr || s.address || s.url || '';
       const lat = this._serverLatency[host];
       const latStr = lat === -1 ? '超时' : (lat !== undefined ? lat + 'ms' : '...');
-      return `<div class="server-item${active ? ' active' : ''}" data-server-name="${s.name}" data-server-key="${host || s.name}">
+      return `<div class="server-item${active ? ' active' : ''}" style="animation-delay: ${i * 50}ms" data-server-name="${s.name}" data-server-key="${host || s.name}">
         <span class="server-item-uid">#${uid}</span>
         <span class="server-item-name">${s.name || '--'}</span>
         <span>
