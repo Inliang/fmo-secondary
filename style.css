@@ -649,7 +649,7 @@ html, body {
 }
 .qso-logid { color: var(--text-secondary); font-family: var(--font-mono); font-size: 11px; }
 .qso-callsign { font-family: var(--font-mono); font-weight: 600; }
-.qso-grid { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); }
+.qso-grid { font-family: var(--font-mono); color: var(--text-secondary); }
 .qso-time { font-size: 12px; color: var(--text-secondary); text-align: right; white-space: nowrap; }
 
 /* --- Settings Panel --- */
