@@ -482,6 +482,47 @@ const App = {
       } catch (e) {}
     })());
 
+    // system.getInfo: 固件版本 + MAC
+    tasks.push((async () => {
+      try {
+        const r = await this.send({ type: 'system', subType: 'getInfo' });
+        if (r.code === 0 && r.data) {
+          const verEl = document.getElementById('dev-version');
+          const macEl = document.getElementById('dev-mac');
+          if (verEl && (r.data.version || r.data.ver)) verEl.textContent = r.data.version || r.data.ver;
+          if (macEl && r.data.mac) macEl.textContent = r.data.mac;
+        }
+      } catch (e) { /* 旧固件不支持 system.getInfo 则静默保持 -- */ }
+    })());
+
+    // radio.getVersion 备用（部分固件版本号在 radio 命名空间）
+    tasks.push((async () => {
+      try {
+        const r = await this.send({ type: 'radio', subType: 'getVersion' });
+        if (r.code === 0 && r.data) {
+          const verEl = document.getElementById('dev-version');
+          if (verEl && (r.data.version || r.data.ver)) verEl.textContent = r.data.version || r.data.ver;
+        }
+      } catch (e) {}
+    })());
+
+    // config.getSystemInfo 备用路径
+    tasks.push((async () => {
+      try {
+        const r = await this.send({ type: 'config', subType: 'getSystemInfo' });
+        if (r.code === 0 && r.data) {
+          const verEl = document.getElementById('dev-version');
+          const macEl = document.getElementById('dev-mac');
+          if (verEl && (r.data.version || r.data.ver || r.data.fwVer)) {
+            verEl.textContent = r.data.version || r.data.ver || r.data.fwVer;
+          }
+          if (macEl && (r.data.mac || r.data.wifiMac)) {
+            macEl.textContent = r.data.mac || r.data.wifiMac;
+          }
+        }
+      } catch (e) {}
+    })());
+
     await Promise.all(tasks);
 
     // 自身呼号显示（FMO 规范：界面元素4 - 未认证显示 N0CALL，已认证显示真实呼号）
@@ -621,6 +662,7 @@ const App = {
     } catch (e) {}
 
     this.renderServerList();
+    this.renderServerSidebar();
     setTimeout(() => this._probeAllServerLatency(), 500);
   },
 
@@ -692,6 +734,32 @@ const App = {
     });
   },
 
+  renderServerSidebar() {
+    const sidebar = document.getElementById('server-list-sidebar');
+    if (!sidebar) return;
+
+    if (!this.serverList.length) {
+      sidebar.innerHTML = '<div class="side-loading"><span>暂无服务器</span></div>';
+      return;
+    }
+
+    const items = this.serverList.slice(0, 8);
+    sidebar.innerHTML = items.map(s => {
+      const uid = s.uid || s.id || '';
+      const name = s.name || '--';
+      const count = s.onlineCount ?? s.count ?? '--';
+      const activeClass = name === this.currentServerName ? ' active' : '';
+      return `<div class="server-sidebar-item${activeClass}" data-server-name="${name}">
+        <span class="server-sidebar-name">${name}</span>
+        <span class="server-sidebar-count">${count} 在线</span>
+      </div>`;
+    }).join('');
+
+    sidebar.querySelectorAll('.server-sidebar-item').forEach(el => {
+      el.addEventListener('click', () => this.switchServer(el.dataset.serverName));
+    });
+  },
+
   async switchServer(name) {
     if (name === this.currentServerName) return;
 
@@ -706,6 +774,7 @@ const App = {
     if (nameEl) nameEl.textContent = name + ' …';
     this.currentServerName = name;
     this.renderServerList();
+    this.renderServerSidebar();
 
     try {
       const target = this.serverList.find(s => s.name === name);
@@ -717,10 +786,12 @@ const App = {
       if (resp.code === 0) {
         this._showServerInfo();
         this.renderServerList();
+        this.renderServerSidebar();
       } else {
         if (nameEl) nameEl.textContent = this._prevServer || '--';
         this.currentServerName = this._prevServer || '';
         this.renderServerList();
+        this.renderServerSidebar();
         return;
       }
     } catch (e) {
@@ -728,6 +799,7 @@ const App = {
       if (nameEl) nameEl.textContent = this._prevServer || '--';
       this.currentServerName = this._prevServer || '';
       this.renderServerList();
+      this.renderServerSidebar();
       return;
     }
 
@@ -771,6 +843,7 @@ const App = {
     this.qsoList = all;
     this.renderQsoList();
     this.updateQsoCount();
+    this.renderPrevCard();
   },
 
   renderQsoList() {
@@ -810,6 +883,44 @@ const App = {
     });
   },
 
+  renderPrevCard() {
+    const timeEl = document.getElementById('prev-time-ago');
+    const contentEl = document.getElementById('prev-card-content');
+    if (!contentEl) return;
+
+    if (!this.qsoList.length) {
+      if (timeEl) timeEl.textContent = '暂无';
+      contentEl.className = 'prev-empty';
+      contentEl.innerHTML = `<div class="prev-info-grid">
+        <div class="prev-info-item"><span class="prev-info-label">方位</span><span class="prev-info-value">--</span></div>
+        <div class="prev-info-item"><span class="prev-info-label">距离</span><span class="prev-info-value">--</span></div>
+        <div class="prev-info-item"><span class="prev-info-label">呼号</span><span class="prev-info-value">--</span></div>
+      </div>`;
+      return;
+    }
+
+    const last = this.qsoList[0];
+    const callsign = last.toCallsign || last.callsign || '--';
+    const dist = last.distance !== undefined ? Number(last.distance).toFixed(0) + '公里' : '--';
+    const azi = last.azimuth !== undefined ? Math.round(last.azimuth) + '°' : '--';
+    const dir = last.azimuth !== undefined ? this._azimuthToDirection(last.azimuth) + ' ' : '';
+
+    if (timeEl && last.timestamp) {
+      const diff = Date.now() - last.timestamp * 1000;
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) timeEl.textContent = '刚刚';
+      else if (mins < 60) timeEl.textContent = mins + '分钟前';
+      else { const hrs = Math.floor(mins / 60); timeEl.textContent = hrs + '小时前'; }
+    }
+
+    contentEl.className = '';
+    contentEl.innerHTML = `<div class="prev-info-grid">
+      <div class="prev-info-item"><span class="prev-info-label">方位</span><span class="prev-info-value">${dir}${azi}</span></div>
+      <div class="prev-info-item"><span class="prev-info-label">距离</span><span class="prev-info-value">${dist}</span></div>
+      <div class="prev-info-item"><span class="prev-info-label">呼号</span><span class="prev-info-value">${callsign}</span></div>
+    </div>`;
+  },
+
   addQsoItem(qso) {
     this.qsoList.unshift(qso);
     this.renderQsoList();
@@ -819,6 +930,7 @@ const App = {
       first.classList.add('slide-in');
     }
     this.updateQsoCount();
+    this.renderPrevCard();
   },
 
   updateQsoCount() {
