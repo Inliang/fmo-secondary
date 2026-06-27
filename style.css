@@ -1060,7 +1060,8 @@ body {
 /* --- QSO Table --- */
 .qso-row {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
   padding: 8px 16px;
   font-family: var(--font-mono);
   transition: background 0.2s var(--ease-out);
@@ -1071,12 +1072,6 @@ body {
 }
 .qso-row.is-speaking {
   background: var(--accent-bg);
-}
-
-.qso-main {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
 }
 
 .qso-accent {
@@ -1096,6 +1091,15 @@ body {
   font-size: var(--text-base);
 }
 
+.qso-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
 .qso-grid {
   font-size: var(--text-base);
   padding: 2px 6px;
@@ -1105,29 +1109,27 @@ body {
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .qso-grid:hover {
   background: var(--accent-bg-strong);
 }
 
+.qso-info-meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .qso-time {
-  margin-left: auto;
   font-size: var(--text-base);
   color: var(--text-muted);
   white-space: nowrap;
   flex-shrink: 0;
   font-feature-settings: "tnum";
-}
-
-.qso-meta {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
-  line-height: 1.5;
-  padding-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* --- Recent speakers mini list (dynamic from app.js) --- */

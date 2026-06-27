@@ -940,6 +940,10 @@ const App = {
         }
         if (list.length === 0) break;
 
+        if (page === 0 && list.length > 0) {
+          console.log('[FMO-DEBUG-QSO] 第一条 QSO 完整字段:', JSON.stringify(list[0]));
+        }
+
         all.push(...list);
 
         if (list.length < pageSize) break;
@@ -970,29 +974,29 @@ const App = {
         : '--';
       const callsign = item.toCallsign ?? item.callsign ?? '--';
       const grid = item.grid ?? item.locator ?? '';
-      const gridQth = grid ? (this._gridLocationCache[grid] || grid) : '';
 
       // 触发异步反查（不阻塞渲染）
       if (grid && !this._gridLocationCache[grid]) {
         this._resolveGridLocation(grid);
       }
 
-      // 下排 meta 行：QTH · 留言 · 中继
+      // meta：QTH · 留言 · 中继（仅已缓存的 QTH，无缓存时不显示以免重复网格码）
       const metaParts = [];
-      if (gridQth) metaParts.push(gridQth);
+      const qth = this._gridLocationCache[grid] || '';
+      if (qth) metaParts.push(qth);
       const memo = (item.memo ?? item.message ?? '').trim();
       if (memo) metaParts.push(memo);
       const relay = (item.serverName ?? item.stationName ?? '').trim();
       if (relay) metaParts.push(relay);
 
       return `<div class="qso-row">
-        <div class="qso-main">
-          <span class="qso-accent"></span>
-          <span class="qso-callsign">${callsign}</span>
+        <span class="qso-accent"></span>
+        <span class="qso-callsign">${callsign}</span>
+        <span class="qso-info">
           ${grid ? '<a class="qso-grid" href="javascript:void(0)" title="复制呼号并打开地图 — ' + callsign + '" data-callsign="' + callsign + '">' + grid + '</a>' : ''}
-          <span class="qso-time">${timeStr}</span>
-        </div>
-        ${metaParts.length ? '<div class="qso-meta">' + metaParts.join(' · ') + '</div>' : ''}
+          ${metaParts.length ? '<span class="qso-info-meta">' + metaParts.join(' · ') + '</span>' : ''}
+        </span>
+        <span class="qso-time">${timeStr}</span>
       </div>`;
     }).join('');
 
