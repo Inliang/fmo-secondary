@@ -504,6 +504,7 @@ body {
   padding: 4px 12px;
   background: var(--bg-hover);
   color: var(--text-secondary);
+  border: none;
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 500;
@@ -512,6 +513,9 @@ body {
   cursor: pointer;
   transition: background 0.2s var(--ease-out);
   box-shadow: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 .refresh-btn:hover {
   background: var(--bg-card);
