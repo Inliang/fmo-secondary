@@ -970,15 +970,33 @@ const App = {
         : '--';
       const callsign = item.toCallsign ?? item.callsign ?? '--';
       const grid = item.grid ?? item.locator ?? '';
-      return `<div class="item-row">
-        <span class="item-accent-indicator"></span>
-        <span class="item-callsign">${callsign}</span>
-        ${grid ? '<a class="item-grid" href="javascript:void(0)" title="复制呼号并打开地图 — ' + callsign + '" data-callsign="' + callsign + '">' + grid + '</a>' : ''}
-        <span class="item-time">${timeStr}</span>
+      const gridQth = grid ? (this._gridLocationCache[grid] || grid) : '';
+
+      // 触发异步反查（不阻塞渲染）
+      if (grid && !this._gridLocationCache[grid]) {
+        this._resolveGridLocation(grid);
+      }
+
+      // 下排 meta 行：QTH · 留言 · 中继
+      const metaParts = [];
+      if (gridQth) metaParts.push(gridQth);
+      const memo = (item.memo ?? item.message ?? '').trim();
+      if (memo) metaParts.push(memo);
+      const relay = (item.serverName ?? item.stationName ?? '').trim();
+      if (relay) metaParts.push(relay);
+
+      return `<div class="qso-row">
+        <div class="qso-main">
+          <span class="qso-accent"></span>
+          <span class="qso-callsign">${callsign}</span>
+          ${grid ? '<a class="qso-grid" href="javascript:void(0)" title="复制呼号并打开地图 — ' + callsign + '" data-callsign="' + callsign + '">' + grid + '</a>' : ''}
+          <span class="qso-time">${timeStr}</span>
+        </div>
+        ${metaParts.length ? '<div class="qso-meta">' + metaParts.join(' · ') + '</div>' : ''}
       </div>`;
     }).join('');
 
-    container.querySelectorAll('.item-grid').forEach(el => {
+    container.querySelectorAll('.qso-grid').forEach(el => {
       el.addEventListener('click', (e) => {
         e.preventDefault();
         const callsign = el.dataset.callsign;
@@ -1042,7 +1060,7 @@ const App = {
   addQsoItem(qso) {
     this.qsoList.unshift(qso);
     this.renderQsoList();
-    const first = document.querySelector('.item-row');
+    const first = document.querySelector('.qso-row');
     if (first) {
       first.classList.add('new-highlight');
       first.classList.add('slide-in');
@@ -1142,6 +1160,7 @@ const App = {
       if (this._currentSpeaker && this._currentSpeaker.grid === grid) {
         this.renderSpeakingBar();
       }
+      this.renderQsoList();
     } catch (e) {}
   },
 

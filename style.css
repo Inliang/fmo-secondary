@@ -1057,26 +1057,29 @@ body {
   font-family: var(--font-sans);
 }
 
-/* --- QSO Table (item-row dynamic classes from app.js) --- */
-.item-row {
+/* --- QSO Table --- */
+.qso-row {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
+  flex-direction: column;
   padding: 8px 16px;
   font-family: var(--font-mono);
-  font-size: var(--text-base);
   transition: background 0.2s var(--ease-out);
   border-bottom: 1px solid var(--border-divider);
-  box-shadow: none;
 }
-.item-row:hover {
+.qso-row:hover {
   background: var(--bg-hover);
 }
-.item-row.is-speaking {
+.qso-row.is-speaking {
   background: var(--accent-bg);
 }
 
-.item-accent-indicator {
+.qso-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.qso-accent {
   width: 3px;
   height: 3px;
   border-radius: 50%;
@@ -1085,14 +1088,15 @@ body {
   opacity: 0.6;
 }
 
-.item-callsign {
+.qso-callsign {
   font-weight: 600;
   color: var(--text-primary);
   min-width: 70px;
   white-space: nowrap;
+  font-size: var(--text-base);
 }
 
-.item-grid {
+.qso-grid {
   font-size: var(--text-base);
   padding: 2px 6px;
   background: var(--accent-bg);
@@ -1102,15 +1106,27 @@ body {
   text-decoration: none;
   white-space: nowrap;
 }
-.item-grid:hover {
+.qso-grid:hover {
   background: var(--accent-bg-strong);
 }
 
-.item-time {
+.qso-time {
   margin-left: auto;
   font-size: var(--text-base);
   color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
   font-feature-settings: "tnum";
+}
+
+.qso-meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  padding-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -1478,10 +1494,10 @@ body {
     transform: translateY(0);
   }
 }
-.item-row.slide-in {
+.qso-row.slide-in {
   animation: slide-in 0.35s var(--ease-in-out);
 }
-.item-row.new-highlight {
+.qso-row.new-highlight {
   background: rgba(0, 214, 143, 0.08);
 }
 
@@ -1569,5 +1585,5 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .compass-arrow { transition: none; }
   .status-dot.connecting { animation: none; }
-  .item-row.slide-in { animation: none; }
+  .qso-row.slide-in { animation: none; }
 }
