@@ -700,9 +700,9 @@ const App = {
   // ============ 服务器列表 ============
 
   async fetchServerListAll() {
-    const pageSize = 100, maxPages = 50;
+    const pageSize = 20, maxPages = 50;
     const all = [];
-    console.log('[FMO-DEBUG-SERVER] fetchServerListAll 开始，pageSize=100, maxPages=50');
+    console.log('[FMO-DEBUG-SERVER] fetchServerListAll 开始，pageSize=20, maxPages=50');
 
     try {
       for (let i = 0; i < maxPages; i++) {
