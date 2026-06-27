@@ -1,5 +1,6 @@
 /* ============================================================
    FMO 副屏伴侣 — app.js v8
+   v0.4.14: 性能优化(超时5s/分页100/200) + V2 code兼容 + 新增天线/频点/硬件号API
    v0.4.13: 修复 V2 协议响应匹配 — isResponseLike 加入 event==='ok' 判别
    v0.4.12: 修复 RESPONSE_ALIASES (getListResponse) + 响应匹配兼容 V2 协议 event 字段
    v0.4.0: 推翻四象限布局，FMO-Dashboard 风格纵向信息流
@@ -297,7 +298,7 @@ const App = {
         next.reject(new Error(`超时: ${next.req.type}/${next.req.subType}`));
         this._processQueue();
       }
-    }, 10000);
+    }, 5000);
     const flight = { ...next, timer };
     this._inFlight = flight;
     this.ws.send(JSON.stringify(next.req));
@@ -463,7 +464,7 @@ const App = {
     tasks.push((async () => {
       try {
         const r = await this.send({ type: 'user', subType: 'getInfo' });
-        if (r.code === 0 && r.data?.callsign) {
+        if ((r.code === 0 || r.code === undefined) && r.data?.callsign) {
           this.myCallsign = r.data.callsign;
         }
       } catch (e) { console.warn('user:', e.message); }
@@ -473,7 +474,7 @@ const App = {
     tasks.push((async () => {
       try {
         const r = await this.send({ type: 'config', subType: 'getCordinate' });
-        if (r.code === 0 && r.data && typeof r.data === 'object') {
+        if ((r.code === 0 || r.code === undefined) && r.data && typeof r.data === 'object') {
           this._myLat = r.data.latitude;
           this._myLon = r.data.longitude;
           const grid = this.latLonToGrid(r.data.latitude, r.data.longitude);
@@ -487,7 +488,7 @@ const App = {
     tasks.push((async () => {
       try {
         const r = await this.send({ type: 'system', subType: 'getInfo' });
-        if (r.code === 0 && r.data) {
+        if ((r.code === 0 || r.code === undefined) && r.data) {
           const verEl = document.getElementById('dev-version');
           const macEl = document.getElementById('dev-mac');
           if (verEl && (r.data.version || r.data.ver)) verEl.textContent = r.data.version || r.data.ver;
@@ -500,7 +501,7 @@ const App = {
     tasks.push((async () => {
       try {
         const r = await this.send({ type: 'radio', subType: 'getVersion' });
-        if (r.code === 0 && r.data) {
+        if ((r.code === 0 || r.code === undefined) && r.data) {
           const verEl = document.getElementById('dev-version');
           if (verEl && (r.data.version || r.data.ver)) verEl.textContent = r.data.version || r.data.ver;
         }
@@ -511,7 +512,7 @@ const App = {
     tasks.push((async () => {
       try {
         const r = await this.send({ type: 'config', subType: 'getSystemInfo' });
-        if (r.code === 0 && r.data) {
+        if ((r.code === 0 || r.code === undefined) && r.data) {
           const verEl = document.getElementById('dev-version');
           const macEl = document.getElementById('dev-mac');
           if (verEl && (r.data.version || r.data.ver || r.data.fwVer)) {
@@ -519,6 +520,63 @@ const App = {
           }
           if (macEl && (r.data.mac || r.data.wifiMac)) {
             macEl.textContent = r.data.mac || r.data.wifiMac;
+          }
+        }
+      } catch (e) {}
+    })());
+
+    // config.getUserPhyDeviceName → 硬件型号
+    tasks.push((async () => {
+      try {
+        const r = await this.send({ type: 'config', subType: 'getUserPhyDeviceName' });
+        if ((r.code === 0 || r.code === undefined) && r.data) {
+          const hwEl = document.getElementById('dev-hw');
+          if (hwEl) {
+            hwEl.textContent = r.data.name || r.data.deviceName || r.data.model || '--';
+          }
+        }
+      } catch (e) {}
+    })());
+
+    // config.getUserPhyAnt → 天线类型
+    tasks.push((async () => {
+      try {
+        const r = await this.send({ type: 'config', subType: 'getUserPhyAnt' });
+        if ((r.code === 0 || r.code === undefined) && r.data) {
+          const antEl = document.getElementById('dev-ant');
+          const antName = r.data.name || r.data.ant || r.data.antenna || '';
+          const antH = r.data.height || r.data.antHeight || '';
+          if (antEl) {
+            antEl.textContent = antName + (antH ? ' @' + antH + 'm' : '') || '--';
+          }
+        }
+      } catch (e) {}
+    })());
+
+    // config.getUserPhyAntHeight → 天线高度（备用独立 API）
+    tasks.push((async () => {
+      try {
+        const r = await this.send({ type: 'config', subType: 'getUserPhyAntHeight' });
+        if ((r.code === 0 || r.code === undefined) && r.data) {
+          const antEl = document.getElementById('dev-ant');
+          const h = r.data.height || r.data.antHeight || r.data.value;
+          if (antEl && h != null && (antEl.textContent === '--' || !antEl.textContent.includes('@'))) {
+            antEl.textContent = (antEl.textContent === '--' ? '' : antEl.textContent) + ' @' + h + 'm';
+          }
+        }
+      } catch (e) {}
+    })());
+
+    // config.getUserPhyFreq → 用户物理频点设置
+    tasks.push((async () => {
+      try {
+        const r = await this.send({ type: 'config', subType: 'getUserPhyFreq' });
+        if ((r.code === 0 || r.code === undefined) && r.data) {
+          const freqEl = document.getElementById('dev-user-freq');
+          const freq = r.data.frequency ?? r.data.freq ?? r.data.rx_freq;
+          if (freqEl && freq != null && freq > 0) {
+            const mhz = freq > 10000 ? (freq / 1e6).toFixed(4) : (freq / 1000).toFixed(4);
+            freqEl.textContent = mhz + ' MHz';
           }
         }
       } catch (e) {}
@@ -548,7 +606,7 @@ const App = {
 
     try {
       const r = await this.send({ type: 'radio', subType: 'getRxFrequency' });
-      if (r.code === 0 && r.data) {
+      if ((r.code === 0 || r.code === undefined) && r.data) {
         const freq = r.data.frequency ?? r.data.rx_freq ?? r.data.freq;
         if (freq != null && freq > 0) {
           const mhz = freq > 10000 ? freq / 1e6 : freq / 1000;
@@ -562,7 +620,7 @@ const App = {
     // 回退：尝试 radio.getStatus（部分固件版本）
     try {
       const r = await this.send({ type: 'radio', subType: 'getStatus' });
-      if (r.code === 0 && r.data) {
+      if ((r.code === 0 || r.code === undefined) && r.data) {
         const rx = r.data.rx_freq ?? r.data.rxFrequency ?? r.data.frequency;
         const tx = r.data.tx_freq ?? r.data.txFrequency;
         if (rx != null && rx > 0) {
@@ -623,7 +681,7 @@ const App = {
   // ============ 服务器列表 ============
 
   async fetchServerListAll() {
-    const pageSize = 20, maxPages = 50;
+    const pageSize = 100, maxPages = 50;
     const all = [];
 
     try {
@@ -655,7 +713,7 @@ const App = {
     // 当前服务器
     try {
       const r = await this.send({ type: 'station', subType: 'getCurrent' });
-      if (r.code === 0 && r.data) {
+      if ((r.code === 0 || r.code === undefined) && r.data) {
         this.currentServerName = r.data.name || '';
         this._prevServer = this.currentServerName;
         this._showServerInfo();
@@ -784,7 +842,7 @@ const App = {
       if (uid !== undefined) data.uid = uid;
 
       const resp = await this.send({ type: 'station', subType: 'setCurrent', data });
-      if (resp.code === 0) {
+      if (resp.code === 0 || resp.code === undefined) {
         this._showServerInfo();
         this.renderServerList();
         this.renderServerSidebar();
@@ -810,7 +868,7 @@ const App = {
   // ============ QSO 列表 ============
 
   async fetchQsoListAll() {
-    const pageSize = 20;
+    const pageSize = 200;
     const maxPages = 200;
     const all = [];
 
@@ -821,7 +879,7 @@ const App = {
           subType: 'getListRange',
           data: { start, count: pageSize }
         });
-        if (resp.code !== 0) break;
+        if (resp.code !== undefined && resp.code !== 0) break;
         const payload = resp.data;
         let list;
         if (Array.isArray(payload)) {
