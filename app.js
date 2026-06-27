@@ -713,6 +713,7 @@ const App = {
         });
         // code 明确为错误码时中止（部分固件不返回 code，仅 data 有值时继续）
         if (resp.code !== undefined && resp.code !== 0) break;
+        if (i === 0) console.log('[FMO-DEBUG-SERVER] 第1页原始响应:', JSON.stringify(resp));
         const payload = resp.data;
         let list;
         if (Array.isArray(payload)) {
