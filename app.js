@@ -724,8 +724,9 @@ const App = {
         all.push(...list);
         if (list.length < pageSize) break;
       }
-      this.serverList = all;
     } catch (e) { console.warn('station list:', e.message); }
+
+    this.serverList = all;
 
     // 当前服务器
     try {
