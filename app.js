@@ -466,12 +466,14 @@ const App = {
   // ============ 数据获取 ============
 
   async fetchAllData() {
+    console.log('[FMO-DEBUG-SERVER] fetchAllData 即将调用 fetchServerListAll');
     await Promise.all([
       this.fetchDeviceInfo(),
       this.fetchServerListAll(),
       this.fetchQsoListAll(),
       this.fetchRadioInfo()
     ]);
+    console.log('[FMO-DEBUG-SERVER] fetchAllData 中 fetchServerListAll 已完成');
   },
 
   async fetchDeviceInfo() {
@@ -700,6 +702,7 @@ const App = {
   async fetchServerListAll() {
     const pageSize = 100, maxPages = 50;
     const all = [];
+    console.log('[FMO-DEBUG-SERVER] fetchServerListAll 开始，pageSize=100, maxPages=50');
 
     try {
       for (let i = 0; i < maxPages; i++) {
@@ -720,11 +723,14 @@ const App = {
         } else {
           list = [];
         }
+        console.log('[FMO-DEBUG-SERVER] 第 ' + (i + 1) + ' 页返回，listLength=' + list.length + ', respKeys=' + (payload && typeof payload === 'object' ? Object.keys(payload).join(',') : 'N/A'));
         if (list.length === 0) break;
         all.push(...list);
         if (list.length < pageSize) break;
       }
-    } catch (e) { console.warn('station list:', e.message); }
+    } catch (e) { console.warn('station list:', e.message); console.log('[FMO-DEBUG-SERVER] 异常: ' + e.message); }
+
+    console.log('[FMO-DEBUG-SERVER] 循环结束，共累积 ' + all.length + ' 条');
 
     this.serverList = all;
 
@@ -766,6 +772,8 @@ const App = {
   },
 
   renderServerList() {
+    console.log('[FMO-DEBUG-SERVER] renderServerList 被调用，serverList 长度=' + (this.serverList ? this.serverList.length : 'undefined'));
+
     const container = document.getElementById('server-list-container');
     if (!container) return;
 
@@ -809,6 +817,7 @@ const App = {
     container.querySelectorAll('.server-item').forEach(el => {
       el.addEventListener('click', () => this.switchServer(el.dataset.serverName));
     });
+    console.log('[FMO-DEBUG-SERVER] renderServerList 完成，渲染了 ' + filtered.length + ' 项');
   },
 
   renderServerSidebar() {
