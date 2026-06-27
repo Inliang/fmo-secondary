@@ -269,14 +269,6 @@ const App = {
     } else if (connected) {
       dot.className = 'status-dot connected';
       text.textContent = '已连接';
-      // 设备 IP 显示
-      if (this.hostPort) {
-        const ipEl = document.getElementById('dev-ip');
-        const ipDisplayEl = document.getElementById('ac-ip-display');
-        const ip = this.hostPort.split(':')[0];
-        if (ipEl) ipEl.textContent = ip;
-        if (ipDisplayEl) ipDisplayEl.textContent = this.hostPort;
-      }
     } else {
       dot.className = 'status-dot';
       text.textContent = '未连接';
@@ -813,15 +805,11 @@ const App = {
     const nameEl = document.getElementById('server-name-display');
     const pingEl = document.getElementById('server-ping');
     const addrEl = document.getElementById('server-addr');
-    const ipDisplayEl = document.getElementById('ac-ip-display');
 
     if (nameEl) nameEl.textContent = this.currentServerName || '--';
     if (addrEl) {
       const host = this.hostPort || '--';
       addrEl.textContent = host;
-    }
-    if (ipDisplayEl && this.hostPort) {
-      ipDisplayEl.textContent = this.hostPort;
     }
 
     // Ping show from cache

@@ -537,15 +537,6 @@ body {
   font-family: var(--font-mono);
 }
 
-.ip-display {
-  padding: 4px 10px;
-  background: var(--bg-hover);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-feature-settings: "tnum";
-  box-shadow: 0 0 0 1px var(--border-divider);
-}
-
 .refresh-btn {
   padding: 4px 12px;
   background: var(--bg-hover);
