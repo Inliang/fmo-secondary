@@ -13,7 +13,7 @@ function normalizeHost(addr) {
 
 /* FmoDeck 同款：响应 subType 别名映射 */
 const RESPONSE_ALIASES = {
-  station: { getListRange: 'getListRangeResponse' },
+  station: { getListRange: 'getListResponse' },
   qso: { getListRange: 'getListResponse' }
 };
 
