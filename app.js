@@ -595,6 +595,8 @@ const App = {
     tasks.push((async () => {
       try {
         const r = await this.send({ type: 'config', subType: 'getUserPhyFreq' });
+        console.log('[FMO-DEBUG-FREQ] getUserPhyFreq 原始响应:', JSON.stringify(r));
+        console.log('[FMO-DEBUG-FREQ] freq 值:', r?.data?.freq, '类型:', typeof r?.data?.freq);
         if ((r.code === 0 || r.code === undefined) && r.data) {
           const freqEl = document.getElementById('dev-user-freq');
           const freq = r.data.frequency ?? r.data.freq ?? r.data.rx_freq;
@@ -609,6 +611,8 @@ const App = {
               const band = this._freqToBand(parseFloat(mhz));
               lineEl.textContent = `${mhz} MHz · ${band}${this._currentMode ? ' · ' + this._currentMode : ''}`;
             }
+          } else if (!freq || freq === 0) {
+            console.log('[FMO-DEBUG-FREQ] getUserPhyFreq 响应无 freq 字段或 freq=0, data keys:', Object.keys(r.data || {}));
           }
         }
       } catch (e) {}
