@@ -145,6 +145,34 @@ const App = {
       });
     }
 
+    // 服务器搜索弹窗（浮动搜索框）
+    const searchTrigger = $('server-search-trigger');
+    const searchPopup = $('server-search-popup');
+    const searchInput = $('server-search-input');
+    const searchResults = $('server-search-results');
+    if (searchTrigger && searchPopup) {
+      searchTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const visible = searchPopup.style.display !== 'none';
+        searchPopup.style.display = visible ? 'none' : 'flex';
+        if (!visible && searchInput) {
+          searchInput.value = '';
+          searchInput.focus();
+          this._renderSearchPopup('');
+        }
+      });
+      document.addEventListener('click', (e) => {
+        if (!searchPopup.contains(e.target) && e.target !== searchTrigger) {
+          searchPopup.style.display = 'none';
+        }
+      });
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          this._renderSearchPopup(e.target.value);
+        });
+      }
+    }
+
     // 设置面板（通过右上角按钮触发）
     const cmdSettingsBtn = $('cmd-settings-btn');
     if (cmdSettingsBtn) {
@@ -870,6 +898,65 @@ const App = {
       el.addEventListener('click', () => this.switchServer(el.dataset.serverName));
     });
     console.log('[FMO-DEBUG-SERVER] renderServerList 完成，渲染了 ' + filtered.length + ' 项');
+  },
+
+  _pn(t) {
+    if (!t) return '';
+    const c = t.charCodeAt(0);
+    if (c < 0x4e00 || c > 0x9fff) return t[0].toUpperCase();
+    const map = { 阿:'A',八:'B',擦:'C',大:'D',恶:'E',发:'F',嘎:'G',哈:'H',击:'J',卡:'K',拉:'L',妈:'M',拿:'N',哦:'O',趴:'P',七:'Q',然:'R',撒:'S',他:'T',挖:'W',西:'X',压:'Y',匝:'Z' };
+    for (const [k, v] of Object.entries(map)) { if (c >= k.charCodeAt(0)) return v; }
+    return 'Z';
+  },
+
+  _toPinyinInitials(name) {
+    return (name || '').split('').map(ch => this._pn(ch)).join('').toLowerCase();
+  },
+
+  _renderSearchPopup(query) {
+    const results = $('server-search-results');
+    if (!results) return;
+    const popup = $('server-search-popup');
+    if (!popup) return;
+
+    const q = (query || '').trim().toLowerCase();
+    if (!this.serverList.length) {
+      results.innerHTML = '<div class="server-search-empty">加载中...</div>';
+      popup.style.display = 'flex';
+      return;
+    }
+
+    let filtered = this.serverList;
+    if (q) {
+      filtered = this.serverList.filter(s => {
+        const name = (s.name || '').toLowerCase();
+        if (name.includes(q)) return true;
+        const pinyin = this._toPinyinInitials(s.name || '');
+        if (pinyin.includes(q)) return true;
+        const uid = String(s.uid ?? s._id ?? s.id ?? '').toLowerCase();
+        if (uid.includes(q)) return true;
+        return false;
+      });
+    }
+
+    if (!filtered.length) {
+      results.innerHTML = '<div class="server-search-empty">无匹配服务器</div>';
+    } else {
+      results.innerHTML = filtered.map(s => {
+        const uid = s.uid ?? s._id ?? s.id ?? '--';
+        return `<div class="server-search-item" data-server-name="${s.name}">
+          <span class="server-search-item-name">${s.name || '--'}</span>
+          <span class="server-search-item-uid">#${uid}</span>
+        </div>`;
+      }).join('');
+      results.querySelectorAll('.server-search-item').forEach(el => {
+        el.addEventListener('click', () => {
+          popup.style.display = 'none';
+          this.switchServer(el.dataset.serverName);
+        });
+      });
+    }
+    popup.style.display = 'flex';
   },
 
   renderServerSidebar() {
