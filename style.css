@@ -752,17 +752,22 @@ body {
 
 .server-list-trigger {
   font-size: var(--text-sm);
-  color: var(--accent);
+  color: var(--text-secondary);
   padding: 2px 6px;
-  background: var(--accent-bg);
+  background: var(--bg-hover);
+  border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-family: var(--font-mono);
-  font-weight: 600;
+  font-weight: 500;
   transition: background 0.2s var(--ease-out);
+  box-shadow: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 .server-list-trigger:hover {
-  background: var(--accent-bg-strong);
+  background: var(--bg-card);
 }
 
 .prev-empty,
