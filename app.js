@@ -405,6 +405,7 @@ const App = {
         serverUid: srv.uid || evt.serverUid || '',
       });
       // 同步频率显示
+      console.log('[FMO-DEBUG-FREQ] speaking_start 完整事件:', JSON.stringify(evt));
       const freqHz = evt.frequency ?? evt.rx_freq ?? evt.freq;
       const mode = evt.mode || '';
       if (freqHz != null && freqHz > 0) {
