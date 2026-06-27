@@ -1343,13 +1343,19 @@ const App = {
       bar.classList.remove('active');
       bar.classList.add('idle');
     }
-    // Show placeholder, hide data elements
+    // 空闲时保持 hero 和卡片可见（CSS 通过 .idle 灰度），隐藏占位文字
     const ph = document.getElementById('sb-placeholder');
-    if (ph) ph.style.display = '';
+    if (ph) ph.style.display = 'none';
+    // 清除动态数据文字，保留 -- 默认占位
     ['sb-callsign', 'sb-grid', 'sb-direction', 'sb-distance', 'sb-qth', 'sb-server', 'sb-contact-count', 'sb-elapsed'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) { el.textContent = ''; el.style.display = 'none'; }
+      if (el) { el.textContent = ''; el.style.display = ''; }
     });
+    // 恢复呼号默认占位
+    const csEl = document.getElementById('sb-callsign');
+    if (csEl) csEl.textContent = '--';
+    const dirEl = document.getElementById('sb-direction');
+    if (dirEl) dirEl.textContent = '方位未知';
   },
 
   _addSpeakingRecord(callsign, grid, serverUid, serverName) {
