@@ -734,20 +734,20 @@ body {
 
 .server-card-header {
   width: 100%;
-  background: none;
+  background: #141c24;
   cursor: pointer;
   text-align: left;
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   font-weight: 600;
   letter-spacing: 0.12em;
-  color: var(--text-muted);
+  color: #8899a6;
   text-transform: uppercase;
   padding: 10px 14px 6px 14px;
   transition: background 0.2s var(--ease-out);
 }
 .server-card-header:hover {
-  background: var(--accent-bg);
+  background: var(--bg-hover);
 }
 
 .server-list-trigger {
