@@ -323,7 +323,8 @@ const App = {
         matched = true;
       }
 
-      if (!matched && msg.type === r.type) {
+      // V2: 响应带 event:"ok" 且含 data，通过 type 匹配（排除纯心跳）
+      if (!matched && msg.event === 'ok' && msg.type === r.type && msg.data !== undefined) {
         matched = true;
       }
 
