@@ -16,7 +16,7 @@ function normalizeHost(addr) {
 
 const RESPONSE_ALIASES = {
   station: { getListRange: 'getListResponse' },
-  qso: { getList: 'getListResponse' }
+  qso: { getList: 'getListResponse', getDetail: 'getDetailResponse' }
 };
 
 class PcmTap {
@@ -108,6 +108,7 @@ const App = {
 
   // --- 缓存 ---
   _gridLocationCache: {},
+  _qsoDetailCache: {},
   _gridLocationPending: new Set(),
   _serverLatency: {},
   _serverLatencyPending: {},
@@ -1079,10 +1080,41 @@ const App = {
     } catch (e) { console.warn('qso list:', e.message); }
 
     this.qsoList = all;
+    await this._enrichQsoDetails();
     this.renderQsoList();
     all.forEach(q => { if (q.grid || q.locator) this._resolveGridLocation(q.grid || q.locator); });
     this.updateQsoCount();
     this.renderPrevCard();
+  },
+
+  /* 通过 qso.getDetail 补全列表中 QSO 的留言/中继字段（getList 只返回基础字段） */
+  _enrichQsoDetails: async function () {
+    if (!this._qsoDetailCache) this._qsoDetailCache = {};
+    const toFetch = [];
+    for (let i = 0; i < Math.min(this.qsoList.length, 15); i++) {
+      const item = this.qsoList[i];
+      if (!item.logId) continue;
+      if (this._qsoDetailCache[item.logId]) {
+        Object.assign(item, this._qsoDetailCache[item.logId]);
+        continue;
+      }
+      toFetch.push(item);
+    }
+    if (toFetch.length === 0) return;
+
+    const concurrency = 5;
+    for (let i = 0; i < toFetch.length; i += concurrency) {
+      const batch = toFetch.slice(i, i + concurrency);
+      const results = await Promise.allSettled(batch.map(item =>
+        this.send({ type: 'qso', subType: 'getDetail', data: { logId: item.logId } })
+      ));
+      results.forEach((r, j) => {
+        if (r.status === 'fulfilled' && r.value && r.value.data) {
+          this._qsoDetailCache[batch[j].logId] = r.value.data;
+          Object.assign(batch[j], r.value.data);
+        }
+      });
+    }
   },
 
   renderQsoList() {
