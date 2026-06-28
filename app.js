@@ -498,7 +498,8 @@ const App = {
     }
 
     if (evt.event === 'new_qso') {
-      this.addQsoItem(evt);
+      const d = evt.data || evt;
+      this.addQsoItem(d);
     } else if (evt.event === 'station_update' || evt.event === 'online_change') {
       this.fetchServerList();
     }
@@ -1107,8 +1108,9 @@ const App = {
       const qth = this._gridLocationCache[grid] || grid || '--';
 
       // QTH / 留言 / 中继 — 三列独立，清晰对齐
-      const memo = (item.memo ?? item.message ?? '').trim();
-      const relay = (item.serverName ?? item.stationName ?? '').trim();
+      // 兼容 FMO 设备返回的多种字段名：memo/message/msg/text/content / serverName/stationName/relay/gateway
+      const memo = (item.memo ?? item.message ?? item.msg ?? item.text ?? item.content ?? '').trim();
+      const relay = (item.serverName ?? item.stationName ?? item.relay ?? item.gateway ?? '').trim();
 
       const gridHtml = grid
         ? '<a class="qso-grid" href="javascript:void(0)" title="复制呼号并打开地图 — ' + callsign + '" data-callsign="' + callsign + '">' + grid + '</a>'
