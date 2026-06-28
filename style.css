@@ -926,6 +926,7 @@ body {
   box-shadow: 0 0 0 1px var(--border-divider), inset 0 1px 0 0 rgba(255, 255, 255, 0.02);
   transition: all 0.25s var(--ease-out);
   cursor: default;
+  justify-content: center;
 }
 
 .prev-info-label {
@@ -944,6 +945,7 @@ body {
   color: var(--text-primary);
   font-feature-settings: "tnum";
   text-align: center;
+  white-space: nowrap;
 }
 
 .prev-contact-info {
