@@ -20,6 +20,14 @@ AIGC:
 - HTTPS 页面连接 `ws://` 触发 Mixed Content 警告。新增自动检测 `location.protocol === 'https:'` 升级到 `wss://`
 - 提交 9bcee4e
 
+### 回滚 ws→wss 自动升级（关键回退）
+
+- commit 9bcee4e 的 Mixed Content 修复导致所有 WebSocket 连接全线断开（ERR_CONNECTION_RESET）
+- 根因：FMO 设备（192.168.1.13）仅支持纯 ws://，不支持 wss://
+- 三个端点（/ws, /events, /audio）同时失效，整个 App 不可用
+- 回滚为直接使用 `this.protocol`，Mixed Content 警告不影响功能
+- 提交 055a83f
+
 ### 逆地理编码双层 Fallback 重构
 
 - BigDataCloud API 已彻底不可用（400），且 fetch() 非抛异常导致 fallback 永不触发
