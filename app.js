@@ -105,6 +105,7 @@ const App = {
 
   // --- 缓存 ---
   _gridLocationCache: {},
+  _AMAP_KEY: '06922933c7642e9bb3e0ccc83eef93fd', // 高德地图 Web 服务 Key
   _serverLatency: {},
   _serverLatencyPending: {},
 
@@ -1289,67 +1290,82 @@ const App = {
     return `https://map.fmo.net.cn/#4.6/${ll.lat.toFixed(4)}/${ll.lon.toFixed(4)}`;
   },
 
+  _amapJsonp(url) {
+    return new Promise((resolve, reject) => {
+      const cb = '_amap_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+      const script = document.createElement('script');
+      const timer = setTimeout(() => { cleanup(); reject(new Error('AMap timeout')); }, 8000);
+      const cleanup = () => { clearTimeout(timer); delete window[cb]; if (script.parentNode) script.parentNode.removeChild(script); };
+      window[cb] = (data) => { cleanup(); if (data.status === '1' && data.regeocode) resolve(data.regeocode); else reject(new Error(data.info || 'AMap error')); };
+      script.onerror = () => { cleanup(); reject(new Error('AMap JSONP failed')); };
+      script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
+      document.head.appendChild(script);
+    });
+  },
+
   async _resolveGridLocation(grid) {
     if (!grid || this._gridLocationCache[grid]) return;
-    console.log('[FMO] _resolveGridLocation:', grid);
     const coords = this._gridToLatLon(grid);
     if (!coords) return;
-    console.log('[FMO] grid->latlon:', coords.lat, coords.lon);
     try {
-      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lon}&zoom=10&accept-language=zh`;
-      console.log('[FMO] Nominatim request:', url);
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 5000);
-      const resp = await fetch(url, { headers: { 'User-Agent': 'fmo-secondary/1.0' }, signal: ctrl.signal });
-      clearTimeout(timer);
-      if (!resp.ok) return;
-      const data = await resp.json();
-      const addr = data.address || {};
-      const displayParts = (data.display_name || '').split(',').map(s => s.trim());
+      let state = '', city = '', district = '';
 
-      // Nominatim 中文地址中 city 字段实际对应区/县层级，真正的市在 display_name 中
-      const state = addr.state || addr.province || '';
-      const district = addr.city || addr.county || addr.district || '';
-      let city = addr.city_district || addr.state_district || '';
+      // 主路径：高德地图逆地理编码（国内可用，JSONP 跨域）
+      try {
+        const url = `https://restapi.amap.com/v3/geocode/regeo?key=${this._AMAP_KEY}&location=${coords.lon},${coords.lat}&output=JSON`;
+        const reg = await this._amapJsonp(url);
+        const ac = reg.addressComponent || {};
+        state = ac.province || '';
+        city = ac.city || '';
+        district = ac.district || '';
+        // 直辖市：province == city，不需重复
+        if (state && city && state !== city && state.length > city.length) {
+          city = city;
+        }
+      } catch (amapErr) {
+        console.warn('[FMO] AMap failed, falling back to Nominatim:', amapErr.message || amapErr);
 
-      // 从 display_name 中提取市：位于 district 和 province 之间
-      if (!city && district && state) {
-        const stateIdx = displayParts.indexOf(state);
-        const districtIdx = displayParts.indexOf(district);
-        if (stateIdx >= 0 && districtIdx >= 0 && districtIdx < stateIdx) {
-          // district 和 state 之间的层级是市
-          for (let i = districtIdx + 1; i < stateIdx; i++) {
-            const part = displayParts[i];
-            if (part && !/^\d+$/.test(part) && !part.includes('国')) {
-              city = part;
-              break;
+        // Fallback：Nominatim（国际环境）
+        const nomUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lon}&zoom=10&accept-language=zh`;
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 5000);
+        const resp = await fetch(nomUrl, { headers: { 'User-Agent': 'fmo-secondary/1.0' }, signal: ctrl.signal });
+        clearTimeout(timer);
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const addr = data.address || {};
+        const displayParts = (data.display_name || '').split(',').map(s => s.trim());
+        state = addr.state || addr.province || '';
+        district = addr.city || addr.county || addr.district || '';
+        if (!city && district && state) {
+          const stateIdx = displayParts.indexOf(state);
+          const districtIdx = displayParts.indexOf(district);
+          if (stateIdx >= 0 && districtIdx >= 0 && districtIdx < stateIdx) {
+            for (let i = districtIdx + 1; i < stateIdx; i++) {
+              const part = displayParts[i];
+              if (part && !/^\d+$/.test(part) && !part.includes('国')) { city = part; break; }
             }
           }
         }
-      }
-
-      // 直辖市 / 无 state 字段的回退：从 display_name 中提取城市级名称
-      if (!state && !city) {
-        // 从右向左找到包含"市"的项作为城市名
-        for (let i = displayParts.length - 1; i >= 0; i--) {
-          const part = displayParts[i];
-          if (part && (part.endsWith('市') || part.endsWith('省'))) {
-            city = city || part;
-            break;
+        if (!state && !city) {
+          for (let i = displayParts.length - 1; i >= 0; i--) {
+            const part = displayParts[i];
+            if (part && (part.endsWith('市') || part.endsWith('省'))) { city = city || part; break; }
           }
         }
       }
 
+      // 组装结果
       const parts = [];
       if (state) parts.push(state);
       if (city && !parts.some(p => p.includes(city))) parts.push(city);
       if (district && !parts.some(p => p.includes(district))) parts.push(district);
       const region = parts.join('');
-      this._gridLocationCache[grid] = region;
-      if (this._currentSpeaker && this._currentSpeaker.grid === grid) {
-        this.renderSpeakingBar();
+      if (region) {
+        this._gridLocationCache[grid] = region;
+        if (this._currentSpeaker && this._currentSpeaker.grid === grid) { this.renderSpeakingBar(); }
+        this.renderQsoList();
       }
-      this.renderQsoList();
     } catch (e) {
       console.warn('[FMO] _resolveGridLocation failed for', grid, e.message || e);
     }
