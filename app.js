@@ -1998,6 +1998,7 @@ const App = {
       const freqRaw = (item.frequency ?? item.freq ?? '').toString().trim();
       const mode = (item.mode ?? 'FM').toString().trim().toUpperCase() || 'FM';
       const memo = (item.greeting ?? item.blessing ?? item.memo ?? item.message ?? '').trim();
+      const relay = (item.relayName ?? item.serverName ?? item.stationName ?? item.relay ?? item.gateway ?? '').trim();
       const logId = (item.logId ?? '').toString().trim();
 
       if (!toCallsign || !ts) continue;
@@ -2030,10 +2031,10 @@ const App = {
         lines.push(`<STATION_CALLSIGN:${byteLen(this.myCallsign)}>${this.myCallsign}`);
       }
       if (logId) {
-        const comment = `Server:${this.currentServerName || ''} LogID:${logId}` + (memo ? ` Memo:${memo}` : '');
+        const comment = `Server:${this.currentServerName || ''} LogID:${logId}` + (memo ? ` Memo:${memo}` : '') + (relay ? ` Relay:${relay}` : '');
         lines.push(`<COMMENT:${byteLen(comment)}>${comment}`);
-      } else if (this.currentServerName || memo) {
-        const comment = [this.currentServerName ? `Server:${this.currentServerName}` : '', memo ? `Memo:${memo}` : ''].filter(Boolean).join(' ');
+      } else if (this.currentServerName || memo || relay) {
+        const comment = [this.currentServerName ? `Server:${this.currentServerName}` : '', memo ? `Memo:${memo}` : '', relay ? `Relay:${relay}` : ''].filter(Boolean).join(' ');
         lines.push(`<COMMENT:${byteLen(comment)}>${comment}`);
       }
       lines.push('<EOR>');
