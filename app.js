@@ -222,10 +222,9 @@ const App = {
     this.updateConnectionUI(false, 'connecting');
     const host = normalizeHost(ip);
     this.hostPort = `${host}:${port}`;
-    // HTTPS 页面自动升级 ws→wss，避免 Mixed Content 警告
-    const wsProto = (this.protocol === 'wss' || location.protocol === 'https:') ? 'wss' : 'ws';
-    const wsUrl = `${wsProto}://${this.hostPort}/ws`;
-    const evUrl = `${wsProto}://${this.hostPort}/events`;
+    const p = this.protocol;
+    const wsUrl = `${p}://${this.hostPort}/ws`;
+    const evUrl = `${p}://${this.hostPort}/events`;
 
     try {
       this.ws = new WebSocket(wsUrl);
@@ -258,7 +257,7 @@ const App = {
     } catch (e) {}
 
     try {
-      this.audioWs = new WebSocket(`${wsProto}://${this.hostPort}/audio`);
+      this.audioWs = new WebSocket(`${p}://${this.hostPort}/audio`);
       this.audioWs.binaryType = 'arraybuffer';
       this.audioWs.onopen = () => { this.audioConnected = true; };
       this.audioWs.onmessage = (e) => this.handleAudioFrame(e.data);
