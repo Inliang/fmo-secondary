@@ -13,6 +13,13 @@ AIGC:
 
 ## 2026-06-28
 
+### QSO 留言/中继通过 getDetail 逐条补全（v=0628e → v=0628f）
+
+- 根本原因：V2 API `qso.getList` 只返回 `{logId, timestamp, toCallsign, grid}` 四个基础字段，完全不包含 `toComment`/`relayName`，之前追加字段名提取链是无效修复
+- 方案：新增 `_enrichQsoDetails()` — 对列表前 15 条 QSO 逐条调用 `qso.getDetail` 获取完整记录，以 `_qsoDetailCache` 缓存避免重复请求，并发度 5
+- `RESPONSE_ALIASES.qso` 追加 `getDetail: 'getDetailResponse'`
+- 版本号 bump 至 v=0628f
+
 ### QSO 留言/中继字段名修复 + 版本号 Bump（v=0628d → v=0628e）
 
 - QSO `renderQsoList()` 中留言字段提取链遗漏 `toComment`，中继字段提取链遗漏 `relayName`，导致 FMO V2 API 返回的留言和中继数据始终显示为空 → 在提取链前端追加 `toComment` 和 `relayName`

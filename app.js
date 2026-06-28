@@ -1109,9 +1109,14 @@ const App = {
         this.send({ type: 'qso', subType: 'getDetail', data: { logId: item.logId } })
       ));
       results.forEach((r, j) => {
-        if (r.status === 'fulfilled' && r.value && r.value.data) {
-          this._qsoDetailCache[batch[j].logId] = r.value.data;
-          Object.assign(batch[j], r.value.data);
+        if (r.status === 'fulfilled' && r.value && r.value.code === 0 && r.value.data && r.value.data.log) {
+          const detail = r.value.data.log;
+          this._qsoDetailCache[batch[j].logId] = detail;
+          Object.assign(batch[j], detail);
+        } else if (r.status === 'fulfilled') {
+          console.warn('[FMO-DEBUG-QSO] getDetail 响应异常:', JSON.stringify(r.value).slice(0, 200));
+        } else {
+          console.warn('[FMO-DEBUG-QSO] getDetail 失败:', r.reason?.message || r.reason);
         }
       });
     }
