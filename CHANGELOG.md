@@ -13,6 +13,10 @@ AIGC:
 
 ## 2026-06-28
 
+### 版本号 Bump（v=0628c → v=0628d）
+
+- 搜索弹窗 `$` 修复已部署但浏览器缓存旧版本（v=0628c），错误持续复现 → bump 版本号强制刷新缓存
+
 ### 服务器搜索弹窗修复（第二轮：$ 未定义）
 
 - `_renderSearchPopup()` 中使用了 `$('...')` 简写，但 `$` 仅在 `bindEvents()` 内局部定义，导致 `ReferenceError: $ is not defined`，搜索弹窗完全无法渲染 → 替换为 `document.getElementById()`
