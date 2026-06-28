@@ -754,7 +754,7 @@ body {
    4. SIDEBAR (Right 300px)
    ============================================================ */
 .dashboard-side {
-  width: 272px;
+  width: 250px;
   flex-shrink: 0;
   min-height: 0;
   display: flex;
@@ -776,6 +776,7 @@ body {
 
 .previous-card {
   min-height: 0;
+  max-height: 130px;
 }
 .server-card {
   flex: 1;
@@ -1127,7 +1128,7 @@ body {
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
-  max-height: 380px;
+  max-height: 260px;
   overflow: hidden;
 }
 
@@ -1141,7 +1142,7 @@ body {
 .bottom-split .qso-panel {
   flex: 1;
   min-width: 0;
-  max-height: 380px;
+  max-height: 260px;
 }
 
 .panel-header {
