@@ -30,6 +30,47 @@ AIGC:
 - device-strip 中 CALL 后方新增 UID 参数标签
 - 数据来源 `user.getInfo` 响应的 `uid` 字段
 
+### 日志模块重构
+
+- 更新日志内容从 app.js 抽离到 CHANGELOG.md，还原 app.js 纯净运行日志
+- FMO-DEBUG 调试日志抽离到独立 `logger.js` 模块
+
+---
+
+## 2026-06-28
+
+### 卡片高度固定（flex overflow 修复）
+
+- `.live-table-wrap` 和 `.server-list-sidebar` 添加 `min-height: 0`
+- 修复 flex 子元素默认 `min-height: auto` 导致内容撑破父容器 `max-height` 的问题
+- 最近发言、通联记录、服务器列表卡片高度固定，内容溢出时内部滚动
+
+### 设置面板暗色扁平风格
+
+- 设置面板 overlay-box 改为纯暗色扁平风格（`#0c1117`）
+- 边框透明度提升至 0.12，叠加深度阴影
+- btn-muted / btn-accent 统一 `box-shadow: none` + `outline: none` + `border: none`
+- 输入框回车键触发保存
+
+### UTF-8 编码修复
+
+- `index.html` / `app.js` 从 UTF-16 LE 转为 UTF-8
+- 内嵌 overlay CSS 确保 file:// 协议下样式生效
+- 修复编码问题导致设置按钮无响应的 bug
+
+### 上个通联卡片微调
+
+- 参数值水平居中
+- 参数垂直居中 + 方位值不换行
+
+### 逆地理编码三层 fallback 链路
+
+- 梅登海德网格 → QTH 地址解析重构
+- 修复 `_resolveGridLocation` 调用链与查错能力
+- 修复 display_name 解析缺少市级的 bug（从区与省之间提取市级）
+- Nominatim 中国大陆被墙 → 高德 JSONP（key 类型不匹配）→ BigDataCloud（无需 key）
+- 最终形成 BigDataCloud → 高德 JSONP → Nominatim 三层 fallback 链路
+
 ---
 
 ## 2026-06-21
