@@ -13,6 +13,14 @@ AIGC:
 
 ## 2026-06-28
 
+### 仪表盘布局优化：呼号卡片右边框左移 + prev-card 空间扩展
+
+- `.active-contact-card` 新增 `max-width: calc(100% - 288px)`，右侧留出 20px 呼吸空间，避免呼号卡片贴边到 sidebar
+- `.dashboard-side` 宽度从 250px 增至 260px，为右侧卡片内容提供更多展示空间
+- `.previous-card` `max-height` 从 130px 增至 210px，3 列网格信息（呼号/网格/时间）不再被截断
+- 移动端 `.active-contact-card` 添加 `max-width: 100%` 覆盖桌面约束
+- 提交 b9acf68
+
 ### 修复地理编码重复请求导致 API 耗尽 & QTH 全量回退
 
 - 分析设备日志发现 `_resolveGridLocation` 被 `renderQsoList` 和 `fetchQsoListAll.all.forEach` 双重调用，同一网格码在缓存写入前（异步间隙）通过两次 cache check，导致 2x Amap + 2x Nominatim = 4 个请求/网格码，15 条 QSO = 60+ 并发地理编码请求
