@@ -3,6 +3,13 @@
    No-border design, box-shadow separators, cubic-bezier transitions
    ============================================================ */
 
+/* Pixel Card border animation — CSS Houdini @property */
+@property --pixel-rotate {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
 /* ---------- Variables ---------- */
 :root {
   --accent: #00d68f;
@@ -33,6 +40,11 @@
   --border-card: rgba(255, 255, 255, 0.06);
   --border-active: rgba(255, 255, 255, 0.10);
   --color-divider: rgba(255, 255, 255, 0.04);
+
+  /* Pixel border */
+  --pixel-color: rgba(100, 180, 220, 0.45);
+  --pixel-color-hover: rgba(120, 195, 235, 0.6);
+  --pixel-color-active: rgba(120, 195, 235, 0.7);
 
   /* Spacing scale (4px baseline) */
   --space-1: 4px;
@@ -863,6 +875,7 @@ body {
 }
 
 .server-search-item {
+  position: relative;
   display: flex;
   align-items: center;
   padding: 8px 12px;
@@ -1186,6 +1199,7 @@ body {
 
 /* --- QSO Table --- */
 .qso-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -1261,6 +1275,7 @@ body {
 
 /* --- Recent speakers mini list (dynamic from app.js) --- */
 .recent-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1631,6 +1646,89 @@ body {
 }
 .qso-row.new-highlight {
   background: rgba(0, 214, 143, 0.08);
+}
+
+/* ============================================================
+   9b. PIXEL CARD BORDER (server-search-item / recent-item / qso-row)
+   Pure CSS pixel-marching border via conic-gradient + mask + @property
+   ============================================================ */
+
+/* Keyframe: rotate the custom property 0→360° */
+@keyframes pixel-march {
+  to { --pixel-rotate: 360deg; }
+}
+
+/* ---------- Shared ::before pixel border ---------- */
+.server-search-item::before,
+.recent-item::before,
+.qso-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--pixel-rotate, 0deg),
+    var(--pixel-color)   0deg,
+    var(--pixel-color)  18deg,
+    transparent         18deg,
+    transparent         45deg,
+    var(--pixel-color)  45deg,
+    var(--pixel-color)  63deg,
+    transparent         63deg,
+    transparent         90deg,
+    var(--pixel-color)  90deg,
+    var(--pixel-color) 108deg,
+    transparent        108deg,
+    transparent        135deg,
+    var(--pixel-color) 135deg,
+    var(--pixel-color) 153deg,
+    transparent        153deg,
+    transparent        180deg,
+    var(--pixel-color) 180deg,
+    var(--pixel-color) 198deg,
+    transparent        198deg,
+    transparent        225deg,
+    var(--pixel-color) 225deg,
+    var(--pixel-color) 243deg,
+    transparent        243deg,
+    transparent        270deg,
+    var(--pixel-color) 270deg,
+    var(--pixel-color) 288deg,
+    transparent        288deg,
+    transparent        315deg,
+    var(--pixel-color) 315deg,
+    var(--pixel-color) 333deg,
+    transparent        333deg,
+    transparent        360deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  opacity: 0;
+  transition: opacity 0.3s var(--ease-out);
+}
+
+/* ---------- Hover: border lights up & marches ---------- */
+.server-search-item:hover::before,
+.recent-item:hover::before,
+.qso-row:hover::before {
+  --pixel-color: var(--pixel-color-hover);
+  opacity: 1;
+  animation: pixel-march 4s linear infinite;
+}
+
+/* ---------- Selected / Speaking: border stays lit ---------- */
+.server-search-item.selected::before,
+.recent-item.is-speaking::before,
+.recent-item.is-self::before,
+.qso-row.is-speaking::before {
+  --pixel-color: var(--pixel-color-active);
+  opacity: 1;
+  animation: pixel-march 5s linear infinite;
 }
 
 /* ============================================================
