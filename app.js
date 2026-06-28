@@ -1292,21 +1292,50 @@ const App = {
     const coords = this._gridToLatLon(grid);
     if (!coords) return;
     try {
-      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lon}&zoom=10&accept-language=zh`;
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lon}&zoom=18&accept-language=zh`;
       const resp = await fetch(url, { headers: { 'User-Agent': 'fmo-secondary/1.0' } });
       if (!resp.ok) return;
       const data = await resp.json();
       const addr = data.address || {};
-      const parts = [];
+      const displayParts = (data.display_name || '').split(',').map(s => s.trim());
+
+      // Nominatim 中文地址中 city 字段实际对应区/县层级，真正的市在 display_name 中
       const state = addr.state || addr.province || '';
-      const city = addr.city || '';
-      const district = addr.county || addr.district || addr.town || addr.village || '';
-      if (state) parts.push(state);
-      if (city && !state.includes(city)) parts.push(city);
-      if (district) {
-        const prev = parts[parts.length - 1] || '';
-        if (!prev.includes(district)) parts.push(district);
+      const district = addr.city || addr.county || addr.district || '';
+      let city = addr.city_district || addr.state_district || '';
+
+      // 从 display_name 中提取市：位于 district 和 province 之间
+      if (!city && district && state) {
+        const stateIdx = displayParts.indexOf(state);
+        const districtIdx = displayParts.indexOf(district);
+        if (stateIdx >= 0 && districtIdx >= 0 && districtIdx < stateIdx) {
+          // district 和 state 之间的层级是市
+          for (let i = districtIdx + 1; i < stateIdx; i++) {
+            const part = displayParts[i];
+            if (part && !/^\d+$/.test(part) && !part.includes('国')) {
+              city = part;
+              break;
+            }
+          }
+        }
       }
+
+      // 直辖市 / 无 state 字段的回退：从 display_name 中提取城市级名称
+      if (!state && !city) {
+        // 从右向左找到包含"市"的项作为城市名
+        for (let i = displayParts.length - 1; i >= 0; i--) {
+          const part = displayParts[i];
+          if (part && (part.endsWith('市') || part.endsWith('省'))) {
+            city = city || part;
+            break;
+          }
+        }
+      }
+
+      const parts = [];
+      if (state) parts.push(state);
+      if (city && !parts.some(p => p.includes(city))) parts.push(city);
+      if (district && !parts.some(p => p.includes(district))) parts.push(district);
       const region = parts.join('');
       this._gridLocationCache[grid] = region;
       if (this._currentSpeaker && this._currentSpeaker.grid === grid) {
