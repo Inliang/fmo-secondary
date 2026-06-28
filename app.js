@@ -1075,6 +1075,7 @@ const App = {
 
     this.qsoList = all;
     this.renderQsoList();
+    all.forEach(q => { if (q.grid || q.locator) this._resolveGridLocation(q.grid || q.locator); });
     this.updateQsoCount();
     this.renderPrevCard();
   },
@@ -1090,6 +1091,7 @@ const App = {
 
     // 最新的 15 条
     const items = this.qsoList.slice(0, 15);
+    items.forEach(item => { if (item.grid || item.locator) this._resolveGridLocation(item.grid || item.locator); });
     container.innerHTML = items.map(item => {
       const ts = item.timestamp ? new Date(item.timestamp * 1000) : null;
       const timeStr = ts
@@ -1098,7 +1100,7 @@ const App = {
       const callsign = item.toCallsign ?? item.callsign ?? '--';
       const grid = item.grid ?? item.locator ?? '';
 
-      // QTH：优先缓存命中，否则显示网格码。不主动触发 Nominatim 请求。
+      // QTH：优先缓存命中，否则显示网格码。_resolveGridLocation 已在渲染前异步触发。
       const qth = this._gridLocationCache[grid] || grid || '--';
 
       // meta：QTH · 留言 · 中继（始终显示三列，空数据用占位符）
@@ -1289,11 +1291,17 @@ const App = {
 
   async _resolveGridLocation(grid) {
     if (!grid || this._gridLocationCache[grid]) return;
+    console.log('[FMO] _resolveGridLocation:', grid);
     const coords = this._gridToLatLon(grid);
     if (!coords) return;
+    console.log('[FMO] grid->latlon:', coords.lat, coords.lon);
     try {
-      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lon}&zoom=18&accept-language=zh`;
-      const resp = await fetch(url, { headers: { 'User-Agent': 'fmo-secondary/1.0' } });
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lon}&zoom=10&accept-language=zh`;
+      console.log('[FMO] Nominatim request:', url);
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 5000);
+      const resp = await fetch(url, { headers: { 'User-Agent': 'fmo-secondary/1.0' }, signal: ctrl.signal });
+      clearTimeout(timer);
       if (!resp.ok) return;
       const data = await resp.json();
       const addr = data.address || {};
@@ -1342,7 +1350,9 @@ const App = {
         this.renderSpeakingBar();
       }
       this.renderQsoList();
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[FMO] _resolveGridLocation failed for', grid, e.message || e);
+    }
   },
 
   async _probeServerLatency(s) {
@@ -1466,6 +1476,8 @@ const App = {
       serverUid: data.serverUid || '',
       startedAtMs: Date.now(),
     };
+
+    if (data.grid) this._resolveGridLocation(data.grid);
 
     let serverUid = this._currentSpeaker.serverUid;
     let serverName = this._currentSpeaker.serverName;
