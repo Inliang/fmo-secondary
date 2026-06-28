@@ -105,7 +105,6 @@ const App = {
 
   // --- 缓存 ---
   _gridLocationCache: {},
-  _AMAP_KEY: '06922933c7642e9bb3e0ccc83eef93fd', // 高德地图 Web 服务 Key
   _serverLatency: {},
   _serverLatencyPending: {},
 
@@ -1290,19 +1289,6 @@ const App = {
     return `https://map.fmo.net.cn/#4.6/${ll.lat.toFixed(4)}/${ll.lon.toFixed(4)}`;
   },
 
-  _amapJsonp(url) {
-    return new Promise((resolve, reject) => {
-      const cb = '_amap_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-      const script = document.createElement('script');
-      const timer = setTimeout(() => { cleanup(); reject(new Error('AMap timeout')); }, 8000);
-      const cleanup = () => { clearTimeout(timer); delete window[cb]; if (script.parentNode) script.parentNode.removeChild(script); };
-      window[cb] = (data) => { cleanup(); if (data.status === '1' && data.regeocode) resolve(data.regeocode); else reject(new Error(data.info || 'AMap error')); };
-      script.onerror = () => { cleanup(); reject(new Error('AMap JSONP failed')); };
-      script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
-      document.head.appendChild(script);
-    });
-  },
-
   async _resolveGridLocation(grid) {
     if (!grid || this._gridLocationCache[grid]) return;
     const coords = this._gridToLatLon(grid);
@@ -1310,20 +1296,21 @@ const App = {
     try {
       let state = '', city = '', district = '';
 
-      // 主路径：高德地图逆地理编码（国内可用，JSONP 跨域）
+      // 主路径：BigDataCloud 逆地理编码（免费、无需 key、支持 CORS）
       try {
-        const url = `https://restapi.amap.com/v3/geocode/regeo?key=${this._AMAP_KEY}&location=${coords.lon},${coords.lat}&output=JSON`;
-        const reg = await this._amapJsonp(url);
-        const ac = reg.addressComponent || {};
-        state = ac.province || '';
-        city = ac.city || '';
-        district = ac.district || '';
-        // 直辖市：province == city，不需重复
-        if (state && city && state !== city && state.length > city.length) {
-          city = city;
+        const bdcUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${coords.lat}&longitude=${coords.lon}&localityLanguage=zh`;
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 5000);
+        const resp = await fetch(bdcUrl, { signal: ctrl.signal });
+        clearTimeout(timer);
+        if (resp.ok) {
+          const data = await resp.json();
+          state = data.principalSubdivision || '';   // 省
+          city  = data.city || '';                    // 市
+          district = data.locality || '';              // 区/县
         }
-      } catch (amapErr) {
-        console.warn('[FMO] AMap failed, falling back to Nominatim:', amapErr.message || amapErr);
+      } catch (bdcErr) {
+        console.warn('[FMO] BigDataCloud failed, falling back to Nominatim:', bdcErr.message || bdcErr);
 
         // Fallback：Nominatim（国际环境）
         const nomUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lon}&zoom=10&accept-language=zh`;
