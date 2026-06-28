@@ -13,6 +13,13 @@ AIGC:
 
 ## 2026-06-28
 
+### 修复高德 API Key 缺失 & AudioContext 提前创建 & Mixed Content
+
+- `_AMAP_KEY` 属性从未定义（提交 `2aa9f31` 删除后未恢复），导致 29 次 `INVALID_USER_KEY` 错误，所有逆地理编码回退到 Nominatim 超时
+- AudioContext 在页面加载时创建（无用户手势），触发浏览器 60+ 次安全警告。改为延迟到首次交互时初始化
+- HTTPS 页面连接 `ws://` 触发 Mixed Content 警告。新增自动检测 `location.protocol === 'https:'` 升级到 `wss://`
+- 提交 9bcee4e
+
 ### 逆地理编码双层 Fallback 重构
 
 - BigDataCloud API 已彻底不可用（400），且 fetch() 非抛异常导致 fallback 永不触发
