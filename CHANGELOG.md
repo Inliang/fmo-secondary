@@ -11,6 +11,22 @@ AIGC:
 
 # FMO 副屏伴侣 — 更新日志
 
+## 2026-06-28
+
+### 逆地理编码双层 Fallback 重构
+
+- BigDataCloud API 已彻底不可用（400），且 fetch() 非抛异常导致 fallback 永不触发
+- **移除** BigDataCloud 分支和 `_amapJsonp` JSONP 注入方法
+- **Tier 1**：高德 REST API，`fetch()` 直连（CORS `*` 支持，无 JSONP 脚本注入）
+- **Tier 2**：Nominatim 国际环境兜底
+- 全部错误路径加 `throw` 确保 fallback 可靠触发
+- 提交 f0d7348
+
+### 缓存版本号修复
+
+- app.js 缓存版本号落后于 CSS，统一升级至 v=0628c
+- 提交 576afd8
+
 ## 2026-06-27
 
 ### 服务器列表改为浮动搜索弹窗
