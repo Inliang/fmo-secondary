@@ -423,7 +423,7 @@ body {
 .ac-hero {
   position: relative;
   z-index: 2;
-  padding: 0 24px 24px 24px;
+  padding: 0 24px 14px 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -447,7 +447,7 @@ body {
 
 .ac-callsign {
   font-family: var(--font-mono);
-  font-size: clamp(96px, 12vw, 140px);
+  font-size: clamp(60px, 7vw, 84px);
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.005em;
@@ -576,8 +576,8 @@ body {
 
 .compass {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -619,8 +619,8 @@ body {
 }
 
 .compass-arrow {
-  width: 18px;
-  height: 28px;
+  width: 15px;
+  height: 24px;
   fill: var(--accent);
   filter: drop-shadow(0 0 6px rgba(0, 214, 143, 0.5));
   transition: transform 0.6s var(--ease-in-out);
@@ -633,13 +633,13 @@ body {
   gap: 4px;
 }
 .bearing-meta strong {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
   font-family: var(--font-mono);
 }
 .bearing-meta span {
-  font-size: 15px;
+  font-size: 13px;
   color: var(--text-muted);
   font-family: var(--font-mono);
   font-feature-settings: "tnum";
@@ -754,7 +754,7 @@ body {
    4. SIDEBAR (Right 300px)
    ============================================================ */
 .dashboard-side {
-  width: 320px;
+  width: 272px;
   flex-shrink: 0;
   min-height: 0;
   display: flex;
@@ -1127,7 +1127,7 @@ body {
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
-  max-height: 300px;
+  max-height: 380px;
   overflow: hidden;
 }
 
@@ -1141,7 +1141,7 @@ body {
 .bottom-split .qso-panel {
   flex: 1;
   min-width: 0;
-  max-height: 300px;
+  max-height: 380px;
 }
 
 .panel-header {

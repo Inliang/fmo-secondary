@@ -39,6 +39,13 @@ AIGC:
 
 ## 2026-06-28
 
+### UI 均衡调整
+- 主呼号字体 `clamp(96px,12vw,140px)` → `clamp(60px,7vw,84px)`
+- 罗盘 80px→60px，箭头 18×28→15×24，方位数值字体缩小
+- 主卡片 hero 底部 padding 24px→14px
+- 底部面板 max-height 300px→380px，右侧边栏 320px→272px
+- 缓存版本 v=0628b
+
 ### 卡片高度固定（flex overflow 修复）
 
 - `.live-table-wrap` 和 `.server-list-sidebar` 添加 `min-height: 0`
