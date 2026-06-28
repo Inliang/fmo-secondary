@@ -1289,8 +1289,6 @@ const App = {
     return `https://map.fmo.net.cn/#4.6/${ll.lat.toFixed(4)}/${ll.lon.toFixed(4)}`;
   },
 
-  _amapJsonp(url) { return new Promise((resolve, reject) => { const cb = '_amap_' + Date.now() + '_' + Math.random().toString(36).slice(2); const script = document.createElement('script'); const timer = setTimeout(() => { cleanup(); reject(new Error('AMap timeout')); }, 5000); const cleanup = () => { clearTimeout(timer); delete window[cb]; if (script.parentNode) script.parentNode.removeChild(script); }; window[cb] = (data) => { cleanup(); if (data.status === '1' && data.regeocode) resolve(data.regeocode); else reject(new Error(data.info || 'AMap error')); }; script.onerror = () => { cleanup(); reject(new Error('AMap JSONP failed')); }; script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb; document.head.appendChild(script); }); },
-
   async _resolveGridLocation(grid) {
     if (!grid || this._gridLocationCache[grid]) return;
     const coords = this._gridToLatLon(grid);
@@ -1298,42 +1296,31 @@ const App = {
     try {
       let state = '', city = '', district = '';
 
-      // 主路径：BigDataCloud 逆地理编码（免费、无需 key、支持 CORS）
+      // Tier 1：高德 REST API（CORS *，直接 fetch，无 JSONP）
       try {
-        const bdcUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${coords.lat}&longitude=${coords.lon}&localityLanguage=zh`;
+        const amapUrl = `https://restapi.amap.com/v3/geocode/regeo?key=${this._AMAP_KEY}&location=${coords.lon},${coords.lat}&output=JSON`;
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), 5000);
-        const resp = await fetch(bdcUrl, { signal: ctrl.signal });
+        const resp = await fetch(amapUrl, { signal: ctrl.signal });
         clearTimeout(timer);
-        if (resp.ok) {
-          const data = await resp.json();
-          state = data.principalSubdivision || '';   // 省
-          city  = data.city || '';                    // 市
-          district = data.locality || '';              // 区/县
-        }
-      } catch (bdcErr) {
-        console.warn('[FMO] BigDataCloud failed, falling back to Amap:', bdcErr.message || bdcErr);
+        if (!resp.ok) throw new Error(`Amap HTTP ${resp.status}`);
+        const data = await resp.json();
+        if (data.status !== '1' || !data.regeocode) throw new Error(data.info || 'Amap error');
+        const ac = data.regeocode.addressComponent || {};
+        state = ac.province || '';
+        city = ac.city || '';
+        district = ac.district || '';
+      } catch (amapErr) {
+        console.warn('[FMO] Amap failed, falling back to Nominatim:', amapErr.message || amapErr);
 
-        // Fallback 1：高德 JSONP 逆地理编码
+        // Tier 2：Nominatim（国际环境兜底）
         try {
-          const amapUrl = `https://restapi.amap.com/v3/geocode/regeo?key=${this._AMAP_KEY}&location=${coords.lon},${coords.lat}&output=JSON`;
-          const reg = await this._amapJsonp(amapUrl);
-          const ac = reg.addressComponent || {};
-          state = ac.province || '';
-          city = ac.city || '';
-          district = ac.district || '';
-          // 直辖市 province==city，city 可能为空数组 []，正常留空
-          if (state && city && state !== city && state.length > city.length) { }
-        } catch (amapErr) {
-          console.warn('[FMO] AMap failed, falling back to Nominatim:', amapErr.message || amapErr);
-
-          // Fallback 2：Nominatim（国际环境）
           const nomUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lon}&zoom=10&accept-language=zh`;
           const ctrl = new AbortController();
           const timer = setTimeout(() => ctrl.abort(), 5000);
           const resp = await fetch(nomUrl, { headers: { 'User-Agent': 'fmo-secondary/1.0' }, signal: ctrl.signal });
           clearTimeout(timer);
-          if (!resp.ok) return;
+          if (!resp.ok) throw new Error(`Nominatim HTTP ${resp.status}`);
           const data = await resp.json();
           const addr = data.address || {};
           const displayParts = (data.display_name || '').split(',').map(s => s.trim());
@@ -1355,6 +1342,8 @@ const App = {
               if (part && (part.endsWith('市') || part.endsWith('省'))) { city = city || part; break; }
             }
           }
+        } catch (nomErr) {
+          console.warn('[FMO] Nominatim failed:', nomErr.message || nomErr);
         }
       }
 
