@@ -1542,16 +1542,17 @@ body {
   padding: 9px 22px;
   background: #141c24;
   color: #8899a6;
+  border: none;
   border-radius: var(--radius-sm);
   font-size: var(--text-md);
   cursor: pointer;
   font-family: var(--font-sans);
+  box-shadow: none;
+  outline: none;
   transition: all 0.2s var(--ease-out);
-  border: none;
 }
 .btn-accent:hover {
   background: #0c1117;
-  box-shadow: none;
   color: #c5cdd3;
 }
 
@@ -1559,12 +1560,14 @@ body {
   padding: 9px 22px;
   background: var(--bg-hover);
   color: var(--text-secondary);
+  border: none;
   border-radius: var(--radius-sm);
   font-size: var(--text-md);
   font-family: var(--font-sans);
   cursor: pointer;
-  transition: all 0.2s var(--ease-out);
   box-shadow: none;
+  outline: none;
+  transition: all 0.2s var(--ease-out);
 }
 .btn-muted:hover {
   background: var(--bg-hover);
