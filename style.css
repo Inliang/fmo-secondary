@@ -1218,13 +1218,13 @@ body {
   font-size: var(--text-base);
 }
 
-.qso-info {
-  flex: 1;
-  min-width: 0;
+/* QSO 列：网格码 / QTH / 留言 / 中继 — 四列独立 + 分隔线 */
+.qso-grid-cell {
   display: flex;
   align-items: center;
-  gap: 6px;
-  overflow: hidden;
+  flex-shrink: 0;
+  min-width: 56px;
+  justify-content: center;
 }
 
 .qso-grid {
@@ -1242,13 +1242,46 @@ body {
   background: var(--accent-bg-strong);
 }
 
-.qso-info-meta {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
+.qso-qth-cell {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-base);
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding-right: 10px;
+  border-right: 1px solid var(--border-divider);
+}
+
+.qso-memo-cell {
+  flex: 0 1 auto;
+  min-width: 60px;
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 10px;
+  border-right: 1px solid var(--border-divider);
+  text-align: center;
+}
+
+.qso-relay-cell {
+  flex: 0 1 auto;
+  min-width: 70px;
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 10px;
+  text-align: center;
+}
+
+.qso-cell-empty {
+  color: var(--text-muted);
+  opacity: 0.5;
 }
 
 .qso-time {

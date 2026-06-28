@@ -1106,21 +1106,21 @@ const App = {
       // QTH：优先缓存命中，否则显示网格码。_resolveGridLocation 已在渲染前异步触发。
       const qth = this._gridLocationCache[grid] || grid || '--';
 
-      // meta：QTH · 留言 · 中继（始终显示三列，空数据用占位符）
-      const metaParts = [];
-      metaParts.push(qth);
+      // QTH / 留言 / 中继 — 三列独立，清晰对齐
       const memo = (item.memo ?? item.message ?? '').trim();
-      metaParts.push(memo || '无留言');
       const relay = (item.serverName ?? item.stationName ?? '').trim();
-      metaParts.push(relay || '无中继');
+
+      const gridHtml = grid
+        ? '<a class="qso-grid" href="javascript:void(0)" title="复制呼号并打开地图 — ' + callsign + '" data-callsign="' + callsign + '">' + grid + '</a>'
+        : '';
 
       return `<div class="qso-row">
         <span class="qso-accent"></span>
         <span class="qso-callsign">${callsign}</span>
-        <span class="qso-info">
-          ${grid ? '<a class="qso-grid" href="javascript:void(0)" title="复制呼号并打开地图 — ' + callsign + '" data-callsign="' + callsign + '">' + grid + '</a>' : ''}
-          ${metaParts.length ? '<span class="qso-info-meta">' + metaParts.join(' · ') + '</span>' : ''}
-        </span>
+        ${gridHtml ? '<span class="qso-grid-cell">' + gridHtml + '</span>' : '<span class="qso-grid-cell qso-cell-empty">--</span>'}
+        <span class="qso-qth-cell" title="${qth}">${qth}</span>
+        <span class="qso-memo-cell ${memo ? '' : 'qso-cell-empty'}">${memo || '无留言'}</span>
+        <span class="qso-relay-cell ${relay ? '' : 'qso-cell-empty'}">${relay || '无中继'}</span>
         <span class="qso-time">${timeStr}</span>
       </div>`;
     }).join('');
