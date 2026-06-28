@@ -1289,6 +1289,8 @@ const App = {
     return `https://map.fmo.net.cn/#4.6/${ll.lat.toFixed(4)}/${ll.lon.toFixed(4)}`;
   },
 
+  _amapJsonp(url) { return new Promise((resolve, reject) => { const cb = '_amap_' + Date.now() + '_' + Math.random().toString(36).slice(2); const script = document.createElement('script'); const timer = setTimeout(() => { cleanup(); reject(new Error('AMap timeout')); }, 5000); const cleanup = () => { clearTimeout(timer); delete window[cb]; if (script.parentNode) script.parentNode.removeChild(script); }; window[cb] = (data) => { cleanup(); if (data.status === '1' && data.regeocode) resolve(data.regeocode); else reject(new Error(data.info || 'AMap error')); }; script.onerror = () => { cleanup(); reject(new Error('AMap JSONP failed')); }; script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb; document.head.appendChild(script); }); },
+
   async _resolveGridLocation(grid) {
     if (!grid || this._gridLocationCache[grid]) return;
     const coords = this._gridToLatLon(grid);
@@ -1310,34 +1312,48 @@ const App = {
           district = data.locality || '';              // 区/县
         }
       } catch (bdcErr) {
-        console.warn('[FMO] BigDataCloud failed, falling back to Nominatim:', bdcErr.message || bdcErr);
+        console.warn('[FMO] BigDataCloud failed, falling back to Amap:', bdcErr.message || bdcErr);
 
-        // Fallback：Nominatim（国际环境）
-        const nomUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lon}&zoom=10&accept-language=zh`;
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 5000);
-        const resp = await fetch(nomUrl, { headers: { 'User-Agent': 'fmo-secondary/1.0' }, signal: ctrl.signal });
-        clearTimeout(timer);
-        if (!resp.ok) return;
-        const data = await resp.json();
-        const addr = data.address || {};
-        const displayParts = (data.display_name || '').split(',').map(s => s.trim());
-        state = addr.state || addr.province || '';
-        district = addr.city || addr.county || addr.district || '';
-        if (!city && district && state) {
-          const stateIdx = displayParts.indexOf(state);
-          const districtIdx = displayParts.indexOf(district);
-          if (stateIdx >= 0 && districtIdx >= 0 && districtIdx < stateIdx) {
-            for (let i = districtIdx + 1; i < stateIdx; i++) {
-              const part = displayParts[i];
-              if (part && !/^\d+$/.test(part) && !part.includes('国')) { city = part; break; }
+        // Fallback 1：高德 JSONP 逆地理编码
+        try {
+          const amapUrl = `https://restapi.amap.com/v3/geocode/regeo?key=${this._AMAP_KEY}&location=${coords.lon},${coords.lat}&output=JSON`;
+          const reg = await this._amapJsonp(amapUrl);
+          const ac = reg.addressComponent || {};
+          state = ac.province || '';
+          city = ac.city || '';
+          district = ac.district || '';
+          // 直辖市 province==city，city 可能为空数组 []，正常留空
+          if (state && city && state !== city && state.length > city.length) { }
+        } catch (amapErr) {
+          console.warn('[FMO] AMap failed, falling back to Nominatim:', amapErr.message || amapErr);
+
+          // Fallback 2：Nominatim（国际环境）
+          const nomUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lon}&zoom=10&accept-language=zh`;
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 5000);
+          const resp = await fetch(nomUrl, { headers: { 'User-Agent': 'fmo-secondary/1.0' }, signal: ctrl.signal });
+          clearTimeout(timer);
+          if (!resp.ok) return;
+          const data = await resp.json();
+          const addr = data.address || {};
+          const displayParts = (data.display_name || '').split(',').map(s => s.trim());
+          state = addr.state || addr.province || '';
+          district = addr.city || addr.county || addr.district || '';
+          if (!city && district && state) {
+            const stateIdx = displayParts.indexOf(state);
+            const districtIdx = displayParts.indexOf(district);
+            if (stateIdx >= 0 && districtIdx >= 0 && districtIdx < stateIdx) {
+              for (let i = districtIdx + 1; i < stateIdx; i++) {
+                const part = displayParts[i];
+                if (part && !/^\d+$/.test(part) && !part.includes('国')) { city = part; break; }
+              }
             }
           }
-        }
-        if (!state && !city) {
-          for (let i = displayParts.length - 1; i >= 0; i--) {
-            const part = displayParts[i];
-            if (part && (part.endsWith('市') || part.endsWith('省'))) { city = city || part; break; }
+          if (!state && !city) {
+            for (let i = displayParts.length - 1; i >= 0; i--) {
+              const part = displayParts[i];
+              if (part && (part.endsWith('市') || part.endsWith('省'))) { city = city || part; break; }
+            }
           }
         }
       }
