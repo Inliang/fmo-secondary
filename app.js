@@ -923,9 +923,9 @@ const App = {
   },
 
   _renderSearchPopup(query) {
-    const results = $('server-search-results');
+    const results = document.getElementById('server-search-results');
     if (!results) return;
-    const popup = $('server-search-popup');
+    const popup = document.getElementById('server-search-popup');
     if (!popup) return;
 
     const q = (query || '').trim().toLowerCase();
