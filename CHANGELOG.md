@@ -13,7 +13,13 @@ AIGC:
 
 ## 2026-06-28
 
-### 修复高德 API Key 缺失 & AudioContext 提前创建 & Mixed Content
+### 修复地理编码重复请求导致 API 耗尽 & QTH 全量回退
+
+- 分析设备日志发现 `_resolveGridLocation` 被 `renderQsoList` 和 `fetchQsoListAll.all.forEach` 双重调用，同一网格码在缓存写入前（异步间隙）通过两次 cache check，导致 2x Amap + 2x Nominatim = 4 个请求/网格码，15 条 QSO = 60+ 并发地理编码请求
+- 新增 `_gridLocationPending` Set 追踪进行中的异步调用，彻底消除重复请求
+- 当 Amap 和 Nominatim 均失败时，将网格码本身缓存为 fallback（避免无限重试并保证 QTH 列至少显示网格码而非 `--`）
+- 异常路径 finally 块确保 `_gridLocationPending` 清理，防止死锁
+- 提交 (待提交)
 
 - `_AMAP_KEY` 属性从未定义（提交 `2aa9f31` 删除后未恢复），导致 29 次 `INVALID_USER_KEY` 错误，所有逆地理编码回退到 Nominatim 超时
 - AudioContext 在页面加载时创建（无用户手势），触发浏览器 60+ 次安全警告。改为延迟到首次交互时初始化

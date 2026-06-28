@@ -108,6 +108,7 @@ const App = {
 
   // --- 缓存 ---
   _gridLocationCache: {},
+  _gridLocationPending: new Set(),
   _serverLatency: {},
   _serverLatencyPending: {},
 
@@ -1295,9 +1296,10 @@ const App = {
   },
 
   async _resolveGridLocation(grid) {
-    if (!grid || this._gridLocationCache[grid]) return;
+    if (!grid || this._gridLocationCache[grid] || this._gridLocationPending.has(grid)) return;
+    this._gridLocationPending.add(grid);
     const coords = this._gridToLatLon(grid);
-    if (!coords) return;
+    if (!coords) { this._gridLocationPending.delete(grid); return; }
     try {
       let state = '', city = '', district = '';
 
@@ -1362,9 +1364,15 @@ const App = {
         this._gridLocationCache[grid] = region;
         if (this._currentSpeaker && this._currentSpeaker.grid === grid) { this.renderSpeakingBar(); }
         this.renderQsoList();
+      } else {
+        // 所有地理服务均失败，缓存网格码本身避免重复请求
+        this._gridLocationCache[grid] = grid;
       }
     } catch (e) {
       console.warn('[FMO] _resolveGridLocation failed for', grid, e.message || e);
+      this._gridLocationCache[grid] = grid; // 失败则缓存网格码，避免无限重试
+    } finally {
+      this._gridLocationPending.delete(grid);
     }
   },
 
