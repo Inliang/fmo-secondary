@@ -13,6 +13,12 @@ AIGC:
 
 ## 2026-06-28
 
+### QSO 留言/中继 getDetail 响应路径修正（v=0628f → v=0628g）
+
+- 上轮修复 `_enrichQsoDetails` 取 `r.value.data` 合并到 QSO 列表项 — 但 `send()` 返回完整消息体 `{ type, subType, data: { log: {...} }, code }`，`data.log` 才是真实 QSO 记录
+- 修正为 `r.value.data.log`，加 `code === 0` 校验和异常日志
+- 参照 FMO-Dashboard 的 `detailResponse.log` 数据路径确认此修复
+
 ### QSO 留言/中继通过 getDetail 逐条补全（v=0628e → v=0628f）
 
 - 根本原因：V2 API `qso.getList` 只返回 `{logId, timestamp, toCallsign, grid}` 四个基础字段，完全不包含 `toComment`/`relayName`，之前追加字段名提取链是无效修复

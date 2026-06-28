@@ -1193,9 +1193,10 @@ body {
 .qso-row {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: 8px 16px;
+  gap: 8px;
+  padding: 9px 14px;
   font-family: var(--font-mono);
+  font-size: var(--text-sm);
   transition: background 0.2s var(--ease-out);
   border-bottom: 1px solid var(--border-divider);
 }
@@ -1218,22 +1219,24 @@ body {
 .qso-callsign {
   font-weight: 600;
   color: var(--text-primary);
-  min-width: 70px;
+  flex-shrink: 0;
+  min-width: 68px;
+  max-width: 90px;
   white-space: nowrap;
-  font-size: var(--text-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* QSO 列：网格码 / QTH / 留言 / 中继 — 四列独立 + 分隔线 */
 .qso-grid-cell {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
-  min-width: 56px;
   justify-content: center;
+  flex-shrink: 0;
+  width: 56px;
 }
 
 .qso-grid {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   padding: 2px 6px;
   background: var(--accent-bg);
   color: var(--accent-hover);
@@ -1241,59 +1244,49 @@ body {
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
-  flex-shrink: 0;
 }
 .qso-grid:hover {
   background: var(--accent-bg-strong);
 }
 
 .qso-qth-cell {
-  flex: 1;
+  flex: 2 1 0;
   min-width: 0;
-  font-size: var(--text-base);
   color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding-right: 10px;
-  border-right: 1px solid var(--border-divider);
 }
 
 .qso-memo-cell {
-  flex: 0 1 auto;
-  min-width: 60px;
-  font-size: var(--text-base);
+  flex: 1 1 0;
+  min-width: 0;
   color: var(--text-secondary);
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding: 0 10px;
-  border-right: 1px solid var(--border-divider);
-  text-align: center;
+  white-space: nowrap;
 }
 
 .qso-relay-cell {
-  flex: 0 1 auto;
-  min-width: 70px;
-  font-size: var(--text-base);
+  flex: 1 1 0;
+  min-width: 0;
   color: var(--text-secondary);
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding: 0 10px;
-  text-align: center;
+  white-space: nowrap;
 }
 
 .qso-cell-empty {
   color: var(--text-muted);
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
 .qso-time {
-  font-size: var(--text-base);
+  flex-shrink: 0;
   color: var(--text-muted);
   white-space: nowrap;
-  flex-shrink: 0;
+  width: 100px;
+  text-align: right;
   font-feature-settings: "tnum";
 }
 

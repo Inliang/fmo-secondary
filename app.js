@@ -1159,8 +1159,8 @@ const App = {
         <span class="qso-callsign">${callsign}</span>
         ${gridHtml ? '<span class="qso-grid-cell">' + gridHtml + '</span>' : '<span class="qso-grid-cell qso-cell-empty">--</span>'}
         <span class="qso-qth-cell" title="${qth}">${qth}</span>
-        <span class="qso-memo-cell ${memo ? '' : 'qso-cell-empty'}">${memo || '无留言'}</span>
-        <span class="qso-relay-cell ${relay ? '' : 'qso-cell-empty'}">${relay || '无中继'}</span>
+        <span class="qso-memo-cell ${memo ? '' : 'qso-cell-empty'}" title="${this._esc(memo) || '无留言'}">${memo || '无留言'}</span>
+        <span class="qso-relay-cell ${relay ? '' : 'qso-cell-empty'}" title="${this._esc(relay) || '无中继'}">${relay || '无中继'}</span>
         <span class="qso-time">${timeStr}</span>
       </div>`;
     }).join('');
@@ -1175,6 +1175,8 @@ const App = {
       });
     });
   },
+
+  _esc(str) { return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); },
 
   renderPrevCard() {
     const timeEl = document.getElementById('prev-time-ago');
