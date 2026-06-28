@@ -103,6 +103,9 @@ const App = {
   _currentFreq: '',
   _currentMode: '',
 
+  // --- API Keys ---
+  _AMAP_KEY: 'ba218ba6e82cffc6d3947bc5b2646b3f', // 高德 Web 服务 Key
+
   // --- 缓存 ---
   _gridLocationCache: {},
   _serverLatency: {},
@@ -219,9 +222,10 @@ const App = {
     this.updateConnectionUI(false, 'connecting');
     const host = normalizeHost(ip);
     this.hostPort = `${host}:${port}`;
-    const p = this.protocol;
-    const wsUrl = `${p}://${this.hostPort}/ws`;
-    const evUrl = `${p}://${this.hostPort}/events`;
+    // HTTPS 页面自动升级 ws→wss，避免 Mixed Content 警告
+    const wsProto = (this.protocol === 'wss' || location.protocol === 'https:') ? 'wss' : 'ws';
+    const wsUrl = `${wsProto}://${this.hostPort}/ws`;
+    const evUrl = `${wsProto}://${this.hostPort}/events`;
 
     try {
       this.ws = new WebSocket(wsUrl);
@@ -254,7 +258,7 @@ const App = {
     } catch (e) {}
 
     try {
-      this.audioWs = new WebSocket(`ws://${this.hostPort}/audio`);
+      this.audioWs = new WebSocket(`${wsProto}://${this.hostPort}/audio`);
       this.audioWs.binaryType = 'arraybuffer';
       this.audioWs.onopen = () => { this.audioConnected = true; };
       this.audioWs.onmessage = (e) => this.handleAudioFrame(e.data);
@@ -1799,13 +1803,19 @@ const App = {
   // ============ 音频 ============
 
   initAudioCtx() {
-    try {
-      this.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 8000 });
-      this.gainNode = this.audioCtx.createGain();
-      this.gainNode.gain.value = this.volume / 100;
-      this.gainNode.connect(this.audioCtx.destination);
-    } catch (e) {}
+    this._audioInitDone = false;
+    const init = () => {
+      if (this._audioInitDone) return;
+      try {
+        this.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 8000 });
+        this.gainNode = this.audioCtx.createGain();
+        this.gainNode.gain.value = this.volume / 100;
+        this.gainNode.connect(this.audioCtx.destination);
+        this._audioInitDone = true;
+      } catch (e) { console.warn('[FMO] AudioContext init failed:', e.message); }
+    };
     const resume = () => {
+      init();
       if (this.audioCtx && this.audioCtx.state === 'suspended') {
         this.audioCtx.resume().catch(() => {});
       }
