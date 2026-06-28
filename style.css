@@ -943,6 +943,7 @@ body {
   font-weight: 700;
   color: var(--text-primary);
   font-feature-settings: "tnum";
+  text-align: center;
 }
 
 .prev-contact-info {
