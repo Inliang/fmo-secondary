@@ -13,6 +13,12 @@ AIGC:
 
 ## 2026-06-28
 
+### QSO 留言/中继字段名修复 + 版本号 Bump（v=0628d → v=0628e）
+
+- QSO `renderQsoList()` 中留言字段提取链遗漏 `toComment`，中继字段提取链遗漏 `relayName`，导致 FMO V2 API 返回的留言和中继数据始终显示为空 → 在提取链前端追加 `toComment` 和 `relayName`
+- 证据来源：FmoLogs 开源项目 `ColumnNames: { toComment: '留言', relayName: '中继' }`
+- 版本号 bump 至 v=0628e 强制刷新缓存
+
 ### 版本号 Bump（v=0628c → v=0628d）
 
 - 搜索弹窗 `$` 修复已部署但浏览器缓存旧版本（v=0628c），错误持续复现 → bump 版本号强制刷新缓存

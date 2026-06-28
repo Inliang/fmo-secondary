@@ -1109,9 +1109,9 @@ const App = {
       const qth = this._gridLocationCache[grid] || grid || '--';
 
       // QTH / 留言 / 中继 — 三列独立，清晰对齐
-      // 兼容 FMO 设备返回的多种字段名：memo/message/msg/text/content / serverName/stationName/relay/gateway
-      const memo = (item.memo ?? item.message ?? item.msg ?? item.text ?? item.content ?? '').trim();
-      const relay = (item.serverName ?? item.stationName ?? item.relay ?? item.gateway ?? '').trim();
+      // 兼容 FMO V2 API 返回的多种字段名：toComment/memo/message/msg/text/content / relayName/serverName/stationName/relay/gateway
+      const memo = (item.toComment ?? item.memo ?? item.message ?? item.msg ?? item.text ?? item.content ?? '').trim();
+      const relay = (item.relayName ?? item.serverName ?? item.stationName ?? item.relay ?? item.gateway ?? '').trim();
 
       const gridHtml = grid
         ? '<a class="qso-grid" href="javascript:void(0)" title="复制呼号并打开地图 — ' + callsign + '" data-callsign="' + callsign + '">' + grid + '</a>'
