@@ -13,6 +13,14 @@ AIGC:
 
 ## 2026-06-28
 
+### 上个通联卡片呼号裁切修复
+
+- `.dashboard-side` 宽度 260px → 280px，为三列网格提供更多空间
+- `.prev-info-item` 水平 padding 10px → 6px，节省 8px 左右空间
+- `.prev-info-value` 字号 15px → 14px，添加 `overflow:hidden` + `text-overflow:ellipsis` 兜底
+- `.prev-info-item` 新增 `min-width:0` 防止网格项撑破容器
+- 内容区从 ~55px 增至 ~70px（+27%），彻底解决 6 位呼号被截断问题
+
 ### 仪表盘布局优化：呼号卡片右边框左移 + prev-card 空间扩展
 
 - `.active-contact-card` 新增 `max-width: calc(100% - 288px)`，右侧留出 20px 呼吸空间，避免呼号卡片贴边到 sidebar
