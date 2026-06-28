@@ -1477,10 +1477,10 @@ body {
 .overlay-box {
   width: 360px;
   max-width: 92vw;
-  background: var(--bg-elevated);
-  border-radius: 4px;
-  box-shadow: var(--shadow-elevated);
-  border: 1px solid var(--border-card);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+  border: none;
   padding: 22px;
   display: flex;
   flex-direction: column;
@@ -1510,15 +1510,16 @@ body {
   padding: 9px 12px;
   background: var(--bg-input);
   border-radius: var(--radius-sm);
-  box-shadow: 0 0 0 1px var(--border-card);
+  box-shadow: none;
+  border: none;
   color: var(--text-primary);
   font-size: var(--text-md);
   font-family: var(--font-mono);
-  transition: box-shadow 0.2s var(--ease-out);
+  transition: background 0.2s var(--ease-out);
 }
 .settings-row input:focus,
 .settings-row select:focus {
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+  background: #0e141b;
   outline: none;
 }
 .settings-row select {
@@ -1563,12 +1564,11 @@ body {
   font-family: var(--font-sans);
   cursor: pointer;
   transition: all 0.2s var(--ease-out);
-  box-shadow: 0 0 0 1px var(--border-card);
+  box-shadow: none;
 }
 .btn-muted:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 /* ============================================================
