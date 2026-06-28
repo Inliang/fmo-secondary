@@ -13,6 +13,12 @@ AIGC:
 
 ## 2026-06-28
 
+### 服务器搜索弹窗修复 + AMap Key 加密
+
+- 服务器搜索弹窗 `server-search-popup` 原本嵌套在 `<button>` 内，违反 HTML 规范导致浏览器自动修正 DOM 结构，弹窗脱离定位上下文无法正常工作 → 将 `<button>` 改为 `<div>`，弹窗恢复正常
+- 高德 API Key 明文硬编码于 `app.js` → 采用 XOR+Base64 混淆方案（seed=`FMOSECURE2026`），新增 `_getAmapKey()` 解码方法，`_AMAP_KEY` 常量替换为 Base64 混淆值，所有 API 调用改用 `_getAmapKey()` 获取真实 Key
+- 提交 1615bf5
+
 ### 上个通联卡片呼号裁切修复
 
 - `.dashboard-side` 宽度 260px → 280px，为三列网格提供更多空间

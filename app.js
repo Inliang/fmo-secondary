@@ -104,7 +104,7 @@ const App = {
   _currentMode: '',
 
   // --- API Keys ---
-  _AMAP_KEY: 'ba218ba6e82cffc6d3947bc5b2646b3f', // 高德 Web 服务 Key
+  _AMAP_KEY: 'JCx9Yn0hNGQgCgJRUCAueTd2emFlJ1EFUARweXkxdiU=', // 高德 Web 服务 Key（XOR+Base64 混淆）
 
   // --- 缓存 ---
   _gridLocationCache: {},
@@ -1295,6 +1295,22 @@ const App = {
     return `https://map.fmo.net.cn/#4.6/${ll.lat.toFixed(4)}/${ll.lon.toFixed(4)}`;
   },
 
+  _amapKeyCache: null,
+
+  _getAmapKey() {
+    if (this._amapKeyCache) return this._amapKeyCache;
+    const seed = 'FMOSECURE2026';
+    try {
+      const raw = atob(this._AMAP_KEY);
+      this._amapKeyCache = [...raw].map((ch, i) =>
+        String.fromCharCode(ch.charCodeAt(0) ^ seed.charCodeAt(i % seed.length))
+      ).join('');
+    } catch {
+      this._amapKeyCache = this._AMAP_KEY;
+    }
+    return this._amapKeyCache;
+  },
+
   async _resolveGridLocation(grid) {
     if (!grid || this._gridLocationCache[grid] || this._gridLocationPending.has(grid)) return;
     this._gridLocationPending.add(grid);
@@ -1305,7 +1321,7 @@ const App = {
 
       // Tier 1：高德 REST API（CORS *，直接 fetch，无 JSONP）
       try {
-        const amapUrl = `https://restapi.amap.com/v3/geocode/regeo?key=${this._AMAP_KEY}&location=${coords.lon},${coords.lat}&output=JSON`;
+        const amapUrl = `https://restapi.amap.com/v3/geocode/regeo?key=${this._getAmapKey()}&location=${coords.lon},${coords.lat}&output=JSON`;
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), 5000);
         const resp = await fetch(amapUrl, { signal: ctrl.signal });
