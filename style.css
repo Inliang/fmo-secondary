@@ -536,6 +536,8 @@ html, body {
   transition: background 0.15s;
   position: relative;
   overflow: hidden;
+  font-size: var(--text-sm);
+  font-family: var(--font-mono);
 }
 
 .recent-item:hover {
@@ -560,18 +562,20 @@ html, body {
 
 .recent-main {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  min-width: 0;
-  z-index: 1;
+  gap: 8px;
+  font-size: var(--text-sm);
+  overflow: hidden;
 }
 
 .recent-callsign-line {
   display: flex;
   align-items: center;
   gap: 6px;
+  font-size: var(--text-sm);
+  flex-shrink: 0;
 }
 
 .recent-callsign-line strong {
@@ -590,6 +594,46 @@ html, body {
   color: var(--text-secondary);
   z-index: 1;
   flex-shrink: 0;
+}
+
+.recent-callsign {
+  font-weight: 600;
+  color: var(--text-primary);
+  flex-shrink: 0;
+  min-width: 68px;
+  max-width: 90px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recent-grid-cell {
+  flex-shrink: 0;
+  width: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.recent-relay-cell {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recent-memo-cell {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recent-time {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  white-space: nowrap;
+  width: 100px;
+  text-align: right;
+  font-feature-settings: "tnum";
 }
 
 /* 正在发言高亮 */

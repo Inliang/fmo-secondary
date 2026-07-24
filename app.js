@@ -938,6 +938,32 @@ const App = {
   },
 
   /**
+   * 从 QSO 条目提取 memo/relay（优先级：item.memo → item.remark，item.relay → 路由路径）
+   */
+  _getQsoMemoRelay(item) {
+    if (!item) return {};
+    const memo = item.memo || item.remark || '';
+    let relay = item.relay || '';
+    // relay 也可能是完整路由路径，取最后一段
+    if (relay && relay.includes('→')) {
+      const parts = relay.split('→').map(s => s.trim());
+      relay = parts[parts.length - 1];
+    }
+    if (!memo && !relay) {
+      console.log('[FMO-DEBUG-MR] QSO 无 memo/relay，字段:', Object.keys(item).join(','));
+    }
+    return { memo, relay };
+  },
+
+  /**
+   * HTML 转义
+   */
+  _esc(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  },
+
+  /**
    * 将 Maidenhead 网格转换为经纬度（中心点）
    */
   _gridToLatLon(grid) {
@@ -1298,12 +1324,25 @@ const App = {
       const timeStr = this.formatTimeAgo(item.utcTime, now);
       const isActive = activeCallsigns.has(item.callsign);
       const isSelf = this.isSameOperator(item.callsign, this.myCallsign);
+
+      // QSO 匹配：按呼号查找最近一条 QSO，提取 grid / relay / memo
+      const qsoMatch = this.qsoList.find(q => {
+        const qc = q.toCallsign || q.callsign || '';
+        return this.isSameOperator(qc, item.callsign);
+      });
+      if (!qsoMatch) {
+        console.log('[FMO-DEBUG-SPEAKING] QSO 未匹配到呼号:', item.callsign, '| qsoList 总条数:', this.qsoList.length);
+      }
+      const { memo, relay } = this._getQsoMemoRelay(qsoMatch);
+      const grid = qsoMatch ? (qsoMatch.grid || qsoMatch.locator || '') : '';
+
       return '<div class="recent-item' + (isActive ? ' is-speaking' : '') + (isSelf ? ' is-self' : '') + '" data-callsign="' + item.callsign + '">'
         + '<span class="recent-index-bg">' + (index + 1) + '</span>'
-        + '<div class="recent-main">'
-        + '<div class="recent-callsign-line"><strong>' + item.callsign + '</strong>' + (isSelf ? '<span class="self-tag">您</span>' : '') + '</div>'
-        + '<span>' + timeStr + '</span>'
-        + '</div>'
+        + '<span class="recent-callsign"><strong>' + item.callsign + '</strong>' + (isSelf ? '<span class="self-tag">您</span>' : '') + '</span>'
+        + '<span class="recent-grid-cell">' + (grid ? '<span class="recent-grid">' + grid + '</span>' : '<span class="qso-cell-empty">--</span>') + '</span>'
+        + '<span class="recent-relay-cell">' + (relay ? '<span class="recent-relay">' + this._esc(relay) + '</span>' : '<span class="qso-cell-empty">--</span>') + '</span>'
+        + '<span class="recent-memo-cell">' + (memo ? '<span class="recent-memo">' + this._esc(memo) + '</span>' : '<span class="qso-cell-empty">--</span>') + '</span>'
+        + '<span class="recent-time">' + timeStr + '</span>'
         + '<span class="recent-count">x' + count + '</span>'
         + '</div>';
     }).join('');
